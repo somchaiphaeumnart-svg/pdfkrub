@@ -71,16 +71,86 @@
                 <div class="hidden md:flex items-center gap-3">
                     @auth
                         @if(auth()->user()->is_admin)
-                        <a href="{{ route('admin.index') }}" class="px-3 py-1.5 text-xs bg-brand-500/20 text-brand-300 hover:bg-brand-500/30 border border-brand-500/30 rounded-xl transition-all flex items-center gap-1.5">
+                        <a href="{{ route('admin.index') }}" class="px-3 py-1.5 text-xs bg-brand-500/20 text-brand-300 hover:bg-brand-500/30 border border-brand-500/30 rounded-xl transition-all flex items-center gap-1.5 font-medium">
                             <span>⚙️</span> แอดมิน
                         </a>
                         @endif
-                        <a href="{{ route('dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-sm btn-ghost rounded-xl">
-                            <img src="{{ auth()->user()->avatar_url ?? 'https://ui-avatars.com/api/?name='.urlencode(auth()->user()->name).'&background=1d4ed8&color=fff&size=32' }}"
-                                 alt="{{ auth()->user()->name }}"
-                                 class="w-6 h-6 rounded-full">
-                            {{ auth()->user()->name }}
-                        </a>
+
+                        <!-- User Profile Dropdown -->
+                        <div class="relative" x-data="{ userMenuOpen: false }">
+                            <button @click="userMenuOpen = !userMenuOpen"
+                                    @click.away="userMenuOpen = false"
+                                    class="flex items-center gap-2 px-3 py-1.5 text-sm btn-ghost rounded-xl border border-white/10 hover:border-white/20 transition-all cursor-pointer">
+                                <img src="{{ auth()->user()->avatar_url ?? 'https://ui-avatars.com/api/?name='.urlencode(auth()->user()->name).'&background=1d4ed8&color=fff&size=32' }}"
+                                     alt="{{ auth()->user()->name }}"
+                                     class="w-6 h-6 rounded-full">
+                                <span class="max-w-36 truncate font-medium text-white text-xs">{{ auth()->user()->name }}</span>
+                                <svg class="w-3.5 h-3.5 text-slate-400 transition-transform" :class="userMenuOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/>
+                                </svg>
+                            </button>
+
+                            <!-- Dropdown Menu -->
+                            <div x-show="userMenuOpen"
+                                 x-transition:enter="transition ease-out duration-150"
+                                 x-transition:enter-start="opacity-0 scale-95 -translate-y-1"
+                                 x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                                 x-transition:leave="transition ease-in duration-100"
+                                 x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                                 x-transition:leave-end="opacity-0 scale-95 -translate-y-1"
+                                 class="absolute right-0 mt-2 w-60 glass rounded-2xl p-2 border border-white/10 shadow-2xl z-50 divide-y divide-white/[0.08]"
+                                 style="display:none">
+                                
+                                <!-- User Info -->
+                                <div class="px-3 py-2.5">
+                                    <p class="text-xs font-bold text-white truncate">{{ auth()->user()->name }}</p>
+                                    <p class="text-[11px] text-slate-400 truncate">{{ auth()->user()->email }}</p>
+                                    <div class="mt-1.5">
+                                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 font-semibold uppercase">
+                                            {{ auth()->user()->getActivePlan()->display_name_th ?? auth()->user()->getActivePlan()->name }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Menu Links -->
+                                <div class="py-1">
+                                    <a href="{{ route('dashboard') }}" class="flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors">
+                                        <span>📊</span> แดชบอร์ด
+                                    </a>
+                                    <a href="{{ route('dashboard.files') }}" class="flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors">
+                                        <span>📁</span> คลังไฟล์ของฉัน
+                                    </a>
+                                    <a href="{{ route('billing.index') }}" class="flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors">
+                                        <span>💳</span> จัดการการสมัครสมาชิก
+                                    </a>
+                                    @if(auth()->user()->is_admin)
+                                    <a href="{{ route('admin.index') }}" class="flex items-center gap-2 px-3 py-2 text-xs text-brand-300 hover:text-brand-200 hover:bg-brand-500/10 rounded-xl transition-colors">
+                                        <span>⚙️</span> แผงควบคุมระบบ (Admin)
+                                    </a>
+                                    @endif
+                                </div>
+
+                                <!-- Logout Action -->
+                                <div class="pt-1">
+                                    <form method="POST" action="{{ route('logout') }}">
+                                        @csrf
+                                        <button type="submit" class="w-full flex items-center gap-2 px-3 py-2 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl transition-colors text-left font-medium cursor-pointer">
+                                            <span>🚪</span> ออกจากระบบ
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Direct Logout Icon Button -->
+                        <form method="POST" action="{{ route('logout') }}" class="inline">
+                            @csrf
+                            <button type="submit" title="ออกจากระบบ" class="p-2 text-slate-400 hover:text-rose-400 rounded-xl hover:bg-rose-500/10 transition-colors cursor-pointer">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75"/>
+                                </svg>
+                            </button>
+                        </form>
                     @else
                         <a href="{{ route('login') }}" class="px-4 py-2 text-sm text-slate-300 hover:text-white transition-colors">เข้าสู่ระบบ</a>
                         <a href="{{ route('register') }}" class="btn-primary text-sm rounded-xl px-5 py-2">สมัครฟรี</a>
@@ -116,6 +186,12 @@
                         <a href="{{ route('admin.index') }}" class="btn-ghost text-sm text-center rounded-xl text-brand-300 border border-brand-500/30">⚙️ แผงควบคุมแอดมิน</a>
                         @endif
                         <a href="{{ route('dashboard') }}" class="btn-primary text-sm text-center rounded-xl">แดชบอร์ด</a>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="w-full btn-ghost text-sm text-center rounded-xl text-rose-400 border border-rose-500/30 py-2.5">
+                                🚪 ออกจากระบบ
+                            </button>
+                        </form>
                     @else
                         <a href="{{ route('login') }}" class="btn-ghost text-sm text-center rounded-xl">เข้าสู่ระบบ</a>
                         <a href="{{ route('register') }}" class="btn-primary text-sm text-center rounded-xl">สมัครฟรี</a>
