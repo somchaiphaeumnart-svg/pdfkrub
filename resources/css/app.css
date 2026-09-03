@@ -1,0 +1,337 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+/* =====================================================
+   pdf2word Design System
+   Tailwind CSS v4 Custom Theme
+   ===================================================== */
+
+@theme {
+    /* Typography */
+    --font-sans: 'Instrument Sans', 'Noto Sans Thai', ui-sans-serif, system-ui, sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-display: 'Instrument Sans', 'Noto Sans Thai', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+
+    /* Brand Colors — Deep Blue + Electric Orange */
+    --color-brand-50: #eff6ff;
+    --color-brand-100: #dbeafe;
+    --color-brand-200: #bfdbfe;
+    --color-brand-300: #93c5fd;
+    --color-brand-400: #60a5fa;
+    --color-brand-500: #3b82f6;
+    --color-brand-600: #2563eb;
+    --color-brand-700: #1d4ed8;
+    --color-brand-800: #1e40af;
+    --color-brand-900: #1e3a8a;
+    --color-brand-950: #172554;
+
+    /* Accent — Electric Orange */
+    --color-accent-50: #fff7ed;
+    --color-accent-100: #ffedd5;
+    --color-accent-200: #fed7aa;
+    --color-accent-300: #fdba74;
+    --color-accent-400: #fb923c;
+    --color-accent-500: #f97316;
+    --color-accent-600: #ea580c;
+    --color-accent-700: #c2410c;
+    --color-accent-800: #9a3412;
+    --color-accent-900: #7c2d12;
+
+    /* Dark UI Palette */
+    --color-dark-900: #0a0e1a;
+    --color-dark-800: #0f1629;
+    --color-dark-700: #1a2340;
+    --color-dark-600: #1e2d4a;
+    --color-dark-500: #263354;
+    --color-dark-400: #334d80;
+    --color-dark-300: #4a6499;
+
+    /* Success / Warning / Error */
+    --color-success-500: #22c55e;
+    --color-success-600: #16a34a;
+    --color-warning-500: #f59e0b;
+    --color-error-500: #ef4444;
+    --color-error-600: #dc2626;
+
+    /* Spacing scale extras */
+    --spacing-18: 4.5rem;
+    --spacing-88: 22rem;
+    --spacing-128: 32rem;
+
+    /* Border radius extras */
+    --radius-2xl: 1rem;
+    --radius-3xl: 1.5rem;
+    --radius-4xl: 2rem;
+
+    /* Shadows */
+    --shadow-glow: 0 0 40px rgba(59, 130, 246, 0.3);
+    --shadow-glow-accent: 0 0 40px rgba(249, 115, 22, 0.3);
+    --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
+    --shadow-card-hover: 0 8px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(59, 130, 246, 0.2);
+}
+
+/* =====================================================
+   Global Base Styles
+   ===================================================== */
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: theme(colors.brand.700) transparent;
+}
+
+*::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+    background-color: theme(colors.brand.700);
+    border-radius: 9999px;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    background-color: theme(colors.dark.900);
+    color: theme(colors.slate.100);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* =====================================================
+   Custom Utility Classes
+   ===================================================== */
+
+@layer utilities {
+    /* Gradient Text */
+    .text-gradient {
+        background: linear-gradient(135deg, #60a5fa 0%, #f97316 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .text-gradient-blue {
+        background: linear-gradient(135deg, #93c5fd 0%, #3b82f6 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    /* Glassmorphism */
+    .glass {
+        background: rgba(15, 22, 41, 0.7);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .glass-light {
+        background: rgba(30, 45, 74, 0.5);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Glow Effects */
+    .glow-blue {
+        box-shadow: 0 0 40px rgba(59, 130, 246, 0.25);
+    }
+
+    .glow-orange {
+        box-shadow: 0 0 40px rgba(249, 115, 22, 0.25);
+    }
+
+    /* Gradient Backgrounds */
+    .bg-mesh {
+        background-color: #0a0e1a;
+        background-image:
+            radial-gradient(at 20% 50%, rgba(37, 99, 235, 0.15) 0px, transparent 50%),
+            radial-gradient(at 80% 0%, rgba(249, 115, 22, 0.1) 0px, transparent 50%),
+            radial-gradient(at 0% 100%, rgba(29, 78, 216, 0.1) 0px, transparent 50%);
+    }
+
+    .bg-hero-gradient {
+        background: linear-gradient(180deg, #0a0e1a 0%, #0f1629 50%, #0a0e1a 100%);
+    }
+
+    /* Card Hover Animation */
+    .card-hover {
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+    .card-hover:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-card-hover);
+        border-color: rgba(59, 130, 246, 0.4);
+    }
+
+    /* Button Styles */
+    .btn-primary {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        color: white;
+        font-weight: 600;
+        padding: 0.75rem 1.75rem;
+        border-radius: 0.75rem;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        box-shadow: 0 8px 24px rgba(37, 99, 235, 0.5);
+        transform: translateY(-1px);
+    }
+
+    .btn-accent {
+        background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+        color: white;
+        font-weight: 600;
+        padding: 0.75rem 1.75rem;
+        border-radius: 0.75rem;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 16px rgba(234, 88, 12, 0.3);
+    }
+
+    .btn-accent:hover {
+        box-shadow: 0 8px 24px rgba(234, 88, 12, 0.5);
+        transform: translateY(-1px);
+    }
+
+    .btn-ghost {
+        background: rgba(255, 255, 255, 0.05);
+        color: rgba(255, 255, 255, 0.8);
+        font-weight: 500;
+        padding: 0.75rem 1.75rem;
+        border-radius: 0.75rem;
+        transition: all 0.2s ease;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-ghost:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Tool Card */
+    .tool-card {
+        background: rgba(15, 22, 41, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .tool-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, transparent 60%);
+        opacity: 0;
+        transition: opacity 0.25s ease;
+    }
+
+    .tool-card:hover {
+        border-color: rgba(59, 130, 246, 0.35);
+        transform: translateY(-3px);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(59, 130, 246, 0.15);
+    }
+
+    .tool-card:hover::before {
+        opacity: 1;
+    }
+
+    /* File Upload Zone */
+    .upload-zone {
+        border: 2px dashed rgba(59, 130, 246, 0.3);
+        border-radius: 1.5rem;
+        background: rgba(15, 22, 41, 0.5);
+        transition: all 0.2s ease;
+    }
+
+    .upload-zone:hover,
+    .upload-zone.drag-over {
+        border-color: rgba(59, 130, 246, 0.7);
+        background: rgba(37, 99, 235, 0.08);
+        box-shadow: 0 0 32px rgba(59, 130, 246, 0.15);
+    }
+
+    /* Badge */
+    .badge-free {
+        background: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.65rem;
+        font-weight: 600;
+        padding: 0.2rem 0.5rem;
+        border-radius: 9999px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    .badge-premium {
+        background: linear-gradient(135deg, rgba(234, 88, 12, 0.2) 0%, rgba(251, 146, 60, 0.2) 100%);
+        color: #fb923c;
+        font-size: 0.65rem;
+        font-weight: 600;
+        padding: 0.2rem 0.5rem;
+        border-radius: 9999px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        border: 1px solid rgba(251, 146, 60, 0.3);
+    }
+
+    /* Pulse animation for processing */
+    .processing-pulse {
+        animation: processing 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @keyframes processing {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    /* Progress bar */
+    .progress-bar {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 9999px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #2563eb, #3b82f6, #60a5fa);
+        border-radius: 9999px;
+        background-size: 200% 100%;
+        animation: progress-shimmer 1.5s ease infinite;
+    }
+
+    @keyframes progress-shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+
+    /* Floating animation for hero elements */
+    .float-animation {
+        animation: float 6s ease-in-out infinite;
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-12px); }
+    }
+}
