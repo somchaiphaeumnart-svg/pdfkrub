@@ -4,8 +4,12 @@
 @source '../../storage/framework/views/*.php';
 
 /* =====================================================
-   pdf2word Design System
-   Tailwind CSS v4 Custom Theme
+   PDFkrub Design System — Light Professional Theme
+   Primary:    #E63946 (แดงสด — PDF, พลัง, จำง่าย)
+   Secondary:  #16324F (น้ำเงินเข้ม — น่าเชื่อถือ, Professional)
+   Accent:     #3A86FF (ฟ้าสด — Technology, Online Tool)
+   Background: #F8FAFC (ขาวอมเทา — สะอาด, อ่านง่าย)
+   Text:       #1F2937 (เทาเข้ม — Modern, Professional)
    ===================================================== */
 
 @theme {
@@ -15,46 +19,57 @@
     --font-display: 'Instrument Sans', 'Noto Sans Thai', ui-sans-serif, system-ui, sans-serif;
     --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
 
-    /* Brand Colors — Deep Blue + Electric Orange */
-    --color-brand-50: #eff6ff;
-    --color-brand-100: #dbeafe;
-    --color-brand-200: #bfdbfe;
-    --color-brand-300: #93c5fd;
-    --color-brand-400: #60a5fa;
-    --color-brand-500: #3b82f6;
-    --color-brand-600: #2563eb;
-    --color-brand-700: #1d4ed8;
-    --color-brand-800: #1e40af;
-    --color-brand-900: #1e3a8a;
-    --color-brand-950: #172554;
+    /* Primary — Vivid Red #E63946 */
+    --color-brand-50:  #fef2f3;
+    --color-brand-100: #fde8ea;
+    --color-brand-200: #fbd5d8;
+    --color-brand-300: #f8adb3;
+    --color-brand-400: #f47c84;
+    --color-brand-500: #e63946;
+    --color-brand-600: #d32535;
+    --color-brand-700: #b01c2a;
+    --color-brand-800: #921b26;
+    --color-brand-900: #7b1a24;
+    --color-brand-950: #5a1019;
 
-    /* Accent — Electric Orange */
-    --color-accent-50: #fff7ed;
-    --color-accent-100: #ffedd5;
-    --color-accent-200: #fed7aa;
-    --color-accent-300: #fdba74;
-    --color-accent-400: #fb923c;
-    --color-accent-500: #f97316;
-    --color-accent-600: #ea580c;
-    --color-accent-700: #c2410c;
-    --color-accent-800: #9a3412;
-    --color-accent-900: #7c2d12;
+    /* Secondary — Deep Navy #16324F */
+    --color-secondary-50:  #f0f5fa;
+    --color-secondary-100: #dde9f4;
+    --color-secondary-200: #c3d6ea;
+    --color-secondary-300: #99bad9;
+    --color-secondary-400: #6898c3;
+    --color-secondary-500: #457aac;
+    --color-secondary-600: #366292;
+    --color-secondary-700: #2d5077;
+    --color-secondary-800: #1f3a56;
+    --color-secondary-900: #16324f;
 
-    /* Dark UI Palette */
-    --color-dark-900: #0a0e1a;
-    --color-dark-800: #0f1629;
-    --color-dark-700: #1a2340;
-    --color-dark-600: #1e2d4a;
-    --color-dark-500: #263354;
-    --color-dark-400: #334d80;
-    --color-dark-300: #4a6499;
+    /* Accent — Sky Blue #3A86FF */
+    --color-accent-50:  #eff6ff;
+    --color-accent-100: #dbeafe;
+    --color-accent-200: #bfdbfe;
+    --color-accent-300: #93c5fd;
+    --color-accent-400: #6da8fd;
+    --color-accent-500: #3a86ff;
+    --color-accent-600: #1d6fe8;
+    --color-accent-700: #1558cc;
+    --color-accent-800: #1545a3;
+    --color-accent-900: #163b80;
+
+    /* Surface palette */
+    --color-surface-50:  #ffffff;
+    --color-surface-100: #f8fafc;
+    --color-surface-200: #f1f5f9;
+    --color-surface-300: #e2e8f0;
+    --color-surface-400: #cbd5e1;
+    --color-surface-500: #94a3b8;
 
     /* Success / Warning / Error */
-    --color-success-500: #22c55e;
-    --color-success-600: #16a34a;
-    --color-warning-500: #f59e0b;
-    --color-error-500: #ef4444;
-    --color-error-600: #dc2626;
+    --color-success-500: #16a34a;
+    --color-success-600: #15803d;
+    --color-warning-500: #d97706;
+    --color-error-500: #e63946;
+    --color-error-600: #d32535;
 
     /* Spacing scale extras */
     --spacing-18: 4.5rem;
@@ -66,11 +81,12 @@
     --radius-3xl: 1.5rem;
     --radius-4xl: 2rem;
 
-    /* Shadows */
-    --shadow-glow: 0 0 40px rgba(59, 130, 246, 0.3);
-    --shadow-glow-accent: 0 0 40px rgba(249, 115, 22, 0.3);
-    --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
-    --shadow-card-hover: 0 8px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(59, 130, 246, 0.2);
+    /* Shadows — light theme */
+    --shadow-glow: 0 0 32px rgba(230, 57, 70, 0.18);
+    --shadow-glow-accent: 0 0 32px rgba(58, 134, 255, 0.18);
+    --shadow-card: 0 1px 4px rgba(22, 50, 79, 0.06), 0 4px 16px rgba(22, 50, 79, 0.04);
+    --shadow-card-hover: 0 8px 32px rgba(22, 50, 79, 0.12), 0 0 0 2px rgba(230, 57, 70, 0.15);
+    --shadow-nav: 0 1px 0 rgba(22, 50, 79, 0.08), 0 2px 12px rgba(22, 50, 79, 0.04);
 }
 
 /* =====================================================
@@ -101,8 +117,8 @@ html {
 }
 
 body {
-    background-color: theme(colors.dark.900);
-    color: theme(colors.slate.100);
+    background-color: #f8fafc;
+    color: #1f2937;
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -115,54 +131,62 @@ body {
 @layer utilities {
     /* Gradient Text */
     .text-gradient {
-        background: linear-gradient(135deg, #60a5fa 0%, #f97316 100%);
+        background: linear-gradient(135deg, #e63946 0%, #3a86ff 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .text-gradient-red {
+        background: linear-gradient(135deg, #e63946 0%, #d32535 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
     }
 
     .text-gradient-blue {
-        background: linear-gradient(135deg, #93c5fd 0%, #3b82f6 100%);
+        background: linear-gradient(135deg, #3a86ff 0%, #1558cc 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
     }
 
-    /* Glassmorphism */
+    /* Light card (replaces dark glass) */
     .glass {
-        background: rgba(15, 22, 41, 0.7);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(22, 50, 79, 0.08);
+        box-shadow: 0 1px 4px rgba(22, 50, 79, 0.06), 0 4px 16px rgba(22, 50, 79, 0.04);
     }
 
     .glass-light {
-        background: rgba(30, 45, 74, 0.5);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(248, 250, 252, 0.98);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid rgba(22, 50, 79, 0.06);
     }
 
     /* Glow Effects */
+    .glow-red {
+        box-shadow: 0 0 32px rgba(230, 57, 70, 0.2);
+    }
+
     .glow-blue {
-        box-shadow: 0 0 40px rgba(59, 130, 246, 0.25);
+        box-shadow: 0 0 32px rgba(58, 134, 255, 0.2);
     }
 
-    .glow-orange {
-        box-shadow: 0 0 40px rgba(249, 115, 22, 0.25);
-    }
-
-    /* Gradient Backgrounds */
+    /* Background patterns */
     .bg-mesh {
-        background-color: #0a0e1a;
+        background-color: #f8fafc;
         background-image:
-            radial-gradient(at 20% 50%, rgba(37, 99, 235, 0.15) 0px, transparent 50%),
-            radial-gradient(at 80% 0%, rgba(249, 115, 22, 0.1) 0px, transparent 50%),
-            radial-gradient(at 0% 100%, rgba(29, 78, 216, 0.1) 0px, transparent 50%);
+            radial-gradient(at 10% 20%, rgba(230, 57, 70, 0.05) 0px, transparent 50%),
+            radial-gradient(at 85% 5%,  rgba(58, 134, 255, 0.06) 0px, transparent 50%),
+            radial-gradient(at 60% 90%, rgba(22, 50, 79, 0.03)  0px, transparent 50%);
     }
 
     .bg-hero-gradient {
-        background: linear-gradient(180deg, #0a0e1a 0%, #0f1629 50%, #0a0e1a 100%);
+        background: linear-gradient(160deg, #16324f 0%, #1d4a75 50%, #163b80 100%);
     }
 
     /* Card Hover Animation */
@@ -172,68 +196,98 @@ body {
 
     .card-hover:hover {
         transform: translateY(-4px);
-        box-shadow: var(--shadow-card-hover);
-        border-color: rgba(59, 130, 246, 0.4);
+        box-shadow: 0 8px 32px rgba(22, 50, 79, 0.12), 0 0 0 2px rgba(230, 57, 70, 0.15);
+        border-color: rgba(230, 57, 70, 0.25);
     }
 
     /* Button Styles */
     .btn-primary {
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        background: linear-gradient(135deg, #e63946 0%, #d32535 100%);
         color: white;
         font-weight: 600;
         padding: 0.75rem 1.75rem;
         border-radius: 0.75rem;
         transition: all 0.2s ease;
-        box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 4px 16px rgba(230, 57, 70, 0.25);
+        border: 1px solid rgba(230, 57, 70, 0.1);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .btn-primary:hover {
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-        box-shadow: 0 8px 24px rgba(37, 99, 235, 0.5);
+        background: linear-gradient(135deg, #f04452 0%, #e63946 100%);
+        box-shadow: 0 8px 24px rgba(230, 57, 70, 0.4);
+        transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+        background: linear-gradient(135deg, #16324f 0%, #1f3a56 100%);
+        color: white;
+        font-weight: 600;
+        padding: 0.75rem 1.75rem;
+        border-radius: 0.75rem;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 16px rgba(22, 50, 79, 0.2);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-secondary:hover {
+        background: linear-gradient(135deg, #1e4270 0%, #16324f 100%);
+        box-shadow: 0 8px 24px rgba(22, 50, 79, 0.35);
         transform: translateY(-1px);
     }
 
     .btn-accent {
-        background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+        background: linear-gradient(135deg, #3a86ff 0%, #1d6fe8 100%);
         color: white;
         font-weight: 600;
         padding: 0.75rem 1.75rem;
         border-radius: 0.75rem;
         transition: all 0.2s ease;
-        box-shadow: 0 4px 16px rgba(234, 88, 12, 0.3);
+        box-shadow: 0 4px 16px rgba(58, 134, 255, 0.25);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .btn-accent:hover {
-        box-shadow: 0 8px 24px rgba(234, 88, 12, 0.5);
+        box-shadow: 0 8px 24px rgba(58, 134, 255, 0.4);
         transform: translateY(-1px);
     }
 
     .btn-ghost {
-        background: rgba(255, 255, 255, 0.05);
-        color: rgba(255, 255, 255, 0.8);
+        background: transparent;
+        color: #1f2937;
         font-weight: 500;
         padding: 0.75rem 1.75rem;
         border-radius: 0.75rem;
         transition: all 0.2s ease;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid #e2e8f0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .btn-ghost:hover {
-        background: rgba(255, 255, 255, 0.1);
-        border-color: rgba(255, 255, 255, 0.2);
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+        color: #1f2937;
     }
 
     /* Tool Card */
     .tool-card {
-        background: rgba(15, 22, 41, 0.8);
-        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
         border-radius: 1rem;
         padding: 1.5rem;
         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         cursor: pointer;
         position: relative;
         overflow: hidden;
+        box-shadow: 0 1px 4px rgba(22, 50, 79, 0.04);
     }
 
     .tool-card::before {
@@ -241,15 +295,15 @@ body {
         position: absolute;
         inset: 0;
         border-radius: inherit;
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, transparent 60%);
+        background: linear-gradient(135deg, rgba(230, 57, 70, 0.04) 0%, transparent 60%);
         opacity: 0;
         transition: opacity 0.25s ease;
     }
 
     .tool-card:hover {
-        border-color: rgba(59, 130, 246, 0.35);
+        border-color: rgba(230, 57, 70, 0.3);
         transform: translateY(-3px);
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(59, 130, 246, 0.15);
+        box-shadow: 0 12px 32px rgba(22, 50, 79, 0.1), 0 0 0 1px rgba(230, 57, 70, 0.12);
     }
 
     .tool-card:hover::before {
@@ -258,41 +312,42 @@ body {
 
     /* File Upload Zone */
     .upload-zone {
-        border: 2px dashed rgba(59, 130, 246, 0.3);
+        border: 2px dashed #cbd5e1;
         border-radius: 1.5rem;
-        background: rgba(15, 22, 41, 0.5);
+        background: #f8fafc;
         transition: all 0.2s ease;
     }
 
     .upload-zone:hover,
     .upload-zone.drag-over {
-        border-color: rgba(59, 130, 246, 0.7);
-        background: rgba(37, 99, 235, 0.08);
-        box-shadow: 0 0 32px rgba(59, 130, 246, 0.15);
+        border-color: #e63946;
+        background: rgba(230, 57, 70, 0.03);
+        box-shadow: 0 0 0 4px rgba(230, 57, 70, 0.08);
     }
 
     /* Badge */
     .badge-free {
-        background: rgba(255, 255, 255, 0.1);
-        color: rgba(255, 255, 255, 0.7);
+        background: #f1f5f9;
+        color: #64748b;
         font-size: 0.65rem;
         font-weight: 600;
         padding: 0.2rem 0.5rem;
         border-radius: 9999px;
         letter-spacing: 0.05em;
         text-transform: uppercase;
+        border: 1px solid #e2e8f0;
     }
 
     .badge-premium {
-        background: linear-gradient(135deg, rgba(234, 88, 12, 0.2) 0%, rgba(251, 146, 60, 0.2) 100%);
-        color: #fb923c;
+        background: linear-gradient(135deg, rgba(230, 57, 70, 0.1) 0%, rgba(244, 124, 132, 0.1) 100%);
+        color: #e63946;
         font-size: 0.65rem;
-        font-weight: 600;
+        font-weight: 700;
         padding: 0.2rem 0.5rem;
         border-radius: 9999px;
         letter-spacing: 0.05em;
         text-transform: uppercase;
-        border: 1px solid rgba(251, 146, 60, 0.3);
+        border: 1px solid rgba(230, 57, 70, 0.25);
     }
 
     /* Pulse animation for processing */
@@ -307,14 +362,14 @@ body {
 
     /* Progress bar */
     .progress-bar {
-        background: rgba(255, 255, 255, 0.1);
+        background: #e2e8f0;
         border-radius: 9999px;
         overflow: hidden;
     }
 
     .progress-fill {
         height: 100%;
-        background: linear-gradient(90deg, #2563eb, #3b82f6, #60a5fa);
+        background: linear-gradient(90deg, #e63946, #f47c84, #e63946);
         border-radius: 9999px;
         background-size: 200% 100%;
         animation: progress-shimmer 1.5s ease infinite;
@@ -333,5 +388,13 @@ body {
     @keyframes float {
         0%, 100% { transform: translateY(0px); }
         50% { transform: translateY(-12px); }
+    }
+
+    /* Accent bar decoration */
+    .accent-bar {
+        width: 3rem;
+        height: 3px;
+        background: linear-gradient(90deg, #e63946, #3a86ff);
+        border-radius: 9999px;
     }
 }
