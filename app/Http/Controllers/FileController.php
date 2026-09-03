@@ -24,7 +24,7 @@ class FileController extends Controller
 
         $request->validate([
             'files' => ['required', 'array', 'min:1', 'max:20'],
-            'files.*' => ['required', 'file', "max:{$maxMb}000"],
+            'files.*' => ['required', 'file', "max:{$maxMb}000", 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt,jpg,jpeg,png,webp'],
             'tool' => ['required', 'string', 'max:100'],
         ]);
 

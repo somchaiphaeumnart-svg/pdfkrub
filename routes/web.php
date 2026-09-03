@@ -67,8 +67,36 @@ Route::prefix('tools')->name('tools.')->group(function () {
 // Template library
 Route::get('/templates', fn () => view('templates.index'))->name('templates');
 
-// File management API (public + authenticated)
-Route::post('/files/upload', [FileController::class, 'upload'])->name('files.upload');
+// XML Sitemap for Search Engines
+Route::get('/sitemap.xml', function () {
+    $tools = [
+        'pdf-to-word', 'pdf-to-excel', 'pdf-to-pptx', 'pdf-to-jpg', 'pdf-to-png', 'pdf-to-txt',
+        'word-to-pdf', 'excel-to-pdf', 'pptx-to-pdf', 'image-to-pdf',
+        'merge-pdf', 'split-pdf', 'compress-pdf', 'rotate-pdf', 'delete-pages', 'crop-pdf',
+        'watermark-pdf', 'protect-pdf', 'unlock-pdf', 'sign-pdf', 'ocr-pdf',
+    ];
+    $pages = ['', 'tools', 'templates', 'pricing', 'about', 'contact', 'pdpa', 'privacy', 'terms'];
+
+    $xml = '<?xml version="1.0" encoding="UTF-8"?>';
+    $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+
+    foreach ($pages as $p) {
+        $xml .= '<url><loc>'.url('/'.$p).'</loc><changefreq>weekly</changefreq><priority>'.($p === '' ? '1.0' : '0.8').'</priority></url>';
+    }
+    foreach ($tools as $t) {
+        $xml .= '<url><loc>'.route('tools.'.$t).'</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>';
+    }
+
+    $xml .= '</urlset>';
+
+    return response($xml, 200)->header('Content-Type', 'application/xml');
+})->name('sitemap');
+
+// File management API (public + authenticated) with rate-limiting
+Route::post('/files/upload', [FileController::class, 'upload'])
+    ->name('files.upload')
+    ->middleware('throttle:60,1');
+
 Route::get('/api/jobs/{job}', [FileController::class, 'jobStatus'])->name('api.jobs.status');
 
 // Signed download route (works for local disk outputs)
@@ -98,13 +126,17 @@ Route::middleware(['auth', 'admin'])->group(function () {
 // Omise Webhook
 Route::post('/billing/webhook/omise', [BillingController::class, 'webhook'])->name('billing.webhook.omise');
 
-// Auth routes
+// Auth routes with rate-limiting
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'show'])->name('login');
-    Route::post('/login', [LoginController::class, 'store'])->name('login.post');
+    Route::post('/login', [LoginController::class, 'store'])
+        ->name('login.post')
+        ->middleware('throttle:5,1');
 
     Route::get('/register', [RegisterController::class, 'show'])->name('register');
-    Route::post('/register', [RegisterController::class, 'store'])->name('register.post');
+    Route::post('/register', [RegisterController::class, 'store'])
+        ->name('register.post')
+        ->middleware('throttle:10,1');
 
     // Google OAuth
     Route::get('/auth/google', [SocialiteController::class, 'redirectToGoogle'])->name('auth.google');

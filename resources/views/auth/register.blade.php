@@ -42,6 +42,10 @@
 
             <form method="POST" action="{{ route('register.post') }}" class="space-y-4">
                 @csrf
+                {{-- Anti-spam bot honeypot --}}
+                <div class="hidden" aria-hidden="true" style="display:none">
+                    <input type="text" name="website_url" tabindex="-1" autocomplete="off">
+                </div>
 
                 {{-- Name --}}
                 <div>

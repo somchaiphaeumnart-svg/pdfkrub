@@ -1,0 +1,226 @@
+{
+    "results": [
+        {
+            "uri": "\/",
+            "label": "หน้าแรก (Homepage)",
+            "status": 200,
+            "durationMs": 197.57,
+            "title": "PDFkrub — แพลตฟอร์มจัดการ PDF สำหรับครูและโรงเรียน",
+            "metaDesc": "PDFkrub — PDF ภาษาไทย ทำง่ายในไม่กี่วินาที สำหรับครูและโรงเรียน รองรับ PDPA ประมวลผลในประเทศไทย",
+            "h1Count": 1,
+            "hasCanonical": 1,
+            "hasOgTitle": 1
+        },
+        {
+            "uri": "\/tools",
+            "label": "เครื่องมือทั้งหมด (Tools Index)",
+            "status": 200,
+            "durationMs": 5,
+            "title": "เครื่องมือ PDF ทั้งหมด — แพลตฟอร์มจัดการ PDF สำหรับครูและโรงเรียน",
+            "metaDesc": "เครื่องมือ PDF ครบครัน 50+ รายการ แปลง, แก้ไข, บีบอัด, รวม, แยก, OCR ไฟล์ PDF ออนไลน์ฟรี",
+            "h1Count": 1,
+            "hasCanonical": 1,
+            "hasOgTitle": 1
+        },
+        {
+            "uri": "\/pricing",
+            "label": "ราคา (Pricing)",
+            "status": 200,
+            "durationMs": 4.67,
+            "title": "ราคา — PDFkrub — แพลตฟอร์มจัดการ PDF สำหรับครูและโรงเรียน",
+            "metaDesc": "แผนราคา PDFkrub สำหรับครูและโรงเรียน เริ่มต้นฟรี ครูรายปี 390 บาท โรงเรียน 2,990 บาท\/ปี รองรับ PDPA",
+            "h1Count": 1,
+            "hasCanonical": 1,
+            "hasOgTitle": 1
+        },
+        {
+            "uri": "\/templates",
+            "label": "คลังแบบฟอร์มครู (Templates)",
+            "status": 200,
+            "durationMs": 3.86,
+            "title": "คลังแบบฟอร์มครูและเอกสารสัญญา — PDFkrub — แพลตฟอร์มจัดการ PDF สำหรับครูและโรงเรียน",
+            "metaDesc": "ดาวน์โหลดแบบฟอร์มเอกสารสำหรับครู แบบฟอร์ม PA แผนการสอน บันทึกข้อความราชการ สัญญาจ้าง และเอกสารทางกฎหมายภาษาไทย พร้อมแก้ไขและเซ็นชื่อออนไลน์",
+            "h1Count": 1,
+            "hasCanonical": 1,
+            "hasOgTitle": 1
+        },
+        {
+            "uri": "\/pdpa",
+            "label": "นโยบาย PDPA (PDPA Policy)",
+            "status": 200,
+            "durationMs": 3.08,
+            "title": "นโยบายคุ้มครองข้อมูลส่วนบุคคล (PDPA) — PDFkrub — แพลตฟอร์มจัดการ PDF สำหรับครูและโรงเรียน",
+            "metaDesc": "ข้อกำหนดและนโยบายคุ้มครองข้อมูลส่วนบุคคล (PDPA) ของ PDFkrub สำหรับครู นักเรียน และสถานศึกษา ประมวลผลในประเทศไทย และลบไฟล์อัตโนมัติ",
+            "h1Count": 1,
+            "hasCanonical": 1,
+            "hasOgTitle": 1
+        },
+        {
+            "uri": "\/privacy",
+            "label": "นโยบายความเป็นส่วนตัว (Privacy Policy)",
+            "status": 200,
+            "durationMs": 2.74,
+            "title": "นโยบายความเป็นส่วนตัว — PDFkrub — แพลตฟอร์มจัดการ PDF สำหรับครูและโรงเรียน",
+            "metaDesc": "นโยบายความเป็นส่วนตัวของแพลตฟอร์ม PDFkrub สำหรับผู้ใช้งาน ครู และสถานศึกษา",
+            "h1Count": 1,
+            "hasCanonical": 1,
+            "hasOgTitle": 1
+        },
+        {
+            "uri": "\/terms",
+            "label": "ข้อกำหนดการใช้งาน (Terms)",
+            "status": 200,
+            "durationMs": 2.6,
+            "title": "ข้อกำหนดการใช้งาน — PDFkrub — แพลตฟอร์มจัดการ PDF สำหรับครูและโรงเรียน",
+            "metaDesc": "ข้อกำหนดและเงื่อนไขการใช้บริการแพลตฟอร์ม PDFkrub สำหรับผู้ใช้งาน ครู และสถานศึกษา",
+            "h1Count": 1,
+            "hasCanonical": 1,
+            "hasOgTitle": 1
+        },
+        {
+            "uri": "\/about",
+            "label": "เกี่ยวกับเรา (About)",
+            "status": 200,
+            "durationMs": 2.85,
+            "title": "เกี่ยวกับเรา — PDFkrub — แพลตฟอร์มจัดการ PDF สำหรับครูและโรงเรียน",
+            "metaDesc": "PDFkrub แพลตฟอร์มจัดการเอกสาร PDF ภาษาไทย เพื่อช่วยเหลือครูและบุคลากรทางการศึกษาไทย ลดภาระงานเอกสาร",
+            "h1Count": 1,
+            "hasCanonical": 1,
+            "hasOgTitle": 1
+        },
+        {
+            "uri": "\/contact",
+            "label": "ติดต่อเรา (Contact)",
+            "status": 200,
+            "durationMs": 3.26,
+            "title": "ติดต่อเรา — PDFkrub — แพลตฟอร์มจัดการ PDF สำหรับครูและโรงเรียน",
+            "metaDesc": "ติดต่อทีมงาน PDFkrub สำหรับความช่วยเหลือ ข้อเสนอแนะ หรือติดต่อแพ็กเกจโรงเรียนและสถานศึกษา",
+            "h1Count": 1,
+            "hasCanonical": 1,
+            "hasOgTitle": 1
+        },
+        {
+            "uri": "\/sitemap.xml",
+            "label": "XML Sitemap (SEO)",
+            "status": 200,
+            "durationMs": 3.42,
+            "title": "MISSING",
+            "metaDesc": "MISSING",
+            "h1Count": 0,
+            "hasCanonical": 0,
+            "hasOgTitle": 0
+        },
+        {
+            "uri": "\/login",
+            "label": "เข้าสู่ระบบ (Login)",
+            "status": 200,
+            "durationMs": 4.98,
+            "title": "เข้าสู่ระบบ — แพลตฟอร์มจัดการ PDF สำหรับครูและโรงเรียน",
+            "metaDesc": "PDFkrub — แพลตฟอร์มจัดการเอกสาร PDF ภาษาไทย สำหรับครูและโรงเรียน รองรับ PDPA ประมวลผลในประเทศไทย",
+            "h1Count": 1,
+            "hasCanonical": 1,
+            "hasOgTitle": 1
+        },
+        {
+            "uri": "\/register",
+            "label": "สมัครสมาชิก (Register)",
+            "status": 200,
+            "durationMs": 4.64,
+            "title": "สมัครสมาชิกฟรี — แพลตฟอร์มจัดการ PDF สำหรับครูและโรงเรียน",
+            "metaDesc": "PDFkrub — แพลตฟอร์มจัดการเอกสาร PDF ภาษาไทย สำหรับครูและโรงเรียน รองรับ PDPA ประมวลผลในประเทศไทย",
+            "h1Count": 1,
+            "hasCanonical": 1,
+            "hasOgTitle": 1
+        },
+        {
+            "uri": "\/tools\/pdf-to-word",
+            "label": "เครื่องมือ: PDF to Word",
+            "status": 200,
+            "durationMs": 4,
+            "title": "PDF เป็น Word — แพลตฟอร์มจัดการ PDF สำหรับครูและโรงเรียน",
+            "metaDesc": "แปลงไฟล์ PDF เป็น Word (.docx) รักษา Layout และฟอนต์ไทยดั้งเดิม",
+            "h1Count": 1,
+            "hasCanonical": 1,
+            "hasOgTitle": 1
+        },
+        {
+            "uri": "\/tools\/ocr-pdf",
+            "label": "เครื่องมือ: OCR ภาษาไทย",
+            "status": 200,
+            "durationMs": 3.23,
+            "title": "OCR ภาษาไทย — แปลงรูปภาพเป็นข้อความ — แพลตฟอร์มจัดการ PDF สำหรับครูและโรงเรียน",
+            "metaDesc": "OCR ภาษาไทยแม่นยำสูง ด้วย Google Cloud Vision API รองรับ PDF สแกน รูปภาพ ทั้งภาษาไทยและอังกฤษ",
+            "h1Count": 1,
+            "hasCanonical": 1,
+            "hasOgTitle": 1
+        },
+        {
+            "uri": "\/tools\/sign-pdf",
+            "label": "เครื่องมือ: เซ็นเอกสาร",
+            "status": 200,
+            "durationMs": 3.49,
+            "title": "เซ็นเอกสาร PDF ออนไลน์ — PDFkrub — แพลตฟอร์มจัดการ PDF สำหรับครูและโรงเรียน",
+            "metaDesc": "เซ็นชื่อดิจิทัลบน PDF ออนไลน์ฟรี วาดลายเซ็น อัปโหลดรูป หรือพิมพ์ชื่อ รองรับภาษาไทย ปลอดภัยบนเบราว์เซอร์",
+            "h1Count": 1,
+            "hasCanonical": 1,
+            "hasOgTitle": 1
+        },
+        {
+            "uri": "\/tools\/compress-pdf",
+            "label": "เครื่องมือ: บีบอัด PDF",
+            "status": 200,
+            "durationMs": 3.13,
+            "title": "บีบอัด PDF — แพลตฟอร์มจัดการ PDF สำหรับครูและโรงเรียน",
+            "metaDesc": "ลดขนาดไฟล์ PDF โดยไม่เสียคุณภาพมากนัก เหมาะสำหรับส่งอีเมล",
+            "h1Count": 1,
+            "hasCanonical": 1,
+            "hasOgTitle": 1
+        },
+        {
+            "uri": "\/tools\/merge-pdf",
+            "label": "เครื่องมือ: รวม PDF",
+            "status": 200,
+            "durationMs": 3.31,
+            "title": "รวมไฟล์ PDF — แพลตฟอร์มจัดการ PDF สำหรับครูและโรงเรียน",
+            "metaDesc": "รวมหลาย PDF เข้าเป็นไฟล์เดียว จัดเรียงลำดับได้ตามต้องการ",
+            "h1Count": 1,
+            "hasCanonical": 1,
+            "hasOgTitle": 1
+        },
+        {
+            "uri": "\/tools\/split-pdf",
+            "label": "เครื่องมือ: แยก PDF",
+            "status": 200,
+            "durationMs": 3.27,
+            "title": "แยกไฟล์ PDF — แพลตฟอร์มจัดการ PDF สำหรับครูและโรงเรียน",
+            "metaDesc": "แยก PDF เป็นหลายไฟล์ ตามหน้าที่ต้องการ หรือแยกทุกหน้า",
+            "h1Count": 1,
+            "hasCanonical": 1,
+            "hasOgTitle": 1
+        },
+        {
+            "uri": "\/api\/v1\/health",
+            "label": "API: Health Check",
+            "status": 200,
+            "durationMs": 1.48,
+            "title": "MISSING",
+            "metaDesc": "MISSING",
+            "h1Count": 0,
+            "hasCanonical": 0,
+            "hasOgTitle": 0
+        },
+        {
+            "uri": "\/api\/v1\/plans",
+            "label": "API: Available Plans",
+            "status": 200,
+            "durationMs": 5.04,
+            "title": "MISSING",
+            "metaDesc": "MISSING",
+            "h1Count": 0,
+            "hasCanonical": 0,
+            "hasOgTitle": 0
+        }
+    ],
+    "brokenLinks": [],
+    "timestamp": "2026-09-03T02:42:12+00:00"
+}

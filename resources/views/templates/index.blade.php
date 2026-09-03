@@ -80,7 +80,7 @@
                         </svg>
                         ดูตัวอย่าง
                     </button>
-                    <a :href="'/tools/sign-pdf'"
+                    <a href="{{ route('tools.sign-pdf') }}"
                        class="btn-primary py-2 px-3 rounded-xl text-xs flex items-center gap-1"
                        title="เปิดในโปรแกรมเซ็นลายเซ็น">
                         <span>✍️ เซ็นชื่อ</span>

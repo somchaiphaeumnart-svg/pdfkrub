@@ -21,6 +21,11 @@ class RegisterController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        // Anti-spam bot honeypot
+        if ($request->filled('website_url')) {
+            return redirect()->route('register');
+        }
+
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],

@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'เซ็นเอกสาร PDF')
-@section('description', 'เซ็นชื่อดิจิทัลบน PDF ออนไลน์ วาดลายเซ็น อัปโหลดรูป หรือพิมพ์ชื่อ รองรับภาษาไทย')
+@section('title', 'เซ็นเอกสาร PDF ออนไลน์ — PDFkrub')
+@section('description', 'เซ็นชื่อดิจิทัลบน PDF ออนไลน์ฟรี วาดลายเซ็น อัปโหลดรูป หรือพิมพ์ชื่อ รองรับภาษาไทย ปลอดภัยบนเบราว์เซอร์')
 
 @section('content')
 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12"
@@ -579,4 +579,3 @@ window.signPdf = function() {
 };
 </script>
 @endpush
-@endsection

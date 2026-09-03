@@ -19,6 +19,27 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
+    <!-- Canonical & Alternate -->
+    <link rel="canonical" href="{{ url()->current() }}">
+
+    <!-- Schema.org JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@@context": "https://schema.org",
+      "@@type": "WebApplication",
+      "name": "PDFkrub",
+      "url": "{{ url('/') }}",
+      "applicationCategory": "Productivity",
+      "operatingSystem": "All",
+      "description": "แพลตฟอร์มจัดการเอกสาร PDF ภาษาไทย สำหรับครูและโรงเรียน รองรับ PDPA",
+      "offers": {
+        "@@type": "Offer",
+        "price": "0",
+        "priceCurrency": "THB"
+      }
+    }
+    </script>
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     @stack('head')
