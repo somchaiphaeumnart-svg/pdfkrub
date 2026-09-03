@@ -18,6 +18,19 @@ class AdminUserSeeder extends Seeder
             ?? Plan::where('name', 'pro')->first();
 
         User::updateOrCreate(
+            ['email' => 'admin@pdfkrub.com'],
+            [
+                'name' => 'PDFkrub Administrator',
+                'password' => Hash::make('Admin@123456'),
+                'is_admin' => true,
+                'email_verified_at' => now(),
+                'locale' => 'th',
+                'provider' => 'email',
+                'plan_id' => $businessPlan?->id,
+            ]
+        );
+
+        User::updateOrCreate(
             ['email' => 'admin@pdf2word.app'],
             [
                 'name' => 'System Administrator',

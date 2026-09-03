@@ -70,6 +70,11 @@
                 <!-- Auth Buttons -->
                 <div class="hidden md:flex items-center gap-3">
                     @auth
+                        @if(auth()->user()->is_admin)
+                        <a href="{{ route('admin.index') }}" class="px-3 py-1.5 text-xs bg-brand-500/20 text-brand-300 hover:bg-brand-500/30 border border-brand-500/30 rounded-xl transition-all flex items-center gap-1.5">
+                            <span>⚙️</span> แอดมิน
+                        </a>
+                        @endif
                         <a href="{{ route('dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-sm btn-ghost rounded-xl">
                             <img src="{{ auth()->user()->avatar_url ?? 'https://ui-avatars.com/api/?name='.urlencode(auth()->user()->name).'&background=1d4ed8&color=fff&size=32' }}"
                                  alt="{{ auth()->user()->name }}"
@@ -107,6 +112,9 @@
                 <a href="{{ route('pricing') }}" class="block px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-all" @click="close()">ราคา</a>
                 <div class="pt-4 border-t border-white/[0.06] flex flex-col gap-2 px-2">
                     @auth
+                        @if(auth()->user()->is_admin)
+                        <a href="{{ route('admin.index') }}" class="btn-ghost text-sm text-center rounded-xl text-brand-300 border border-brand-500/30">⚙️ แผงควบคุมแอดมิน</a>
+                        @endif
                         <a href="{{ route('dashboard') }}" class="btn-primary text-sm text-center rounded-xl">แดชบอร์ด</a>
                     @else
                         <a href="{{ route('login') }}" class="btn-ghost text-sm text-center rounded-xl">เข้าสู่ระบบ</a>
