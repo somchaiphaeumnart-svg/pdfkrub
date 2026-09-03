@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('title', 'คลังแบบฟอร์มครูและเอกสารสัญญา — PDFkrub')
 @section('description', 'ดาวน์โหลดแบบฟอร์มเอกสารสำหรับครู แบบฟอร์ม PA แผนการสอน บันทึกข้อความราชการ สัญญาจ้าง และเอกสารทางกฎหมายภาษาไทย พร้อมแก้ไขและเซ็นชื่อออนไลน์')
@@ -10,20 +10,20 @@
         <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-xs font-semibold mb-4">
             <span>🏫</span> คลังแบบฟอร์มครู การศึกษา และนิติกรรมสัญญาไทย
         </div>
-        <h1 class="text-4xl sm:text-5xl font-extrabold text-white tracking-tight mb-4">
+        <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-800 tracking-tight mb-4">
             คลังแบบฟอร์มเอกสาร <span class="text-gradient">สำหรับครูและโรงเรียน</span>
         </h1>
-        <p class="text-slate-400 text-base sm:text-lg">
+        <p class="text-gray-500 text-base sm:text-lg">
             รวบรวมแบบฟอร์มข้อตกลง PA, แผนการสอน, บันทึกข้อความราชการ, เกียรติบัตร และสัญญามาตรฐาน ถูกต้องตามระเบียบราชการ โหลดฟรีและนำไปเซ็นชื่อได้ทันที
         </p>
 
         {{-- Search & Quick filters --}}
         <div class="mt-8 relative max-w-xl mx-auto">
-            <svg class="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <svg class="w-5 h-5 text-gray-500 absolute left-4 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/>
             </svg>
             <input type="text" x-model="search" placeholder="ค้นหาแบบฟอร์ม เช่น สัญญาจ้าง, มอบอำนาจ, ใบเสนอราคา..."
-                   class="w-full bg-white/10 border border-white/15 text-white placeholder-slate-400 rounded-2xl pl-12 pr-4 py-3.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-xl">
+                   class="w-full bg-gray-100 border border-white/15 text-gray-800 placeholder-slate-400 rounded-2xl pl-12 pr-4 py-3.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-xl">
         </div>
     </div>
 
@@ -32,11 +32,11 @@
         <template x-for="cat in categories" :key="cat.id">
             <button @click="activeCategory = cat.id"
                     class="px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all flex items-center gap-2"
-                    :class="activeCategory === cat.id ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/25' : 'glass text-slate-400 hover:text-white border border-white/[0.06]'">
+                    :class="activeCategory === cat.id ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/25' : 'glass text-gray-500 hover:text-gray-800 border border-gray-100'">
                 <span x-text="cat.icon"></span>
                 <span x-text="cat.name"></span>
                 <span class="text-xs px-2 py-0.5 rounded-full"
-                      :class="activeCategory === cat.id ? 'bg-white/20 text-white' : 'bg-white/5 text-slate-500'"
+                      :class="activeCategory === cat.id ? 'bg-white/20 text-gray-800' : 'bg-gray-50 text-gray-400'"
                       x-text="cat.count"></span>
             </button>
         </template>
@@ -45,7 +45,7 @@
     {{-- Template Grid --}}
     <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         <template x-for="item in filteredTemplates" :key="item.id">
-            <div class="glass rounded-2xl p-6 border border-white/[0.06] card-hover flex flex-col justify-between group">
+            <div class="glass rounded-2xl p-6 border border-gray-100 card-hover flex flex-col justify-between group">
                 <div>
                     {{-- Header with badge --}}
                     <div class="flex items-start justify-between gap-3 mb-4">
@@ -59,19 +59,19 @@
                     </div>
 
                     {{-- Title & Description --}}
-                    <h3 class="text-lg font-bold text-white mb-2 group-hover:text-brand-300 transition-colors" x-text="item.title"></h3>
-                    <p class="text-slate-400 text-xs leading-relaxed mb-4" x-text="item.description"></p>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2 group-hover:text-brand-300 transition-colors" x-text="item.title"></h3>
+                    <p class="text-gray-500 text-xs leading-relaxed mb-4" x-text="item.description"></p>
 
                     {{-- Tags --}}
                     <div class="flex flex-wrap gap-1.5 mb-6">
                         <template x-for="tag in item.tags" :key="tag">
-                            <span class="text-[11px] text-slate-400 bg-white/5 px-2 py-0.5 rounded-md" x-text="'#' + tag"></span>
+                            <span class="text-[11px] text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md" x-text="'#' + tag"></span>
                         </template>
                     </div>
                 </div>
 
                 {{-- Action Buttons --}}
-                <div class="pt-4 border-t border-white/[0.06] flex items-center gap-2">
+                <div class="pt-4 border-t border-gray-100 flex items-center gap-2">
                     <button @click="openPreview(item)"
                             class="flex-1 btn-ghost py-2 rounded-xl text-xs flex items-center justify-center gap-1.5">
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -93,8 +93,8 @@
     {{-- Empty State --}}
     <div x-show="filteredTemplates.length === 0" class="text-center py-16" style="display:none">
         <p class="text-4xl mb-3">🔍</p>
-        <p class="text-white font-medium text-lg">ไม่พบแบบฟอร์มที่ค้นหา</p>
-        <p class="text-slate-500 text-sm mt-1">ลองใช้คำค้นหาอื่น หรือเปลี่ยนหมวดหมู่</p>
+        <p class="text-gray-800 font-medium text-lg">ไม่พบแบบฟอร์มที่ค้นหา</p>
+        <p class="text-gray-400 text-sm mt-1">ลองใช้คำค้นหาอื่น หรือเปลี่ยนหมวดหมู่</p>
     </div>
 
     {{-- Preview Modal --}}
@@ -102,23 +102,23 @@
          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
          style="display:none"
          @keydown.escape.window="previewModal = false">
-        <div class="glass max-w-2xl w-full rounded-3xl border border-white/10 p-6 sm:p-8 space-y-6 shadow-2xl relative"
+        <div class="glass max-w-2xl w-full rounded-3xl border border-gray-200 p-6 sm:p-8 space-y-6 shadow-2xl relative"
              @click.away="previewModal = false">
             {{-- Close button --}}
-            <button @click="previewModal = false" class="absolute top-6 right-6 text-slate-400 hover:text-white text-lg">✕</button>
+            <button @click="previewModal = false" class="absolute top-6 right-6 text-gray-500 hover:text-gray-800 text-lg">✕</button>
 
             <div class="flex items-center gap-3">
                 <span class="text-3xl" x-text="activeTemplate?.icon"></span>
                 <div>
-                    <h3 class="text-xl font-bold text-white" x-text="activeTemplate?.title"></h3>
-                    <p class="text-xs text-slate-400" x-text="activeTemplate?.categoryName"></p>
+                    <h3 class="text-xl font-bold text-gray-800" x-text="activeTemplate?.title"></h3>
+                    <p class="text-xs text-gray-500" x-text="activeTemplate?.categoryName"></p>
                 </div>
             </div>
 
             {{-- Document content snippet --}}
-            <div class="bg-white/5 border border-white/10 rounded-2xl p-5 text-slate-300 text-xs font-mono leading-relaxed max-h-72 overflow-y-auto space-y-3">
-                <p class="text-center font-bold text-sm text-white" x-text="activeTemplate?.title"></p>
-                <p class="text-right text-[11px] text-slate-400">ทำขึ้น ณ .............................................................. วันที่ ....... เดือน ................... พ.ศ. ............</p>
+            <div class="bg-gray-50 border border-gray-200 rounded-2xl p-5 text-gray-600 text-xs font-mono leading-relaxed max-h-72 overflow-y-auto space-y-3">
+                <p class="text-center font-bold text-sm text-gray-800" x-text="activeTemplate?.title"></p>
+                <p class="text-right text-[11px] text-gray-500">ทำขึ้น ณ .............................................................. วันที่ ....... เดือน ................... พ.ศ. ............</p>
                 <p>สัญญานี้ทำขึ้นระหว่าง <span class="text-brand-300">[ชื่อผู้ว่าจ้าง/ผู้ให้เช่า/ผู้มอบอำนาจ]</span> ฝ่ายหนึ่ง กับ <span class="text-brand-300">[ชื่อผู้รับจ้าง/ผู้เช่า/ผู้รับมอบอำนาจ]</span> อีกฝ่ายหนึ่ง โดยมีข้อตกลงดังต่อไปนี้:</p>
                 <p>ข้อ 1. วัตถุประสงค์และขอบเขตข้อตกลง...</p>
                 <p>ข้อ 2. ค่าตอบแทนและการชำระเงินตามที่ตกลงกัน...</p>

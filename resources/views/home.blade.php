@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('title', 'PDFkrub')
 @section('description', 'PDFkrub — PDF ภาษาไทย ทำง่ายในไม่กี่วินาที สำหรับครูและโรงเรียน รองรับ PDPA ประมวลผลในประเทศไทย')
@@ -11,28 +11,28 @@
 <section class="relative min-h-screen flex items-center justify-center overflow-hidden py-24">
     {{-- Animated background orbs --}}
     <div class="absolute inset-0 pointer-events-none">
-        <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-brand-600/20 rounded-full blur-3xl float-animation"></div>
-        <div class="absolute top-1/3 right-1/4 w-80 h-80 bg-accent-500/15 rounded-full blur-3xl float-animation" style="animation-delay: -3s"></div>
-        <div class="absolute bottom-1/4 left-1/3 w-72 h-72 bg-brand-800/20 rounded-full blur-3xl float-animation" style="animation-delay: -1.5s"></div>
+        <div class="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl float-animation" style="background:rgba(230,57,70,0.07)"></div>
+        <div class="absolute top-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl float-animation" style="animation-delay:-3s;background:rgba(58,134,255,0.07)"></div>
+        <div class="absolute bottom-1/4 left-1/3 w-72 h-72 rounded-full blur-3xl float-animation" style="animation-delay:-1.5s;background:rgba(22,50,79,0.05)"></div>
     </div>
 
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         {{-- Badge --}}
-        <div class="inline-flex items-center gap-2 glass px-4 py-2 rounded-full text-sm text-brand-300 mb-8 border border-brand-500/20">
-            <span class="w-1.5 h-1.5 rounded-full bg-success-500 animate-pulse"></span>
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm mb-8" style="background:rgba(230,57,70,0.08);color:#e63946;border:1px solid rgba(230,57,70,0.2)">
+            <span class="w-1.5 h-1.5 rounded-full animate-pulse" style="background:#16a34a"></span>
             เครื่องมือ PDF สำหรับครูไทย &middot; รองรับ PDPA &middot; ประมวลผลในประเทศไทย
         </div>
 
         {{-- Heading --}}
-        <h1 class="text-5xl sm:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6">
+        <h1 class="text-5xl sm:text-6xl lg:text-7xl font-bold leading-tight mb-6" style="color:#16324f">
             PDF ภาษาไทย<br>
             <span class="text-gradient">ทำง่ายในไม่กี่วินาที</span>
         </h1>
 
-        <p class="text-xl text-slate-400 max-w-2xl mx-auto mb-4 leading-relaxed">
-            แพลตฟอร์มจัดการเอกสาร PDF สำหรับครูและโรงเรียนโดยเฉพาะ ลดเวลาทำงาน <strong class="text-white">30 นาที</strong> เหลือ <strong class="text-white">30 วินาที</strong>
+        <p class="text-xl text-gray-500 max-w-2xl mx-auto mb-4 leading-relaxed">
+            แพลตฟอร์มจัดการเอกสาร PDF สำหรับครูและโรงเรียนโดยเฉพาะ ลดเวลาทำงาน <strong class="text-gray-800">30 นาที</strong> เหลือ <strong class="text-gray-800">30 วินาที</strong>
         </p>
-        <p class="text-sm text-brand-300/80 mb-10">
+        <p class="text-sm mb-10" style="color:#e63946">
             <span class="inline-flex items-center gap-1">🛡️ รองรับ PDPA</span> &nbsp;&middot;&nbsp;
             <span>🇹🇭 เซิร์ฟเวอร์ในประเทศไทย</span> &nbsp;&middot;&nbsp;
             <span>🔒 ลบไฟล์อัตโนมัติใน 1 ชั่วโมง</span>
@@ -68,32 +68,32 @@
 
                 <template x-if="!hasFiles">
                     <div>
-                        <div class="w-16 h-16 mx-auto mb-4 bg-brand-600/20 rounded-2xl flex items-center justify-center">
-                            <svg class="w-8 h-8 text-brand-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <div class="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style="background:rgba(230,57,70,0.1)">
+                            <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="color:#e63946">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/>
                             </svg>
                         </div>
-                        <p class="text-white font-semibold text-lg mb-1">ลากและวางไฟล์ PDF ที่นี่</p>
-                        <p class="text-slate-400 text-sm">หรือ <span class="text-brand-400 underline underline-offset-2">คลิกเพื่อเลือกไฟล์</span></p>
-                        <p class="text-slate-500 text-xs mt-3">รองรับไฟล์สูงสุด {{ auth()->check() && auth()->user()->getActivePlan()->max_file_size_mb >= 200 ? '200' : '10' }} MB</p>
+                        <p class="text-gray-800 font-semibold text-lg mb-1">ลากและวางไฟล์ PDF ที่นี่</p>
+                        <p class="text-gray-500 text-sm">หรือ <span class="underline underline-offset-2" style="color:#e63946">คลิกเพื่อเลือกไฟล์</span></p>
+                        <p class="text-gray-400 text-xs mt-3">รองรับไฟล์สูงสุด {{ auth()->check() && auth()->user()->getActivePlan()->max_file_size_mb >= 200 ? '200' : '10' }} MB</p>
                     </div>
                 </template>
 
                 <template x-if="hasFiles">
                     <div class="text-left" @click.stop>
                         <div class="flex items-center justify-between mb-4">
-                            <span class="text-white font-semibold" x-text="`${files.length} ไฟล์ (${totalSize})`"></span>
-                            <button @click="clearAll()" class="text-xs text-slate-400 hover:text-error-500 transition-colors">ล้างทั้งหมด</button>
+                            <span class="text-gray-800 font-semibold" x-text="`${files.length} ไฟล์ (${totalSize})`"></span>
+                            <button @click="clearAll()" class="text-xs text-gray-400 hover:text-red-500 transition-colors">ล้างทั้งหมด</button>
                         </div>
                         <div class="space-y-2 max-h-48 overflow-y-auto">
                             <template x-for="f in files" :key="f.id">
-                                <div class="flex items-center gap-3 glass-light px-3 py-2 rounded-lg">
-                                    <svg class="w-4 h-4 text-brand-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <div class="flex items-center gap-3 px-3 py-2 rounded-lg" style="background:#f1f5f9;border:1px solid #e2e8f0">
+                                    <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="color:#e63946">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                                     </svg>
-                                    <span class="text-sm text-slate-200 flex-1 truncate" x-text="f.name"></span>
-                                    <span class="text-xs text-slate-500 flex-shrink-0" x-text="f.sizeFormatted"></span>
-                                    <button @click="removeFile(f.id)" class="text-slate-500 hover:text-error-500 transition-colors">
+                                    <span class="text-sm text-gray-700 flex-1 truncate" x-text="f.name"></span>
+                                    <span class="text-xs text-gray-400 flex-shrink-0" x-text="f.sizeFormatted"></span>
+                                    <button @click="removeFile(f.id)" class="text-gray-400 hover:text-error-500 transition-colors">
                                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/>
                                         </svg>
@@ -112,7 +112,7 @@
         </div>
 
         {{-- Trust badges --}}
-        <div class="flex flex-wrap items-center justify-center gap-6 mt-10 text-xs text-slate-500">
+        <div class="flex flex-wrap items-center justify-center gap-6 mt-10 text-xs text-gray-500">
             <span class="flex items-center gap-1.5">
                 <svg class="w-4 h-4 text-success-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/>
@@ -153,12 +153,12 @@
 <section class="py-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14">
-            <div class="inline-flex items-center gap-2 glass px-3 py-1.5 rounded-full text-xs text-brand-300 mb-4 border border-brand-500/20">
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs mb-4" style="background:rgba(22,50,79,0.08);color:#16324f;border:1px solid rgba(22,50,79,0.15)">
                 <span class="text-base">🏫</span>
                 สำหรับครูและโรงเรียน
             </div>
-            <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">เครื่องมือ PDF <span class="text-gradient">เพื่อครู</span></h2>
-            <p class="text-slate-400 max-w-xl mx-auto">ด้วยเครื่องมือที่ออกแบบมาเพื่อครูโดยเฉพาะ ลดเวลาทำเอกสารจาก 30 นาที เหลือ 30 วินาที</p>
+            <h2 class="text-3xl sm:text-4xl font-bold mb-4" style="color:#16324f">เครื่องมือ PDF <span class="text-gradient">เพื่อครู</span></h2>
+            <p class="text-gray-500 max-w-xl mx-auto">ด้วยเครื่องมือที่ออกแบบมาเพื่อครูโดยเฉพาะ ลดเวลาทำเอกสารจาก 30 นาที เหลือ 30 วินาที</p>
         </div>
 
         {{-- 6 Hero Tools Grid --}}
@@ -230,13 +230,13 @@
 
             @foreach($heroTools as $tool)
             <a href="{{ route('tools.'.$tool['slug']) }}"
-               class="group relative glass rounded-2xl p-6 border {{ $tool['border'] }} card-hover bg-gradient-to-br {{ $tool['color'] }} transition-all">
+               class="group relative tool-card card-hover transition-all">
                 @if($tool['premium'])
                 <span class="absolute top-3 right-3 badge-premium text-xs">Pro</span>
                 @endif
                 <div class="text-3xl mb-3">{{ $tool['emoji'] }}</div>
-                <h3 class="font-bold text-white text-sm mb-1 group-hover:{{ $tool['text'] }} transition-colors">{{ $tool['title'] }}</h3>
-                <p class="text-xs text-slate-400 leading-relaxed">{{ $tool['desc'] }}</p>
+                <h3 class="font-bold text-gray-800 text-sm mb-1 transition-colors">{{ $tool['title'] }}</h3>
+                <p class="text-xs text-gray-500 leading-relaxed">{{ $tool['desc'] }}</p>
             </a>
             @endforeach
         </div>
@@ -259,8 +259,8 @@
 <section class="py-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16">
-            <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">ทำไมครูต้องเลือก <span class="text-gradient">PDFkrub</span>?</h2>
-            <p class="text-slate-400">ออกแบบมาเพื่อครูโดยเฉพาะ เข้าใจความต้องการของครูไทย</p>
+            <h2 class="text-3xl sm:text-4xl font-bold mb-4" style="color:#16324f">ทำไมครูต้องเลือก <span class="text-gradient">PDFkrub</span>?</h2>
+            <p class="text-gray-500">ออกแบบมาเพื่อครูโดยเฉพาะ เข้าใจความต้องการของครูไทย</p>
         </div>
 
         <div class="grid md:grid-cols-3 gap-8 mb-12">
@@ -291,34 +291,34 @@
             @endphp
 
             @foreach($features as $feature)
-            <div class="glass rounded-2xl p-8 card-hover border border-white/[0.06]">
+            <div class="rounded-2xl p-8 card-hover" style="background:#fff;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(22,50,79,0.06)">
                 <div class="{{ $feature['bg'] }} {{ $feature['color'] }} w-14 h-14 rounded-2xl flex items-center justify-center mb-6">
                     <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                         {!! $feature['icon'] !!}
                     </svg>
                 </div>
-                <h3 class="text-xl font-bold text-white mb-3">{{ $feature['title'] }}</h3>
-                <p class="text-slate-400 leading-relaxed">{{ $feature['desc'] }}</p>
+                <h3 class="text-xl font-bold text-gray-800 mb-3">{{ $feature['title'] }}</h3>
+                <p class="text-gray-500 leading-relaxed">{{ $feature['desc'] }}</p>
             </div>
             @endforeach
         </div>
 
         {{-- PDPA Trust Banner --}}
-        <div class="glass rounded-2xl p-6 border border-success-500/20 bg-gradient-to-r from-success-500/5 to-brand-500/5">
+        <div class="rounded-2xl p-6" style="background:linear-gradient(135deg,#f0fdf4,#eff6ff);border:1px solid rgba(22,163,74,0.2)">
             <div class="flex flex-col md:flex-row items-center gap-6">
-                <div class="flex-shrink-0 w-16 h-16 rounded-2xl bg-success-500/10 flex items-center justify-center">
+                <div class="flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center" style="background:rgba(22,163,74,0.1)">
                     <svg class="w-8 h-8 text-success-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/>
                     </svg>
                 </div>
                 <div class="flex-1 text-center md:text-left">
-                    <h3 class="text-white font-bold text-lg mb-1">🇹🇭 ประมวลผลในประเทศไทย · รองรับ PDPA</h3>
-                    <p class="text-slate-400 text-sm">เอกสารทั้งหมดประมวลผลบนเซิร์ฟเวอร์ในประเทศไทย ไม่ทำสำเนาข้อมูลเป็น AI ซ้ำ ไม่ขายข้อมูลให้ผู้อื่น เหมาะสำหรับเอกสารสำคัญ เช่น เลขบัตรประชาชน, โปรไฟล์นักเรียน</p>
+                    <h3 class="font-bold text-gray-800 text-lg mb-1">🇹🇭 ประมวลผลในประเทศไทย · รองรับ PDPA</h3>
+                    <p class="text-gray-500 text-sm">เอกสารทั้งหมดประมวลผลบนเซิร์ฟเวอร์ในประเทศไทย ไม่ทำสำเนาข้อมูลเป็น AI ซ้ำ ไม่ขายข้อมูลให้ผู้อื่น เหมาะสำหรับเอกสารสำคัญ เช่น เลขบัตรประชาชน, โปรไฟล์นักเรียน</p>
                 </div>
                 <div class="flex flex-wrap justify-center gap-3">
-                    <span class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-success-500/10 text-success-400 border border-success-500/20">🔒 เข้ารหัส AES-256</span>
-                    <span class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20">⏱️ ลบใน 1 ชั่วโมง</span>
-                    <span class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-accent-500/10 text-accent-400 border border-accent-500/20">🇹🇭 เซิร์ฟเวอร์ไทย</span>
+                    <span class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full" style="background:rgba(22,163,74,0.1);color:#15803d;border:1px solid rgba(22,163,74,0.2)">🔒 เข้ารหัส AES-256</span>
+                    <span class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full" style="background:rgba(230,57,70,0.08);color:#e63946;border:1px solid rgba(230,57,70,0.2)">⏱️ ลบใน 1 ชั่วโมง</span>
+                    <span class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full" style="background:rgba(58,134,255,0.08);color:#1d6fe8;border:1px solid rgba(58,134,255,0.2)">🇹🇭 เซิร์ฟเวอร์ไทย</span>
                 </div>
             </div>
         </div>
@@ -330,8 +330,8 @@
      ==================================================== --}}
 <section class="py-20">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">วิธีใช้งาน</h2>
-        <p class="text-slate-400 mb-16">ง่ายแค่ 3 ขั้นตอน ไม่ต้องสมัครสมาชิกก็ใช้ได้</p>
+        <h2 class="text-3xl sm:text-4xl font-bold mb-4" style="color:#16324f">วิธีใช้งาน</h2>
+        <p class="text-gray-500 mb-16">ง่ายแค่ 3 ขั้นตอน ไม่ต้องสมัครสมาชิกก็ใช้ได้</p>
 
         <div class="grid md:grid-cols-3 gap-8 relative">
             {{-- Connector line --}}
@@ -347,14 +347,14 @@
 
             @foreach($steps as $step)
             <div class="relative flex flex-col items-center">
-                <div class="w-24 h-24 glass glow-blue rounded-full flex items-center justify-center mb-6 border border-brand-500/30 relative z-10">
-                    <svg class="w-10 h-10 text-brand-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <div class="w-24 h-24 rounded-full flex items-center justify-center mb-6 relative z-10" style="background:#fff;border:2px solid rgba(230,57,70,0.25);box-shadow:0 4px 16px rgba(230,57,70,0.12)">
+                    <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="color:#e63946">
                         <path stroke-linecap="round" stroke-linejoin="round" d="{{ $step['icon'] }}"/>
                     </svg>
-                    <div class="absolute -top-2 -right-2 w-7 h-7 bg-gradient-to-br from-brand-500 to-brand-700 rounded-full flex items-center justify-center text-white text-xs font-bold">{{ $step['num'] }}</div>
+                    <div class="absolute -top-2 -right-2 w-7 h-7 rounded-full flex items-center justify-center text-gray-800 text-xs font-bold" style="background:linear-gradient(135deg,#e63946,#d32535)">{{ $step['num'] }}</div>
                 </div>
-                <h3 class="text-lg font-bold text-white mb-2">{{ $step['title'] }}</h3>
-                <p class="text-slate-400 text-sm text-center">{{ $step['desc'] }}</p>
+                <h3 class="text-lg font-bold text-gray-800 mb-2">{{ $step['title'] }}</h3>
+                <p class="text-gray-500 text-sm text-center">{{ $step['desc'] }}</p>
             </div>
             @endforeach
         </div>
@@ -367,46 +367,46 @@
 <section class="py-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14">
-            <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">แผนราคา</h2>
-            <p class="text-slate-400">เริ่มต้นฟรี ไม่ต้องใส่บัตรเครดิต</p>
+            <h2 class="text-3xl sm:text-4xl font-bold mb-4" style="color:#16324f">แผนราคา</h2>
+            <p class="text-gray-500">เริ่มต้นฟรี ไม่ต้องใส่บัตรเครดิต</p>
         </div>
 
         <div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             @foreach($plans as $plan)
-            <div class="glass rounded-2xl p-8 border card-hover relative
-                        {{ $plan->name === 'pro' ? 'border-brand-500/50 glow-blue' : 'border-white/[0.06]' }}">
+            <div class="rounded-2xl p-8 card-hover relative"
+                 style="background:#fff;border:{{ $plan->name === 'pro' ? '2px solid #e63946' : '1px solid #e2e8f0' }};box-shadow:{{ $plan->name === 'pro' ? '0 8px 32px rgba(230,57,70,0.12)' : '0 1px 4px rgba(22,50,79,0.06)' }}">
 
                 @if($plan->name === 'pro')
                 <div class="absolute -top-4 left-1/2 -translate-x-1/2">
-                    <span class="bg-gradient-to-r from-brand-600 to-brand-500 text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-lg">แนะนำ</span>
+                    <span class="text-gray-800 text-xs font-bold px-4 py-1.5 rounded-full shadow-lg" style="background:linear-gradient(135deg,#e63946,#d32535)">⭐ แนะนำ</span>
                 </div>
                 @endif
 
                 <div class="mb-6">
-                    <h3 class="text-xl font-bold text-white mb-1">{{ $plan->display_name_th ?? $plan->display_name }}</h3>
+                    <h3 class="text-xl font-bold text-gray-800 mb-1">{{ $plan->display_name_th ?? $plan->display_name }}</h3>
                     <div class="flex items-baseline gap-2 mt-4">
                         @if($plan->price_monthly > 0)
-                            <span class="text-4xl font-bold text-white">฿{{ number_format($plan->price_monthly) }}</span>
-                            <span class="text-slate-400 text-sm">/เดือน</span>
+                            <span class="text-4xl font-bold" style="color:#16324f">฿{{ number_format($plan->price_monthly) }}</span>
+                            <span class="text-gray-500 text-sm">/เดือน</span>
                         @else
-                            <span class="text-4xl font-bold text-white">ฟรี</span>
+                            <span class="text-4xl font-bold" style="color:#16324f">ฟรี</span>
                         @endif
                     </div>
                     @if($plan->price_yearly > 0)
-                    <p class="text-xs text-accent-400 mt-1">หรือ ฿{{ number_format($plan->price_yearly) }}/ปี (ประหยัด {{ round((1 - ($plan->price_yearly / ($plan->price_monthly * 12))) * 100) }}%)</p>
+                    <p class="text-xs mt-1" style="color:#3a86ff">หรือ ฿{{ number_format($plan->price_yearly) }}/ปี (ประหยัด {{ round((1 - ($plan->price_yearly / ($plan->price_monthly * 12))) * 100) }}%)</p>
                     @endif
                 </div>
 
                 <ul class="space-y-3 mb-8">
-                    <li class="flex items-center gap-2 text-sm text-slate-300">
+                    <li class="flex items-center gap-2 text-sm text-gray-600">
                         <svg class="w-4 h-4 text-success-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
                         ไฟล์สูงสุด {{ $plan->max_file_size_mb }} MB
                     </li>
-                    <li class="flex items-center gap-2 text-sm text-slate-300">
+                    <li class="flex items-center gap-2 text-sm text-gray-600">
                         <svg class="w-4 h-4 text-success-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
                         {{ $plan->daily_conversions === -1 ? 'แปลงไฟล์ไม่จำกัด' : 'แปลงได้ '.$plan->daily_conversions.' ครั้ง/วัน' }}
                     </li>
-                    <li class="flex items-center gap-2 text-sm text-slate-300">
+                    <li class="flex items-center gap-2 text-sm text-gray-600">
                         <svg class="w-4 h-4 text-success-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
                         @if($plan->file_retention_hours >= 720)
                             เก็บไฟล์ 30 วัน
@@ -418,30 +418,30 @@
                             เก็บไฟล์ {{ $plan->file_retention_hours }} ชั่วโมง
                         @endif
                     </li>
-                    <li class="flex items-center gap-2 text-sm {{ $plan->has_ocr ? 'text-slate-300' : 'text-slate-600' }}">
+                    <li class="flex items-center gap-2 text-sm {{ $plan->has_ocr ? 'text-gray-600' : 'text-gray-300' }}">
                         @if($plan->has_ocr)
                         <svg class="w-4 h-4 text-success-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
                         @else
-                        <svg class="w-4 h-4 text-slate-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+                        <svg class="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
                         @endif
                         OCR ภาษาไทย (Google Vision)
                     </li>
-                    <li class="flex items-center gap-2 text-sm {{ $plan->has_esign ? 'text-slate-300' : 'text-slate-600' }}">
+                    <li class="flex items-center gap-2 text-sm {{ $plan->has_esign ? 'text-gray-600' : 'text-gray-300' }}">
                         @if($plan->has_esign)
                         <svg class="w-4 h-4 text-success-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
                         @else
-                        <svg class="w-4 h-4 text-slate-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+                        <svg class="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
                         @endif
                         เซ็นเอกสารดิจิทัล
                     </li>
                     @if($plan->has_api_access)
-                    <li class="flex items-center gap-2 text-sm text-slate-300">
+                    <li class="flex items-center gap-2 text-sm text-gray-600">
                         <svg class="w-4 h-4 text-success-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
                         REST API Access
                     </li>
                     @endif
                     @if(!$plan->has_watermark)
-                    <li class="flex items-center gap-2 text-sm text-slate-300">
+                    <li class="flex items-center gap-2 text-sm text-gray-600">
                         <svg class="w-4 h-4 text-success-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
                         ไม่มี Watermark
                     </li>
@@ -457,7 +457,7 @@
                     </a>
                     @endif
                 @else
-                    <a href="{{ $plan->price_monthly > 0 ? route('register') : route('register') }}"
+                    <a href="{{ route('register') }}"
                        class="w-full block text-center {{ $plan->name === 'pro' ? 'btn-primary' : 'btn-ghost' }} rounded-xl py-3 text-sm">
                         {{ $plan->price_monthly > 0 ? 'เริ่มต้นใช้งาน' : 'สมัครฟรี' }}
                     </a>
@@ -473,17 +473,16 @@
      ==================================================== --}}
 <section class="py-20">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <div class="glass rounded-3xl p-12 border border-brand-500/20 glow-blue relative overflow-hidden">
-            <div class="absolute inset-0 bg-gradient-to-br from-brand-900/50 to-transparent pointer-events-none"></div>
+        <div class="rounded-3xl p-12 relative overflow-hidden" style="background:linear-gradient(135deg,#16324f,#1d4a75);">
             <div class="relative">
                 <div class="text-4xl mb-4">🏫</div>
-                <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">
+                <h2 class="text-3xl sm:text-4xl font-bold text-gray-800 mb-4">
                     เริ่มใช้งานฟรีวันนี้
                 </h2>
-                <p class="text-slate-400 mb-2 max-w-xl mx-auto">
+                <p class="mb-2 max-w-xl mx-auto" style="color:rgba(255,255,255,0.75)">
                     ครูกว่า 500,000 คนทั่วไทยเลือกใช้ PDFkrub สำหรับงานเอกสารทุกวัน
                 </p>
-                <p class="text-xs text-slate-500 mb-8">ไม่ต้องใส่บัตรเครดิต · ประมวลผลในประเทศไทย · รองรับ PDPA</p>
+                <p class="text-xs mb-8" style="color:rgba(255,255,255,0.5)">ไม่ต้องใส่บัตรเครดิต · ประมวลผลในประเทศไทย · รองรับ PDPA</p>
                 <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
                     <a href="{{ route('register') }}" class="btn-primary text-base px-10 py-4 rounded-2xl inline-flex items-center gap-2">
                         สมัครครูฟรี
@@ -491,7 +490,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
                         </svg>
                     </a>
-                    <a href="{{ route('pricing') }}" class="btn-ghost text-base px-8 py-4 rounded-2xl inline-flex items-center gap-2">
+                    <a href="{{ route('pricing') }}" class="text-base px-8 py-4 rounded-2xl inline-flex items-center gap-2 font-semibold transition-colors" style="color:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.25)" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
                         ดูแผนราคาสำหรับโรงเรียน
                     </a>
                 </div>

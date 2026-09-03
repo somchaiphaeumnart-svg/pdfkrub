@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('title', 'เซ็นเอกสาร PDF ออนไลน์ — PDFkrub')
 @section('description', 'เซ็นชื่อดิจิทัลบน PDF ออนไลน์ฟรี วาดลายเซ็น อัปโหลดรูป หรือพิมพ์ชื่อ รองรับภาษาไทย ปลอดภัยบนเบราว์เซอร์')
@@ -9,12 +9,12 @@
      x-init="init()">
 
     {{-- Breadcrumb --}}
-    <nav class="flex items-center gap-2 text-sm text-slate-500 mb-8">
+    <nav class="flex items-center gap-2 text-sm text-gray-400 mb-8">
         <a href="{{ route('home') }}" class="hover:text-brand-400 transition-colors">หน้าแรก</a>
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
         <a href="{{ route('tools') }}" class="hover:text-brand-400 transition-colors">เครื่องมือ</a>
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
-        <span class="text-slate-300">เซ็นเอกสาร PDF</span>
+        <span class="text-gray-600">เซ็นเอกสาร PDF</span>
     </nav>
 
     {{-- Header --}}
@@ -22,7 +22,7 @@
         <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-600 to-indigo-500 flex items-center justify-center text-2xl shadow-lg flex-shrink-0">✍️</div>
         <div>
             <div class="flex items-center gap-3 mb-1">
-                <h1 class="text-3xl font-bold text-white">เซ็นเอกสาร PDF</h1>
+                <h1 class="text-3xl font-bold text-gray-800">เซ็นเอกสาร PDF</h1>
                 @auth
                     @if(auth()->user()->getActivePlan()->has_esign)
                     <span class="badge-free">Pro</span>
@@ -33,7 +33,7 @@
                 <span class="badge-premium">Pro</span>
                 @endauth
             </div>
-            <p class="text-slate-400">เซ็นชื่อดิจิทัลบน PDF ออนไลน์ — วาด, พิมพ์, หรืออัปโหลดลายเซ็น</p>
+            <p class="text-gray-500">เซ็นชื่อดิจิทัลบน PDF ออนไลน์ — วาด, พิมพ์, หรืออัปโหลดลายเซ็น</p>
         </div>
     </div>
 
@@ -47,8 +47,8 @@
                 </svg>
             </div>
             <div class="flex-1">
-                <h3 class="text-lg font-bold text-white mb-1">ฟีเจอร์นี้สำหรับสมาชิก Pro</h3>
-                <p class="text-slate-400 text-sm mb-4">อัปเกรดเพื่อเซ็นเอกสาร PDF ไม่จำกัด รองรับลายเซ็นดิจิทัลและตราประทับ ปฏิบัติตามกฎหมาย PDPA</p>
+                <h3 class="text-lg font-bold text-gray-800 mb-1">ฟีเจอร์นี้สำหรับสมาชิก Pro</h3>
+                <p class="text-gray-500 text-sm mb-4">อัปเกรดเพื่อเซ็นเอกสาร PDF ไม่จำกัด รองรับลายเซ็นดิจิทัลและตราประทับ ปฏิบัติตามกฎหมาย PDPA</p>
                 <div class="flex flex-wrap gap-3">
                     <a href="{{ route('pricing') }}" class="btn-accent text-sm px-6 py-2.5 rounded-xl inline-block">อัปเกรดเป็น Pro — ฿199/เดือน</a>
                     @guest
@@ -64,14 +64,14 @@
 
         {{-- Left: PDF Upload + Preview --}}
         <div class="space-y-5">
-            <div class="glass rounded-2xl border border-white/[0.06] overflow-hidden">
-                <div class="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between">
-                    <h2 class="font-semibold text-white">เอกสาร PDF</h2>
+            <div class="glass rounded-2xl border border-gray-100 overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <h2 class="font-semibold text-gray-800">เอกสาร PDF</h2>
                     <template x-if="pdfLoaded">
-                        <div class="flex items-center gap-3 text-xs text-slate-400">
-                            <button @click="prevPage()" :disabled="currentPage <= 1" class="px-2 py-1 rounded hover:bg-white/10 disabled:opacity-30 transition-all">← ก่อนหน้า</button>
+                        <div class="flex items-center gap-3 text-xs text-gray-500">
+                            <button @click="prevPage()" :disabled="currentPage <= 1" class="px-2 py-1 rounded hover:bg-gray-100 disabled:opacity-30 transition-all">← ก่อนหน้า</button>
                             <span x-text="`หน้า ${currentPage} / ${totalPages}`"></span>
-                            <button @click="nextPage()" :disabled="currentPage >= totalPages" class="px-2 py-1 rounded hover:bg-white/10 disabled:opacity-30 transition-all">ถัดไป →</button>
+                            <button @click="nextPage()" :disabled="currentPage >= totalPages" class="px-2 py-1 rounded hover:bg-gray-100 disabled:opacity-30 transition-all">ถัดไป →</button>
                         </div>
                     </template>
                 </div>
@@ -91,8 +91,8 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/>
                                 </svg>
                             </div>
-                            <p class="text-white font-semibold mb-1">อัปโหลดไฟล์ PDF</p>
-                            <p class="text-slate-400 text-sm">ลากมาวางหรือคลิกเพื่อเลือก</p>
+                            <p class="text-gray-800 font-semibold mb-1">อัปโหลดไฟล์ PDF</p>
+                            <p class="text-gray-500 text-sm">ลากมาวางหรือคลิกเพื่อเลือก</p>
                         </div>
                     </template>
 
@@ -100,7 +100,7 @@
                     <template x-if="pdfLoaded">
                         <div class="relative">
                             <canvas x-ref="pdfCanvas"
-                                    class="w-full rounded-xl border border-white/10 cursor-crosshair"
+                                    class="w-full rounded-xl border border-gray-200 cursor-crosshair"
                                     @click="placeSignatureOnCanvas($event)"
                                     style="background: white;">
                             </canvas>
@@ -110,7 +110,7 @@
                                      :style="`left: ${sig.x}px; top: ${sig.y}px; width: ${sig.w}px; height: ${sig.h}px;`">
                                     <img :src="sig.dataUrl" class="w-full h-full object-contain">
                                     <button @click.stop="removeSignature(idx)"
-                                            class="absolute -top-3 -right-3 w-6 h-6 bg-error-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
+                                            class="absolute -top-3 -right-3 w-6 h-6 bg-error-500 text-gray-800 rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
                                 </div>
                             </template>
                         </div>
@@ -122,24 +122,24 @@
         {{-- Right: Signature Tools --}}
         <div class="space-y-5">
             {{-- Signature Tabs --}}
-            <div class="glass rounded-2xl border border-white/[0.06] overflow-hidden">
-                <div class="px-5 py-4 border-b border-white/[0.06]">
-                    <h2 class="font-semibold text-white mb-3">ลายเซ็น</h2>
+            <div class="glass rounded-2xl border border-gray-100 overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-100">
+                    <h2 class="font-semibold text-gray-800 mb-3">ลายเซ็น</h2>
                     {{-- Tab buttons --}}
-                    <div class="flex gap-1 bg-white/5 rounded-xl p-1">
+                    <div class="flex gap-1 bg-gray-50 rounded-xl p-1">
                         <button @click="sigTab = 'draw'"
                                 class="flex-1 py-2 text-sm rounded-lg transition-all"
-                                :class="sigTab === 'draw' ? 'bg-indigo-600 text-white font-medium' : 'text-slate-400 hover:text-white'">
+                                :class="sigTab === 'draw' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-500 hover:text-gray-800'">
                             ✍️ วาด
                         </button>
                         <button @click="sigTab = 'type'"
                                 class="flex-1 py-2 text-sm rounded-lg transition-all"
-                                :class="sigTab === 'type' ? 'bg-indigo-600 text-white font-medium' : 'text-slate-400 hover:text-white'">
+                                :class="sigTab === 'type' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-500 hover:text-gray-800'">
                             ⌨️ พิมพ์
                         </button>
                         <button @click="sigTab = 'upload'"
                                 class="flex-1 py-2 text-sm rounded-lg transition-all"
-                                :class="sigTab === 'upload' ? 'bg-indigo-600 text-white font-medium' : 'text-slate-400 hover:text-white'">
+                                :class="sigTab === 'upload' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-500 hover:text-gray-800'">
                             📷 อัปโหลด
                         </button>
                     </div>
@@ -150,7 +150,7 @@
                     <div x-show="sigTab === 'draw'" class="space-y-4">
                         <div class="flex items-center justify-between mb-2">
                             <div class="flex items-center gap-3">
-                                <label class="text-xs text-slate-400">สี:</label>
+                                <label class="text-xs text-gray-500">สี:</label>
                                 <div class="flex gap-2">
                                     <template x-for="c in ['#1e3a8a','#000000','#dc2626','#16a34a']">
                                         <button @click="drawColor = c"
@@ -161,12 +161,12 @@
                                     </template>
                                 </div>
                             </div>
-                            <button @click="clearCanvas()" class="text-xs text-slate-500 hover:text-error-500 transition-colors">ล้าง</button>
+                            <button @click="clearCanvas()" class="text-xs text-gray-400 hover:text-error-500 transition-colors">ล้าง</button>
                         </div>
 
                         <canvas x-ref="sigCanvas"
                                 width="380" height="160"
-                                class="w-full rounded-xl border border-white/10 cursor-crosshair touch-none"
+                                class="w-full rounded-xl border border-gray-200 cursor-crosshair touch-none"
                                 style="background: rgba(255,255,255,0.05);"
                                 @mousedown="startDraw($event)"
                                 @mousemove="draw($event)"
@@ -177,24 +177,24 @@
                                 @touchend="stopDraw()">
                         </canvas>
 
-                        <p class="text-xs text-slate-500 text-center">วาดลายเซ็นของคุณด้านบน</p>
+                        <p class="text-xs text-gray-400 text-center">วาดลายเซ็นของคุณด้านบน</p>
                     </div>
 
                     {{-- Type Tab --}}
                     <div x-show="sigTab === 'type'" class="space-y-4">
                         <div>
-                            <label class="text-xs text-slate-400 block mb-2">พิมพ์ชื่อของคุณ</label>
+                            <label class="text-xs text-gray-500 block mb-2">พิมพ์ชื่อของคุณ</label>
                             <input type="text" x-model="typedName" placeholder="ชื่อ-นามสกุล"
                                    @input="renderTypedSignature()"
-                                   class="w-full bg-white/5 border border-white/10 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all">
+                                   class="w-full bg-gray-50 border border-gray-200 text-gray-800 placeholder-slate-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all">
                         </div>
                         <div>
-                            <label class="text-xs text-slate-400 block mb-2">สไตล์ลายมือ</label>
+                            <label class="text-xs text-gray-500 block mb-2">สไตล์ลายมือ</label>
                             <div class="grid grid-cols-2 gap-2">
                                 <template x-for="(font, idx) in signatureFonts" :key="idx">
                                     <button @click="selectedFont = font; renderTypedSignature()"
                                             class="py-3 px-4 rounded-xl border text-sm transition-all text-center"
-                                            :class="selectedFont === font ? 'border-indigo-500 bg-indigo-500/10 text-white' : 'border-white/10 text-slate-400 hover:border-white/20'"
+                                            :class="selectedFont === font ? 'border-indigo-500 bg-indigo-500/10 text-gray-800' : 'border-gray-200 text-gray-500 hover:border-gray-200'"
                                             :style="`font-family: ${font.family}`"
                                             x-text="typedName || 'ลายเซ็น'">
                                     </button>
@@ -213,8 +213,8 @@
                                    @change="loadSignatureImage($event)">
                             <template x-if="!uploadedSigUrl">
                                 <div>
-                                    <p class="text-slate-300 text-sm font-medium mb-1">อัปโหลดรูปลายเซ็น</p>
-                                    <p class="text-slate-500 text-xs">PNG พื้นหลังโปร่งใสดีที่สุด</p>
+                                    <p class="text-gray-600 text-sm font-medium mb-1">อัปโหลดรูปลายเซ็น</p>
+                                    <p class="text-gray-400 text-xs">PNG พื้นหลังโปร่งใสดีที่สุด</p>
                                 </div>
                             </template>
                             <template x-if="uploadedSigUrl">
@@ -224,21 +224,21 @@
                     </div>
 
                     {{-- Preview --}}
-                    <div class="mt-4 pt-4 border-t border-white/[0.06]">
+                    <div class="mt-4 pt-4 border-t border-gray-100">
                         <div class="flex items-center justify-between mb-2">
-                            <p class="text-xs text-slate-400 font-medium">ตัวอย่างลายเซ็น</p>
-                            <div class="flex items-center gap-2 text-xs text-slate-500">
+                            <p class="text-xs text-gray-500 font-medium">ตัวอย่างลายเซ็น</p>
+                            <div class="flex items-center gap-2 text-xs text-gray-400">
                                 <span>ขนาด:</span>
                                 <input type="range" x-model="sigScale" min="0.5" max="2" step="0.1" class="w-20 accent-indigo-500">
                             </div>
                         </div>
-                        <div class="bg-white/5 rounded-xl p-4 flex items-center justify-center min-h-16 border border-white/[0.06]">
+                        <div class="bg-gray-50 rounded-xl p-4 flex items-center justify-center min-h-16 border border-gray-100">
                             <template x-if="currentSigDataUrl">
                                 <img :src="currentSigDataUrl" class="max-h-16 object-contain"
                                      :style="`transform: scale(${sigScale}); transform-origin: center;`">
                             </template>
                             <template x-if="!currentSigDataUrl">
-                                <p class="text-slate-600 text-xs">ลายเซ็นจะแสดงที่นี่</p>
+                                <p class="text-gray-300 text-xs">ลายเซ็นจะแสดงที่นี่</p>
                             </template>
                         </div>
                     </div>
@@ -246,15 +246,15 @@
             </div>
 
             {{-- Place Signature + Actions --}}
-            <div class="glass rounded-2xl border border-white/[0.06] p-5 space-y-4">
+            <div class="glass rounded-2xl border border-gray-100 p-5 space-y-4">
                 <template x-if="!pdfLoaded">
-                    <p class="text-slate-500 text-sm text-center py-2">อัปโหลด PDF ก่อน แล้วคลิกตำแหน่งที่ต้องการวางลายเซ็น</p>
+                    <p class="text-gray-400 text-sm text-center py-2">อัปโหลด PDF ก่อน แล้วคลิกตำแหน่งที่ต้องการวางลายเซ็น</p>
                 </template>
                 <template x-if="pdfLoaded">
                     <div class="space-y-3">
-                        <p class="text-sm text-slate-300">
+                        <p class="text-sm text-gray-600">
                             <span class="text-indigo-400">คลิกบน PDF</span> เพื่อวางลายเซ็นในตำแหน่งที่ต้องการ
-                            <span x-show="placedSignatures.length > 0" class="text-slate-500" x-text="`(${placedSignatures.length} ตำแหน่ง)`"></span>
+                            <span x-show="placedSignatures.length > 0" class="text-gray-400" x-text="`(${placedSignatures.length} ตำแหน่ง)`"></span>
                         </p>
                         <button @click="applyAndDownload()"
                                 :disabled="placedSignatures.length === 0 || isProcessing"
@@ -280,7 +280,7 @@
             </div>
 
             {{-- Security badge --}}
-            <div class="flex items-center gap-3 text-xs text-slate-500 px-2">
+            <div class="flex items-center gap-3 text-xs text-gray-400 px-2">
                 <svg class="w-4 h-4 text-success-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/>
                 </svg>

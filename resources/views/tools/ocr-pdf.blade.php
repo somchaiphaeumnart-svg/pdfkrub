@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('title', 'OCR ภาษาไทย — แปลงรูปภาพเป็นข้อความ')
 @section('description', 'OCR ภาษาไทยแม่นยำสูง ด้วย Google Cloud Vision API รองรับ PDF สแกน รูปภาพ ทั้งภาษาไทยและอังกฤษ')
@@ -9,10 +9,10 @@
      x-init="init()">
 
     {{-- Breadcrumb --}}
-    <nav class="flex items-center gap-2 text-sm text-slate-500 mb-8">
+    <nav class="flex items-center gap-2 text-sm text-gray-400 mb-8">
         <a href="{{ route('home') }}" class="hover:text-brand-400 transition-colors">หน้าแรก</a>
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
-        <span class="text-slate-300">OCR ภาษาไทย</span>
+        <span class="text-gray-600">OCR ภาษาไทย</span>
     </nav>
 
     {{-- Header --}}
@@ -20,11 +20,11 @@
         <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-500 flex items-center justify-center text-2xl shadow-lg flex-shrink-0">🔍</div>
         <div>
             <div class="flex items-center gap-3 mb-1">
-                <h1 class="text-3xl font-bold text-white">OCR ภาษาไทย</h1>
+                <h1 class="text-3xl font-bold text-gray-800">OCR ภาษาไทย</h1>
                 <span class="badge-premium">Pro</span>
                 <span class="text-xs bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full font-medium">Google Vision AI</span>
             </div>
-            <p class="text-slate-400">แปลงรูปภาพและ PDF สแกนเป็นข้อความ รองรับภาษาไทย-อังกฤษ แม่นยำระดับ 99%</p>
+            <p class="text-gray-500">แปลงรูปภาพและ PDF สแกนเป็นข้อความ รองรับภาษาไทย-อังกฤษ แม่นยำระดับ 99%</p>
         </div>
     </div>
 
@@ -33,9 +33,9 @@
         {{-- Left: Upload --}}
         <div class="space-y-5">
             {{-- Upload zone --}}
-            <div class="glass rounded-2xl border border-white/[0.06] overflow-hidden">
-                <div class="px-5 py-4 border-b border-white/[0.06]">
-                    <h2 class="font-semibold text-white">อัปโหลดไฟล์</h2>
+            <div class="glass rounded-2xl border border-gray-100 overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-100">
+                    <h2 class="font-semibold text-gray-800">อัปโหลดไฟล์</h2>
                 </div>
                 <div class="p-5">
                     <div class="upload-zone p-8 text-center cursor-pointer"
@@ -53,8 +53,8 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/>
                             </svg>
                         </div>
-                        <p class="text-white font-semibold mb-1">ลากไฟล์มาวางหรือคลิกเพื่อเลือก</p>
-                        <p class="text-slate-400 text-sm">PDF, JPG, PNG, TIFF, BMP — สูงสุด 200 MB</p>
+                        <p class="text-gray-800 font-semibold mb-1">ลากไฟล์มาวางหรือคลิกเพื่อเลือก</p>
+                        <p class="text-gray-500 text-sm">PDF, JPG, PNG, TIFF, BMP — สูงสุด 200 MB</p>
                     </div>
 
                     {{-- File list --}}
@@ -66,10 +66,10 @@
                                         <span class="text-xs text-emerald-400 font-bold" x-text="f.name.split('.').pop().toUpperCase().slice(0,3)"></span>
                                     </div>
                                     <div class="flex-1 min-w-0">
-                                        <p class="text-sm text-white truncate" x-text="f.name"></p>
-                                        <p class="text-xs text-slate-500" x-text="formatSize(f.size)"></p>
+                                        <p class="text-sm text-gray-800 truncate" x-text="f.name"></p>
+                                        <p class="text-xs text-gray-400" x-text="formatSize(f.size)"></p>
                                     </div>
-                                    <button @click="removeFile(i)" class="text-slate-600 hover:text-error-500 transition-colors">
+                                    <button @click="removeFile(i)" class="text-gray-300 hover:text-error-500 transition-colors">
                                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
                                     </button>
                                 </div>
@@ -80,18 +80,18 @@
             </div>
 
             {{-- Settings --}}
-            <div class="glass rounded-2xl border border-white/[0.06] p-5 space-y-4">
-                <h3 class="font-semibold text-white text-sm">ตั้งค่า OCR</h3>
+            <div class="glass rounded-2xl border border-gray-100 p-5 space-y-4">
+                <h3 class="font-semibold text-gray-800 text-sm">ตั้งค่า OCR</h3>
 
                 <div>
-                    <label class="text-xs text-slate-400 block mb-2">ภาษาหลัก</label>
+                    <label class="text-xs text-gray-500 block mb-2">ภาษาหลัก</label>
                     <div class="flex flex-wrap gap-2">
                         <template x-for="lang in languages" :key="lang.code">
                             <button @click="toggleLanguage(lang.code)"
                                     class="px-3 py-1.5 rounded-xl text-xs border transition-all"
                                     :class="selectedLangs.includes(lang.code)
                                         ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300 font-medium'
-                                        : 'border-white/10 text-slate-400 hover:border-white/20'">
+                                        : 'border-gray-200 text-gray-500 hover:border-gray-200'">
                                 <span x-text="lang.flag + ' ' + lang.name"></span>
                             </button>
                         </template>
@@ -99,14 +99,14 @@
                 </div>
 
                 <div>
-                    <label class="text-xs text-slate-400 block mb-2">รูปแบบผลลัพธ์</label>
+                    <label class="text-xs text-gray-500 block mb-2">รูปแบบผลลัพธ์</label>
                     <div class="grid grid-cols-3 gap-2">
                         <template x-for="fmt in formats" :key="fmt.value">
                             <button @click="outputFormat = fmt.value"
                                     class="py-2 px-3 rounded-xl text-xs border transition-all text-center"
                                     :class="outputFormat === fmt.value
-                                        ? 'border-emerald-500 bg-emerald-500/10 text-white font-medium'
-                                        : 'border-white/10 text-slate-400'">
+                                        ? 'border-emerald-500 bg-emerald-500/10 text-gray-800 font-medium'
+                                        : 'border-gray-200 text-gray-500'">
                                 <span x-text="fmt.icon + ' ' + fmt.label"></span>
                             </button>
                         </template>
@@ -117,10 +117,10 @@
                     <label class="flex items-center gap-2 cursor-pointer">
                         <div class="relative">
                             <input type="checkbox" x-model="detectTables" class="sr-only">
-                            <div class="w-10 h-5 rounded-full transition-all" :class="detectTables ? 'bg-emerald-500' : 'bg-white/10'"></div>
+                            <div class="w-10 h-5 rounded-full transition-all" :class="detectTables ? 'bg-emerald-500' : 'bg-gray-100'"></div>
                             <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform" :class="detectTables ? 'translate-x-5' : ''"></div>
                         </div>
-                        <span class="text-xs text-slate-300">ตรวจจับตาราง (Table Detection)</span>
+                        <span class="text-xs text-gray-600">ตรวจจับตาราง (Table Detection)</span>
                     </label>
                 </div>
 
@@ -146,7 +146,7 @@
 
                 @guest
                 <div class="glass-light rounded-xl p-3 border border-accent-500/20 text-center">
-                    <p class="text-xs text-slate-400">
+                    <p class="text-xs text-gray-500">
                         <a href="{{ route('register') }}" class="text-brand-400 hover:text-brand-300">สมัครสมาชิก</a>
                         หรือ
                         <a href="{{ route('login') }}" class="text-brand-400 hover:text-brand-300">เข้าสู่ระบบ</a>
@@ -159,15 +159,15 @@
 
         {{-- Right: Result --}}
         <div class="space-y-5">
-            <div class="glass rounded-2xl border border-white/[0.06] overflow-hidden h-full flex flex-col">
-                <div class="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between">
-                    <h2 class="font-semibold text-white">ข้อความที่ได้</h2>
+            <div class="glass rounded-2xl border border-gray-100 overflow-hidden h-full flex flex-col">
+                <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <h2 class="font-semibold text-gray-800">ข้อความที่ได้</h2>
                     <div class="flex items-center gap-2" x-show="extractedText">
-                        <button @click="copyText()" class="text-xs text-slate-400 hover:text-white transition-colors flex items-center gap-1.5">
+                        <button @click="copyText()" class="text-xs text-gray-500 hover:text-gray-800 transition-colors flex items-center gap-1.5">
                             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184"/></svg>
                             คัดลอก
                         </button>
-                        <button @click="downloadText()" class="text-xs text-slate-400 hover:text-white transition-colors flex items-center gap-1.5">
+                        <button @click="downloadText()" class="text-xs text-gray-500 hover:text-gray-800 transition-colors flex items-center gap-1.5">
                             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
                             ดาวน์โหลด
                         </button>
@@ -182,7 +182,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/>
                             </svg>
                         </div>
-                        <p class="text-slate-500 text-sm">อัปโหลดไฟล์และกด "เริ่ม OCR"<br>ข้อความจะแสดงที่นี่</p>
+                        <p class="text-gray-400 text-sm">อัปโหลดไฟล์และกด "เริ่ม OCR"<br>ข้อความจะแสดงที่นี่</p>
                     </div>
 
                     {{-- Processing animation --}}
@@ -195,8 +195,8 @@
                             </div>
                         </div>
                         <div class="text-center">
-                            <p class="text-slate-300 font-medium text-sm" x-text="processingStatus"></p>
-                            <p class="text-slate-500 text-xs mt-1">Google Cloud Vision กำลังวิเคราะห์...</p>
+                            <p class="text-gray-600 font-medium text-sm" x-text="processingStatus"></p>
+                            <p class="text-gray-400 text-xs mt-1">Google Cloud Vision กำลังวิเคราะห์...</p>
                         </div>
                     </div>
 
@@ -208,7 +208,7 @@
                                   readonly></textarea>
 
                         {{-- Stats bar --}}
-                        <div class="flex items-center gap-4 mt-3 pt-3 border-t border-white/[0.06] text-xs text-slate-500">
+                        <div class="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100 text-xs text-gray-400">
                             <span x-text="`${wordCount} คำ`"></span>
                             <span>·</span>
                             <span x-text="`${charCount} ตัวอักษร`"></span>
@@ -221,8 +221,8 @@
             </div>
 
             {{-- Pro features showcase --}}
-            <div class="glass rounded-2xl border border-white/[0.06] p-5">
-                <h3 class="text-sm font-semibold text-white mb-4">ฟีเจอร์ OCR Pro</h3>
+            <div class="glass rounded-2xl border border-gray-100 p-5">
+                <h3 class="text-sm font-semibold text-gray-800 mb-4">ฟีเจอร์ OCR Pro</h3>
                 <div class="grid grid-cols-2 gap-3">
                     @foreach([
                         ['🇹🇭', 'ภาษาไทย 100%', 'ตัวพิมพ์ใหญ่-เล็ก, ตัวเลข'],
@@ -235,8 +235,8 @@
                     <div class="flex items-start gap-2">
                         <span class="text-lg flex-shrink-0 mt-0.5">{{ $feat[0] }}</span>
                         <div>
-                            <p class="text-xs font-medium text-slate-300">{{ $feat[1] }}</p>
-                            <p class="text-xs text-slate-600">{{ $feat[2] }}</p>
+                            <p class="text-xs font-medium text-gray-600">{{ $feat[1] }}</p>
+                            <p class="text-xs text-gray-300">{{ $feat[2] }}</p>
                         </div>
                     </div>
                     @endforeach

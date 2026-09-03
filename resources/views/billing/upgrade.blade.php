@@ -1,22 +1,22 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('title', 'อัปเกรด — ' . ($plan->display_name_th ?? $plan->display_name))
 
 @section('content')
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16" x-data="billingPage({{ $plan->id }})">
     <div class="text-center mb-10">
-        <h1 class="text-3xl font-bold text-white mb-2">อัปเกรดเป็น {{ $plan->display_name_th ?? $plan->display_name }}</h1>
-        <p class="text-slate-400">เลือกวิธีชำระเงินที่สะดวกและปลอดภัย</p>
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">อัปเกรดเป็น {{ $plan->display_name_th ?? $plan->display_name }}</h1>
+        <p class="text-gray-500">เลือกวิธีชำระเงินที่สะดวกและปลอดภัย</p>
     </div>
 
     <div class="grid md:grid-cols-2 gap-8 items-start">
         {{-- Plan Summary --}}
-        <div class="glass rounded-2xl p-6 border {{ $plan->name === 'pro' ? 'border-brand-500/30' : 'border-white/[0.06]' }}">
-            <h2 class="font-bold text-white text-lg mb-5">สรุปแผน</h2>
+        <div class="glass rounded-2xl p-6 border {{ $plan->name === 'pro' ? 'border-brand-500/30' : 'border-gray-100' }}">
+            <h2 class="font-bold text-gray-800 text-lg mb-5">สรุปแผน</h2>
 
             <div class="flex items-baseline gap-2 mb-6">
-                <span class="text-4xl font-bold text-white" x-text="period === 'monthly' ? '฿{{ number_format($plan->price_monthly) }}' : '฿{{ number_format(round($plan->price_yearly / 12)) }}'"></span>
-                <span class="text-slate-400">/เดือน</span>
+                <span class="text-4xl font-bold text-gray-800" x-text="period === 'monthly' ? '฿{{ number_format($plan->price_monthly) }}' : '฿{{ number_format(round($plan->price_yearly / 12)) }}'"></span>
+                <span class="text-gray-500">/เดือน</span>
             </div>
 
             @if($plan->price_yearly > 0)
@@ -35,7 +35,7 @@
                     $plan->has_api_access ? 'REST API Access' : null,
                 ] as $feature)
                 @if($feature)
-                <li class="flex items-center gap-2 text-sm text-slate-300">
+                <li class="flex items-center gap-2 text-sm text-gray-600">
                     <svg class="w-4 h-4 text-success-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
                     {{ $feature }}
                 </li>
@@ -43,7 +43,7 @@
                 @endforeach
             </ul>
 
-            <div class="mt-6 pt-5 border-t border-white/[0.06] text-xs text-slate-500 space-y-1">
+            <div class="mt-6 pt-5 border-t border-gray-100 text-xs text-gray-400 space-y-1">
                 <p>✓ ยกเลิกได้ทุกเมื่อ ไม่มีสัญญาผูกมัด</p>
                 <p>✓ ทดลองใช้ฟรี 7 วัน (สำหรับผู้ใช้ใหม่)</p>
                 <p>✓ รองรับมาตรฐาน PDPA ปกป้องข้อมูลส่วนตัว</p>
@@ -53,20 +53,20 @@
         {{-- Payment Methods & Form --}}
         <div class="space-y-4">
             {{-- Billing period --}}
-            <div class="glass rounded-2xl p-5 border border-white/[0.06]" x-show="!promptPayQrUrl">
-                <h3 class="text-sm font-semibold text-white mb-3">รอบการชำระเงิน</h3>
+            <div class="glass rounded-2xl p-5 border border-gray-100" x-show="!promptPayQrUrl">
+                <h3 class="text-sm font-semibold text-gray-800 mb-3">รอบการชำระเงิน</h3>
                 <div class="grid grid-cols-2 gap-3">
                     <button type="button" @click="period = 'monthly'"
                             class="py-3 rounded-xl border text-sm transition-all text-center"
-                            :class="period === 'monthly' ? 'border-brand-500 bg-brand-500/10 text-white font-medium' : 'border-white/10 text-slate-400'">
+                            :class="period === 'monthly' ? 'border-brand-500 bg-brand-500/10 text-gray-800 font-medium' : 'border-gray-200 text-gray-500'">
                         <div class="font-semibold">รายเดือน</div>
                         <div class="text-xs opacity-75">฿{{ number_format($plan->price_monthly) }}/เดือน</div>
                     </button>
                     @if($plan->price_yearly > 0)
                     <button type="button" @click="period = 'yearly'"
                             class="py-3 rounded-xl border text-sm transition-all text-center relative"
-                            :class="period === 'yearly' ? 'border-success-500 bg-success-500/10 text-white font-medium' : 'border-white/10 text-slate-400'">
-                        <div class="absolute -top-2.5 right-2 bg-success-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">ประหยัด 20%</div>
+                            :class="period === 'yearly' ? 'border-success-500 bg-success-500/10 text-gray-800 font-medium' : 'border-gray-200 text-gray-500'">
+                        <div class="absolute -top-2.5 right-2 bg-success-500 text-gray-800 text-[10px] font-bold px-2 py-0.5 rounded-full">ประหยัด 20%</div>
                         <div class="font-semibold">รายปี</div>
                         <div class="text-xs opacity-75">฿{{ number_format($plan->price_yearly) }}/ปี</div>
                     </button>
@@ -75,24 +75,24 @@
             </div>
 
             {{-- Payment method selector --}}
-            <div class="glass rounded-2xl p-5 border border-white/[0.06]" x-show="!promptPayQrUrl">
-                <h3 class="text-sm font-semibold text-white mb-3">วิธีชำระเงิน</h3>
+            <div class="glass rounded-2xl p-5 border border-gray-100" x-show="!promptPayQrUrl">
+                <h3 class="text-sm font-semibold text-gray-800 mb-3">วิธีชำระเงิน</h3>
                 <div class="space-y-2">
                     <button type="button" @click="method = 'promptpay'"
                             class="w-full flex items-center gap-3 p-3.5 rounded-xl border text-sm transition-all"
-                            :class="method === 'promptpay' ? 'border-brand-500 bg-brand-500/10' : 'border-white/10 hover:border-white/20'">
-                        <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0 text-white text-xs font-bold">P</div>
+                            :class="method === 'promptpay' ? 'border-brand-500 bg-brand-500/10' : 'border-gray-200 hover:border-gray-200'">
+                        <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0 text-gray-800 text-xs font-bold">P</div>
                         <div class="text-left flex-1">
-                            <div class="font-medium text-white text-sm">PromptPay / QR Code</div>
-                            <div class="text-xs text-slate-400">สแกน QR ผ่านทุกแอปธนาคารไทย</div>
+                            <div class="font-medium text-gray-800 text-sm">PromptPay / QR Code</div>
+                            <div class="text-xs text-gray-500">สแกน QR ผ่านทุกแอปธนาคารไทย</div>
                         </div>
                         <div class="w-4 h-4 rounded-full border-2 flex-shrink-0"
-                             :class="method === 'promptpay' ? 'border-brand-400 bg-brand-500' : 'border-white/20'"></div>
+                             :class="method === 'promptpay' ? 'border-brand-400 bg-brand-500' : 'border-gray-200'"></div>
                     </button>
 
                     <button type="button" @click="method = 'card'"
                             class="w-full flex items-center gap-3 p-3.5 rounded-xl border text-sm transition-all"
-                            :class="method === 'card' ? 'border-brand-500 bg-brand-500/10' : 'border-white/10 hover:border-white/20'">
+                            :class="method === 'card' ? 'border-brand-500 bg-brand-500/10' : 'border-gray-200 hover:border-gray-200'">
                         <div class="w-8 h-8 flex-shrink-0">
                             <svg viewBox="0 0 38 24" fill="none" class="w-full h-full">
                                 <rect width="38" height="24" rx="4" fill="#1a1f36"/>
@@ -102,54 +102,54 @@
                             </svg>
                         </div>
                         <div class="text-left flex-1">
-                            <div class="font-medium text-white text-sm">บัตรเครดิต/เดบิต</div>
-                            <div class="text-xs text-slate-400">Visa, Mastercard, JCB</div>
+                            <div class="font-medium text-gray-800 text-sm">บัตรเครดิต/เดบิต</div>
+                            <div class="text-xs text-gray-500">Visa, Mastercard, JCB</div>
                         </div>
                         <div class="w-4 h-4 rounded-full border-2 flex-shrink-0"
-                             :class="method === 'card' ? 'border-brand-400 bg-brand-500' : 'border-white/20'"></div>
+                             :class="method === 'card' ? 'border-brand-400 bg-brand-500' : 'border-gray-200'"></div>
                     </button>
                 </div>
             </div>
 
             {{-- Card Form --}}
-            <div x-show="method === 'card' && !promptPayQrUrl" class="glass rounded-2xl p-5 border border-white/[0.06] space-y-4">
-                <h3 class="text-sm font-semibold text-white">ข้อมูลบัตร</h3>
+            <div x-show="method === 'card' && !promptPayQrUrl" class="glass rounded-2xl p-5 border border-gray-100 space-y-4">
+                <h3 class="text-sm font-semibold text-gray-800">ข้อมูลบัตร</h3>
 
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1.5">หมายเลขบัตร</label>
+                    <label class="text-xs text-gray-500 block mb-1.5">หมายเลขบัตร</label>
                     <input type="text" x-model="card.number" placeholder="1234 5678 9012 3456" maxlength="19"
                            @input="formatCardNumber($event)"
-                           class="w-full bg-white/5 border border-white/10 text-white placeholder-slate-600 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all">
+                           class="w-full bg-gray-50 border border-gray-200 text-gray-800 placeholder-slate-600 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all">
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="text-xs text-slate-400 block mb-1.5">วันหมดอายุ</label>
+                        <label class="text-xs text-gray-500 block mb-1.5">วันหมดอายุ</label>
                         <input type="text" x-model="card.expiry" placeholder="MM/YY" maxlength="5"
-                               class="w-full bg-white/5 border border-white/10 text-white placeholder-slate-600 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all">
+                               class="w-full bg-gray-50 border border-gray-200 text-gray-800 placeholder-slate-600 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all">
                     </div>
                     <div>
-                        <label class="text-xs text-slate-400 block mb-1.5">CVV</label>
+                        <label class="text-xs text-gray-500 block mb-1.5">CVV</label>
                         <input type="password" x-model="card.cvv" placeholder="123" maxlength="4"
-                               class="w-full bg-white/5 border border-white/10 text-white placeholder-slate-600 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all">
+                               class="w-full bg-gray-50 border border-gray-200 text-gray-800 placeholder-slate-600 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all">
                     </div>
                 </div>
 
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1.5">ชื่อบนบัตร</label>
+                    <label class="text-xs text-gray-500 block mb-1.5">ชื่อบนบัตร</label>
                     <input type="text" x-model="card.name" placeholder="SOMCHAI JAIDEE"
-                           class="w-full bg-white/5 border border-white/10 text-white placeholder-slate-600 rounded-xl px-4 py-3 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all">
+                           class="w-full bg-gray-50 border border-gray-200 text-gray-800 placeholder-slate-600 rounded-xl px-4 py-3 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all">
                 </div>
             </div>
 
             {{-- PromptPay QR Code Display --}}
             <div x-show="promptPayQrUrl" class="glass rounded-2xl p-6 border border-brand-500/40 text-center space-y-4" style="display:none">
-                <div class="flex items-center justify-between pb-3 border-b border-white/[0.08]">
+                <div class="flex items-center justify-between pb-3 border-b border-gray-100">
                     <div class="flex items-center gap-2">
                         <span class="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></span>
                         <span class="text-xs font-semibold text-emerald-400">รอรับชำระเงิน</span>
                     </div>
-                    <span class="text-xs text-slate-400" x-text="`หมดอายุใน: ${formatTimer(timeLeft)}`"></span>
+                    <span class="text-xs text-gray-500" x-text="`หมดอายุใน: ${formatTimer(timeLeft)}`"></span>
                 </div>
 
                 <div class="bg-white p-4 rounded-2xl inline-block mx-auto shadow-2xl">
@@ -158,8 +158,8 @@
                 </div>
 
                 <div class="space-y-1">
-                    <p class="text-xl font-bold text-white" x-text="`฿${chargeAmount}`"></p>
-                    <p class="text-xs text-slate-400">เปิดแอปธนาคาร แล้วเลือก สแกน QR Code</p>
+                    <p class="text-xl font-bold text-gray-800" x-text="`฿${chargeAmount}`"></p>
+                    <p class="text-xs text-gray-500">เปิดแอปธนาคาร แล้วเลือก สแกน QR Code</p>
                 </div>
 
                 <div class="pt-2 flex items-center justify-center gap-2 text-xs text-brand-400">
@@ -167,7 +167,7 @@
                     ระบบจะอัปเกรดอัตโนมัติทันทีที่ชำระเสร็จ
                 </div>
 
-                <button type="button" @click="cancelPromptPay()" class="text-xs text-slate-500 hover:text-white transition-colors underline pt-2">
+                <button type="button" @click="cancelPromptPay()" class="text-xs text-gray-400 hover:text-gray-800 transition-colors underline pt-2">
                     เปลี่ยนวิธีชำระเงิน
                 </button>
             </div>
@@ -198,7 +198,7 @@
                 </button>
             </div>
 
-            <p class="text-center text-xs text-slate-600">
+            <p class="text-center text-xs text-gray-300">
                 🔒 ชำระเงินผ่านระบบ Omise Payment Gateway · เข้ารหัส TLS 1.3 · มาตรฐาน PCI DSS Level 1
             </p>
         </div>

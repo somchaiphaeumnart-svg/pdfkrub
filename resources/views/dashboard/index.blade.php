@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('title', 'แดชบอร์ด')
 
@@ -8,14 +8,14 @@
     {{-- Header --}}
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <div>
-            <h1 class="text-2xl font-bold text-white">สวัสดี, {{ auth()->user()->name }} 👋</h1>
-            <p class="text-slate-400 text-sm mt-1">
+            <h1 class="text-2xl font-bold text-gray-800">สวัสดี, {{ auth()->user()->name }} 👋</h1>
+            <p class="text-gray-500 text-sm mt-1">
                 แผน: <span class="text-brand-400 font-medium">{{ $stats['plan']->display_name_th ?? $stats['plan']->display_name }}</span>
                 @if(!$stats['plan']->isFree())
-                <span class="text-slate-600 mx-1">·</span>
-                <a href="{{ route('billing.index') }}" class="text-slate-400 hover:text-white transition-colors text-xs">จัดการแผน</a>
+                <span class="text-gray-300 mx-1">·</span>
+                <a href="{{ route('billing.index') }}" class="text-gray-500 hover:text-gray-800 transition-colors text-xs">จัดการแผน</a>
                 @else
-                <span class="text-slate-600 mx-1">·</span>
+                <span class="text-gray-300 mx-1">·</span>
                 <a href="{{ route('pricing') }}" class="text-accent-400 hover:text-accent-300 transition-colors text-xs font-medium">อัปเกรดเป็น Pro →</a>
                 @endif
             </p>
@@ -40,14 +40,14 @@
         @endphp
 
         @foreach($statCards as $card)
-        <div class="glass rounded-xl p-5 border border-white/[0.06]">
+        <div class="glass rounded-xl p-5 border border-gray-100">
             <div class="{{ $card['bg'] }} {{ $card['color'] }} w-10 h-10 rounded-xl flex items-center justify-center mb-3">
                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="{{ $card['icon'] }}"/>
                 </svg>
             </div>
-            <p class="text-2xl font-bold text-white">{{ $card['value'] }}</p>
-            <p class="text-xs text-slate-500 mt-1">{{ $card['label'] }}</p>
+            <p class="text-2xl font-bold text-gray-800">{{ $card['value'] }}</p>
+            <p class="text-xs text-gray-400 mt-1">{{ $card['label'] }}</p>
         </div>
         @endforeach
     </div>
@@ -56,23 +56,23 @@
         {{-- Recent Jobs --}}
         <div class="lg:col-span-2">
             <div class="flex items-center justify-between mb-5">
-                <h2 class="text-lg font-bold text-white">งานล่าสุด</h2>
+                <h2 class="text-lg font-bold text-gray-800">งานล่าสุด</h2>
                 <a href="{{ route('dashboard.files') }}" class="text-sm text-brand-400 hover:text-brand-300 transition-colors">ดูทั้งหมด →</a>
             </div>
 
             @if($recentJobs->isEmpty())
-            <div class="glass rounded-2xl border border-white/[0.06] p-12 text-center">
-                <div class="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-8 h-8 text-slate-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <div class="glass rounded-2xl border border-gray-100 p-12 text-center">
+                <div class="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                     </svg>
                 </div>
-                <p class="text-slate-400 font-medium">ยังไม่มีประวัติการแปลงไฟล์</p>
-                <p class="text-slate-600 text-sm mt-1">เริ่มต้นแปลง PDF ได้เลย</p>
+                <p class="text-gray-500 font-medium">ยังไม่มีประวัติการแปลงไฟล์</p>
+                <p class="text-gray-300 text-sm mt-1">เริ่มต้นแปลง PDF ได้เลย</p>
                 <a href="{{ route('tools') }}" class="btn-primary text-sm px-6 py-2.5 rounded-xl inline-block mt-4">เลือกเครื่องมือ</a>
             </div>
             @else
-            <div class="glass rounded-2xl border border-white/[0.06] overflow-hidden">
+            <div class="glass rounded-2xl border border-gray-100 overflow-hidden">
                 <div class="divide-y divide-white/[0.05]">
                     @foreach($recentJobs as $job)
                     <div class="flex items-center gap-4 px-5 py-4 hover:bg-white/[0.02] transition-colors">
@@ -95,8 +95,8 @@
 
                         {{-- Details --}}
                         <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-white truncate">{{ $job->tool_name }}</p>
-                            <p class="text-xs text-slate-500 mt-0.5">{{ $job->created_at->diffForHumans() }}</p>
+                            <p class="text-sm font-medium text-gray-800 truncate">{{ $job->tool_name }}</p>
+                            <p class="text-xs text-gray-400 mt-0.5">{{ $job->created_at->diffForHumans() }}</p>
                         </div>
 
                         {{-- Download --}}
@@ -116,29 +116,29 @@
 
         {{-- Quick Tools --}}
         <div>
-            <h2 class="text-lg font-bold text-white mb-5">เครื่องมือด่วน</h2>
+            <h2 class="text-lg font-bold text-gray-800 mb-5">เครื่องมือด่วน</h2>
             <div class="space-y-3">
                 @foreach([['PDF to Word', 'pdf-to-word', 'from-blue-600 to-blue-500', '📄'], ['รวม PDF', 'merge-pdf', 'from-purple-600 to-purple-500', '🔗'], ['บีบอัด PDF', 'compress-pdf', 'from-green-600 to-green-500', '🗜️'], ['OCR ไทย', 'ocr-pdf', 'from-orange-600 to-orange-500', '🔍'], ['เซ็นเอกสาร', 'sign-pdf', 'from-indigo-600 to-indigo-500', '✍️']] as [$name, $slug, $color, $icon])
                 <a href="{{ route('tools.'.$slug) }}" class="flex items-center gap-3 glass-light rounded-xl p-3.5 border border-white/[0.05] hover:border-brand-500/30 transition-all group">
                     <div class="w-9 h-9 rounded-lg bg-gradient-to-br {{ $color }} flex items-center justify-center text-base flex-shrink-0 group-hover:scale-110 transition-transform">{{ $icon }}</div>
-                    <span class="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">{{ $name }}</span>
-                    <svg class="w-4 h-4 text-slate-600 ml-auto group-hover:text-brand-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
+                    <span class="text-sm font-medium text-gray-600 group-hover:text-gray-800 transition-colors">{{ $name }}</span>
+                    <svg class="w-4 h-4 text-gray-300 ml-auto group-hover:text-brand-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
                 </a>
                 @endforeach
             </div>
 
             {{-- Storage usage bar --}}
-            <div class="mt-6 glass rounded-xl p-4 border border-white/[0.06]">
+            <div class="mt-6 glass rounded-xl p-4 border border-gray-100">
                 <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs text-slate-400">พื้นที่จัดเก็บ</span>
-                    <span class="text-xs text-slate-500">{{ $stats['storage_used_formatted'] }}</span>
+                    <span class="text-xs text-gray-500">พื้นที่จัดเก็บ</span>
+                    <span class="text-xs text-gray-400">{{ $stats['storage_used_formatted'] }}</span>
                 </div>
                 @php $pct = min(100, ($stats['storage_used'] / max(1, ($stats['plan']->max_file_size_mb * 1024 * 1024) * 20)) * 100); @endphp
                 <div class="progress-bar h-1.5">
                     <div class="progress-fill h-full" style="width: {{ $pct }}%"></div>
                 </div>
                 @if($stats['plan']->isFree())
-                <p class="text-xs text-slate-600 mt-2">อัปเกรดเพื่อรับพื้นที่จัดเก็บเพิ่ม</p>
+                <p class="text-xs text-gray-300 mt-2">อัปเกรดเพื่อรับพื้นที่จัดเก็บเพิ่ม</p>
                 @endif
             </div>
         </div>

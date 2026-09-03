@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('title', 'นโยบายคุ้มครองข้อมูลส่วนบุคคล (PDPA) — PDFkrub')
 @section('description', 'ข้อกำหนดและนโยบายคุ้มครองข้อมูลส่วนบุคคล (PDPA) ของ PDFkrub สำหรับครู นักเรียน และสถานศึกษา ประมวลผลในประเทศไทย และลบไฟล์อัตโนมัติ')
@@ -12,10 +12,10 @@
             <span class="text-base">🛡️</span>
             พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 (PDPA)
         </div>
-        <h1 class="text-3xl sm:text-4xl font-extrabold text-white mb-4">
+        <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-800 mb-4">
             นโยบายคุ้มครองข้อมูลส่วนบุคคล <span class="text-gradient">(PDPA Policy)</span>
         </h1>
-        <p class="text-slate-400 text-sm max-w-xl mx-auto">
+        <p class="text-gray-500 text-sm max-w-xl mx-auto">
             PDFkrub ให้ความสำคัญสูงสุดกับความปลอดภัยของข้อมูลครู นักเรียน และบุคลากรทางการศึกษา ปรับปรุงล่าสุด: {{ date('d/m/Y') }}
         </p>
     </div>
@@ -24,26 +24,26 @@
     <div class="grid sm:grid-cols-3 gap-4 mb-12">
         <div class="glass rounded-2xl p-5 border border-success-500/30 text-center">
             <div class="text-2xl mb-2">🇹🇭</div>
-            <h3 class="font-bold text-white text-sm mb-1">เซิร์ฟเวอร์ในประเทศไทย</h3>
-            <p class="text-xs text-slate-400">ข้อมูลและไฟล์เอกสารถูกประมวลผลบน Cloud VPS ในประเทศไทย ไม่มีการโอนย้ายออกนอกประเทศ</p>
+            <h3 class="font-bold text-gray-800 text-sm mb-1">เซิร์ฟเวอร์ในประเทศไทย</h3>
+            <p class="text-xs text-gray-500">ข้อมูลและไฟล์เอกสารถูกประมวลผลบน Cloud VPS ในประเทศไทย ไม่มีการโอนย้ายออกนอกประเทศ</p>
         </div>
         <div class="glass rounded-2xl p-5 border border-brand-500/30 text-center">
             <div class="text-2xl mb-2">⏱️</div>
-            <h3 class="font-bold text-white text-sm mb-1">ลบไฟล์อัตโนมัติ (1 ชม.)</h3>
-            <p class="text-xs text-slate-400">ไฟล์ต้นฉบับและผลลัพธ์ของผู้ใช้ฟรีจะถูกทำลายถาวรจากดิสก์อัตโนมัติภายใน 1 ชั่วโมง</p>
+            <h3 class="font-bold text-gray-800 text-sm mb-1">ลบไฟล์อัตโนมัติ (1 ชม.)</h3>
+            <p class="text-xs text-gray-500">ไฟล์ต้นฉบับและผลลัพธ์ของผู้ใช้ฟรีจะถูกทำลายถาวรจากดิสก์อัตโนมัติภายใน 1 ชั่วโมง</p>
         </div>
         <div class="glass rounded-2xl p-5 border border-purple-500/30 text-center">
             <div class="text-2xl mb-2">🔒</div>
-            <h3 class="font-bold text-white text-sm mb-1">ไม่นำข้อมูลไปเทรน AI</h3>
-            <p class="text-xs text-slate-400">ไม่มีการนำเอกสาร รูปภาพ บัตรประชาชน หรือข้อมูลนักเรียนไปฝึกฝน AI หรือจำหน่ายให้บุคคลที่สาม</p>
+            <h3 class="font-bold text-gray-800 text-sm mb-1">ไม่นำข้อมูลไปเทรน AI</h3>
+            <p class="text-xs text-gray-500">ไม่มีการนำเอกสาร รูปภาพ บัตรประชาชน หรือข้อมูลนักเรียนไปฝึกฝน AI หรือจำหน่ายให้บุคคลที่สาม</p>
         </div>
     </div>
 
     {{-- Content Body --}}
-    <div class="glass rounded-3xl p-8 sm:p-12 border border-white/[0.08] space-y-8 text-slate-300 leading-relaxed text-sm">
+    <div class="glass rounded-3xl p-8 sm:p-12 border border-gray-100 space-y-8 text-gray-600 leading-relaxed text-sm">
 
         <section class="space-y-3">
-            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-brand-500"></span>
                 1. บทบาทของ PDFkrub ภายใต้กฎหมาย PDPA
             </h2>
@@ -56,12 +56,12 @@
         </section>
 
         <section class="space-y-3">
-            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-brand-500"></span>
                 2. ข้อมูลส่วนบุคคลที่เราอาจพบในเอกสารทางการศึกษา
             </h2>
             <p>เอกสารที่คุณอัปโหลด เช่น เอกสารหลักฐาน ว PA, ใบเสร็จ, ทะเบียนนักเรียน หรือแบบฟอร์มราชการ อาจประกอบด้วยข้อมูลที่มีความอ่อนไหว เช่น:</p>
-            <ul class="list-disc list-inside space-y-1.5 pl-2 text-slate-400">
+            <ul class="list-disc list-inside space-y-1.5 pl-2 text-gray-500">
                 <li>ชื่อ-นามสกุล, เลขประจำตัวประชาชน 13 หลัก, วันเดือนปีเกิด</li>
                 <li>ภาพถ่ายใบหน้า, ลายมือชื่อ (Signature)</li>
                 <li>ข้อมูลผลการเรียน, ประวัติการทำงาน, วิทยฐานะ</li>
@@ -73,7 +73,7 @@
         </section>
 
         <section class="space-y-3">
-            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-brand-500"></span>
                 3. นโยบายการเก็บรักษาและทำลายไฟล์ (Data Retention & Deletion)
             </h2>
@@ -81,27 +81,27 @@
                 เพื่อลดความเสี่ยงจากการรั่วไหลของข้อมูล PDFkrub ใช้ระบบ Cron ทำลายไฟล์อัตโนมัติ (Automated Secure File Purging) โดยมีระยะเวลาดังนี้:
             </p>
             <div class="overflow-x-auto">
-                <table class="w-full text-xs border border-white/10 rounded-xl overflow-hidden">
-                    <thead class="bg-white/5 text-white">
+                <table class="w-full text-xs border border-gray-200 rounded-xl overflow-hidden">
+                    <thead class="bg-gray-50 text-gray-800">
                         <tr>
                             <th class="py-2.5 px-4 text-left">ประเภทผู้ใช้งาน</th>
                             <th class="py-2.5 px-4 text-left">ระยะเวลาเก็บไฟล์</th>
                             <th class="py-2.5 px-4 text-left">วิธีการทำลาย</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-white/5 text-slate-400">
+                    <tbody class="divide-y divide-white/5 text-gray-500">
                         <tr>
-                            <td class="py-2.5 px-4 text-white font-medium">ผู้ใช้งานฟรี (Guest & Free)</td>
+                            <td class="py-2.5 px-4 text-gray-800 font-medium">ผู้ใช้งานฟรี (Guest & Free)</td>
                             <td class="py-2.5 px-4 text-emerald-400 font-semibold">1 ชั่วโมง</td>
                             <td class="py-2.5 px-4">ลบถาวรจาก Disk (Unlink) ทุก 60 นาที</td>
                         </tr>
                         <tr>
-                            <td class="py-2.5 px-4 text-white font-medium">ครู (Teacher) / โปร (Pro)</td>
+                            <td class="py-2.5 px-4 text-gray-800 font-medium">ครู (Teacher) / โปร (Pro)</td>
                             <td class="py-2.5 px-4 text-brand-400 font-semibold">7 วัน (หรือกดลบทันที)</td>
                             <td class="py-2.5 px-4">ลบอัตโนมัติ หรือลบเองได้จากหน้า Dashboard</td>
                         </tr>
                         <tr>
-                            <td class="py-2.5 px-4 text-white font-medium">โรงเรียน (School)</td>
+                            <td class="py-2.5 px-4 text-gray-800 font-medium">โรงเรียน (School)</td>
                             <td class="py-2.5 px-4 text-purple-400 font-semibold">30 วัน (ปรับแต่งได้)</td>
                             <td class="py-2.5 px-4">แอดมินโรงเรียนสามารถสั่งลบทั้งองค์กรได้</td>
                         </tr>
@@ -111,25 +111,25 @@
         </section>
 
         <section class="space-y-3">
-            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-brand-500"></span>
                 4. มาตรการรักษาความมั่นคงปลอดภัย (Security Measures)
             </h2>
-            <ul class="list-disc list-inside space-y-2 pl-2 text-slate-400">
-                <li><strong class="text-white">การส่งผ่านข้อมูล:</strong> เข้ารหัสผ่านโปรโตคอล TLS 1.3 / HTTPS ระดับ 256-bit</li>
-                <li><strong class="text-white">การจัดเก็บ:</strong> ไฟล์ถูกสุ่มชื่อด้วย Hash ป้องกันการสุ่ม URL (Direct URL Guessing)</li>
-                <li><strong class="text-white">การดาวน์โหลด:</strong> ลิงก์ดาวน์โหลดเป็นแบบ Signed URL ที่มีอายุใช้งานจำกัด</li>
-                <li><strong class="text-white">การควบคุมการเข้าถึง:</strong> มีระบบ Rate Limiting ป้องกันการเข้าถึงข้อมูลโดยไม่ได้รับอนุญาต</li>
+            <ul class="list-disc list-inside space-y-2 pl-2 text-gray-500">
+                <li><strong class="text-gray-800">การส่งผ่านข้อมูล:</strong> เข้ารหัสผ่านโปรโตคอล TLS 1.3 / HTTPS ระดับ 256-bit</li>
+                <li><strong class="text-gray-800">การจัดเก็บ:</strong> ไฟล์ถูกสุ่มชื่อด้วย Hash ป้องกันการสุ่ม URL (Direct URL Guessing)</li>
+                <li><strong class="text-gray-800">การดาวน์โหลด:</strong> ลิงก์ดาวน์โหลดเป็นแบบ Signed URL ที่มีอายุใช้งานจำกัด</li>
+                <li><strong class="text-gray-800">การควบคุมการเข้าถึง:</strong> มีระบบ Rate Limiting ป้องกันการเข้าถึงข้อมูลโดยไม่ได้รับอนุญาต</li>
             </ul>
         </section>
 
         <section class="space-y-3">
-            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-brand-500"></span>
                 5. สิทธิของเจ้าของข้อมูลส่วนบุคคล (Data Subject Rights)
             </h2>
             <p>ภายใต้กฎหมาย PDPA คุณมีสิทธิ:</p>
-            <ul class="list-disc list-inside space-y-1 pl-2 text-slate-400">
+            <ul class="list-disc list-inside space-y-1 pl-2 text-gray-500">
                 <li>สิทธิในการเข้าถึงและขอรับสำเนาข้อมูลส่วนบุคคลของตนเอง</li>
                 <li>สิทธิในการขอให้ลบ ทำลาย หรือทำให้ข้อมูลส่วนบุคคลไม่สามารถระบุตัวบุคคลได้</li>
                 <li>สิทธิในการระงับการใช้ข้อมูลส่วนบุคคล</li>
@@ -137,12 +137,12 @@
             </ul>
         </section>
 
-        <section class="space-y-3 pt-4 border-t border-white/10">
-            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+        <section class="space-y-3 pt-4 border-t border-gray-200">
+            <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-brand-500"></span>
                 6. ช่องทางการติดต่อเจ้าหน้าที่คุ้มครองข้อมูล (DPO Contact)
             </h2>
-            <p class="text-xs text-slate-400">
+            <p class="text-xs text-gray-500">
                 หากท่านมีข้อสงสัย ข้อเสนอแนะ หรือต้องการใช้สิทธิตามกฎหมาย PDPA สามารถติดต่อได้ที่:<br>
                 📧 อีเมล: <a href="mailto:dpo@pdfkrub.com" class="text-brand-400 hover:underline">dpo@pdfkrub.com</a> หรือ <a href="mailto:support@pdfkrub.com" class="text-brand-400 hover:underline">support@pdfkrub.com</a><br>
                 📍 แพลตฟอร์ม PDFkrub ประเทศไทย
