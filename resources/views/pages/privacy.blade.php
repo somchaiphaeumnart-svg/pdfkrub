@@ -8,7 +8,7 @@
 
     {{-- Header --}}
     <div class="text-center mb-12">
-        <div class="inline-flex items-center gap-2 glass px-3.5 py-1.5 rounded-full text-xs text-brand-300 mb-4 border border-brand-500/20">
+        <div class="inline-flex items-center gap-2 bg-white border border-gray-100 shadow-sm px-3.5 py-1.5 rounded-full text-xs text-brand-600 mb-4 border border-brand-200">
             <span>🔒</span> ความเป็นส่วนตัวและความปลอดภัย
         </div>
         <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-800 mb-4">
@@ -20,7 +20,7 @@
     </div>
 
     {{-- Body --}}
-    <div class="glass rounded-3xl p-8 sm:p-12 border border-gray-100 space-y-8 text-gray-600 leading-relaxed text-sm">
+    <div class="bg-white border border-gray-100 shadow-sm rounded-3xl p-8 sm:p-12 border border-gray-100 space-y-8 text-gray-600 leading-relaxed text-sm">
 
         <section class="space-y-3">
             <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
@@ -60,7 +60,7 @@
             </p>
             <ul class="list-disc list-inside space-y-1 pl-2 text-gray-500">
                 <li><strong class="text-emerald-400">ผู้ใช้งานทั่วไป / ฟรี:</strong> ลบไฟล์อัตโนมัติภายใน <strong>1 ชั่วโมง</strong> หลังการประมวลผล</li>
-                <li><strong class="text-brand-400">สมาชิกรายปีครู / โปร:</strong> เก็บรักษาไฟล์ <strong>7 วัน</strong> เพื่ออำนวยความสะดวกในการดาวน์โหลดซ้ำ (ท่านสามารถกดลบเองได้ทันที)</li>
+                <li><strong class="text-brand-600">สมาชิกรายปีครู / โปร:</strong> เก็บรักษาไฟล์ <strong>7 วัน</strong> เพื่ออำนวยความสะดวกในการดาวน์โหลดซ้ำ (ท่านสามารถกดลบเองได้ทันที)</li>
                 <li><strong class="text-purple-400">สถาบันการศึกษา / โรงเรียน:</strong> เก็บรักษา <strong>30 วัน</strong></li>
             </ul>
         </section>
@@ -82,7 +82,7 @@
             </h2>
             <p class="text-xs text-gray-500">
                 หากท่านมีข้อสงสัยเกี่ยวกับนโยบายความเป็นส่วนตัวนี้ สามารถติดต่อเราได้ที่:<br>
-                📧 อีเมล: <a href="mailto:support@pdfkrub.com" class="text-brand-400 hover:underline">support@pdfkrub.com</a><br>
+                📧 อีเมล: <a href="mailto:support@pdfkrub.com" class="text-brand-600 hover:underline">support@pdfkrub.com</a><br>
                 🇹🇭 PDFkrub — แพลตฟอร์มจัดการเอกสาร PDF ภาษาไทย
             </p>
         </section>

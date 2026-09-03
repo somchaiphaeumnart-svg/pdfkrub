@@ -10,7 +10,7 @@
 
     {{-- Breadcrumb --}}
     <nav class="flex items-center gap-2 text-sm text-gray-400 mb-8">
-        <a href="{{ route('home') }}" class="hover:text-brand-400 transition-colors">หน้าแรก</a>
+        <a href="{{ route('home') }}" class="hover:text-brand-600 transition-colors">หน้าแรก</a>
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
         <span class="text-gray-600">OCR ภาษาไทย</span>
     </nav>
@@ -33,7 +33,7 @@
         {{-- Left: Upload --}}
         <div class="space-y-5">
             {{-- Upload zone --}}
-            <div class="glass rounded-2xl border border-gray-100 overflow-hidden">
+            <div class="bg-white border border-gray-100 shadow-sm rounded-2xl border border-gray-100 overflow-hidden">
                 <div class="px-5 py-4 border-b border-gray-100">
                     <h2 class="font-semibold text-gray-800">อัปโหลดไฟล์</h2>
                 </div>
@@ -61,7 +61,7 @@
                     <template x-if="files.length > 0">
                         <div class="mt-4 space-y-2">
                             <template x-for="(f, i) in files" :key="i">
-                                <div class="flex items-center gap-3 glass-light rounded-xl px-4 py-3 border border-white/[0.04]">
+                                <div class="flex items-center gap-3 bg-white border border-gray-100 shadow-sm-light rounded-xl px-4 py-3 border border-white/[0.04]">
                                     <div class="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                                         <span class="text-xs text-emerald-400 font-bold" x-text="f.name.split('.').pop().toUpperCase().slice(0,3)"></span>
                                     </div>
@@ -80,7 +80,7 @@
             </div>
 
             {{-- Settings --}}
-            <div class="glass rounded-2xl border border-gray-100 p-5 space-y-4">
+            <div class="bg-white border border-gray-100 shadow-sm rounded-2xl border border-gray-100 p-5 space-y-4">
                 <h3 class="font-semibold text-gray-800 text-sm">ตั้งค่า OCR</h3>
 
                 <div>
@@ -145,11 +145,11 @@
                 </button>
 
                 @guest
-                <div class="glass-light rounded-xl p-3 border border-accent-500/20 text-center">
+                <div class="bg-white border border-gray-100 shadow-sm-light rounded-xl p-3 border border-accent-500/20 text-center">
                     <p class="text-xs text-gray-500">
-                        <a href="{{ route('register') }}" class="text-brand-400 hover:text-brand-300">สมัครสมาชิก</a>
+                        <a href="{{ route('register') }}" class="text-brand-600 hover:text-brand-600">สมัครสมาชิก</a>
                         หรือ
-                        <a href="{{ route('login') }}" class="text-brand-400 hover:text-brand-300">เข้าสู่ระบบ</a>
+                        <a href="{{ route('login') }}" class="text-brand-600 hover:text-brand-600">เข้าสู่ระบบ</a>
                         เพื่อใช้ OCR แบบเต็ม (ต้องการแผน Pro)
                     </p>
                 </div>
@@ -159,7 +159,7 @@
 
         {{-- Right: Result --}}
         <div class="space-y-5">
-            <div class="glass rounded-2xl border border-gray-100 overflow-hidden h-full flex flex-col">
+            <div class="bg-white border border-gray-100 shadow-sm rounded-2xl border border-gray-100 overflow-hidden h-full flex flex-col">
                 <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                     <h2 class="font-semibold text-gray-800">ข้อความที่ได้</h2>
                     <div class="flex items-center gap-2" x-show="extractedText">
@@ -203,7 +203,7 @@
                     {{-- Result text --}}
                     <div x-show="extractedText" class="h-full">
                         <textarea x-model="extractedText"
-                                  class="w-full h-96 bg-transparent text-slate-200 text-sm leading-relaxed resize-none focus:outline-none font-mono"
+                                  class="w-full h-96 bg-transparent text-gray-700 text-sm leading-relaxed resize-none focus:outline-none font-mono"
                                   placeholder="ข้อความที่แยกได้จะแสดงที่นี่..."
                                   readonly></textarea>
 
@@ -221,7 +221,7 @@
             </div>
 
             {{-- Pro features showcase --}}
-            <div class="glass rounded-2xl border border-gray-100 p-5">
+            <div class="bg-white border border-gray-100 shadow-sm rounded-2xl border border-gray-100 p-5">
                 <h3 class="text-sm font-semibold text-gray-800 mb-4">ฟีเจอร์ OCR Pro</h3>
                 <div class="grid grid-cols-2 gap-3">
                     @foreach([

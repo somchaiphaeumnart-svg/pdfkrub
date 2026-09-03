@@ -7,7 +7,7 @@
             <h1 class='text-2xl font-bold text-gray-800'>รีเซ็ตรหัสผ่าน</h1>
             <p class='text-gray-500 text-sm mt-2'>กรอกอีเมลเพื่อรับลิงก์รีเซ็ต</p>
         </div>
-        <div class='glass rounded-2xl p-8 border border-gray-100'>
+        <div class='bg-white border border-gray-100 shadow-sm rounded-2xl p-8 border border-gray-100'>
             <form method='POST' action='#' class='space-y-4'>
                 @csrf
                 <div>
@@ -19,7 +19,7 @@
             </form>
         </div>
         <p class='text-center text-sm text-gray-400 mt-6'>
-            <a href='{{ route("login") }}' class='text-brand-400 hover:text-brand-300'>กลับไปเข้าสู่ระบบ</a>
+            <a href='{{ route("login") }}' class='text-brand-600 hover:text-brand-600'>กลับไปเข้าสู่ระบบ</a>
         </p>
     </div>
 </div>

@@ -8,7 +8,7 @@
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
             <nav class="flex items-center gap-2 text-sm text-gray-400 mb-2">
-                <a href="{{ route('dashboard') }}" class="hover:text-brand-400 transition-colors">แดชบอร์ด</a>
+                <a href="{{ route('dashboard') }}" class="hover:text-brand-600 transition-colors">แดชบอร์ด</a>
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
                 <span class="text-gray-600">ไฟล์ของฉัน</span>
             </nav>
@@ -26,7 +26,7 @@
     </div>
 
     {{-- Filters & Search bar --}}
-    <div class="glass rounded-2xl p-4 border border-gray-100 mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
+    <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-4 border border-gray-100 mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
         {{-- Search input --}}
         <div class="relative w-full md:w-80">
             <svg class="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -62,7 +62,7 @@
     </div>
 
     {{-- File Table / List --}}
-    <div class="glass rounded-2xl border border-gray-100 overflow-hidden">
+    <div class="bg-white border border-gray-100 shadow-sm rounded-2xl border border-gray-100 overflow-hidden">
         @if($files->isEmpty())
         <div class="py-20 text-center">
             <div class="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-gray-400">
@@ -141,7 +141,7 @@
                         <td class="py-4 px-6 text-right whitespace-nowrap">
                             <div class="flex items-center justify-end gap-2">
                                 <a href="{{ $file->getTemporaryUrl() }}" download="{{ $file->original_name }}"
-                                   class="p-2 rounded-lg bg-gray-50 hover:bg-brand-500/20 text-gray-500 hover:text-brand-300 transition-all"
+                                   class="p-2 rounded-lg bg-gray-50 hover:bg-brand-100 text-gray-500 hover:text-brand-600 transition-all"
                                    title="ดาวน์โหลดไฟล์">
                                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/>

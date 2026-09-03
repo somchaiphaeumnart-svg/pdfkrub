@@ -6,7 +6,7 @@
 @section('content')
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
     <div class="text-center mb-12">
-        <div class="inline-flex items-center gap-2 glass px-3.5 py-1.5 rounded-full text-xs text-brand-300 mb-4 border border-brand-500/20">
+        <div class="inline-flex items-center gap-2 bg-white border border-gray-100 shadow-sm px-3.5 py-1.5 rounded-full text-xs text-brand-600 mb-4 border border-brand-200">
             <span>🏫</span> เกี่ยวกับ PDFkrub
         </div>
         <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-800 mb-4">
@@ -17,7 +17,7 @@
         </p>
     </div>
 
-    <div class="glass rounded-3xl p-8 sm:p-12 border border-gray-100 space-y-8 text-gray-600 leading-relaxed text-sm">
+    <div class="bg-white border border-gray-100 shadow-sm rounded-3xl p-8 sm:p-12 border border-gray-100 space-y-8 text-gray-600 leading-relaxed text-sm">
         <section class="space-y-3">
             <h2 class="text-xl font-bold text-gray-800">จุดเริ่มต้นของ PDFkrub</h2>
             <p>
@@ -29,17 +29,17 @@
         </section>
 
         <div class="grid sm:grid-cols-3 gap-4 pt-4">
-            <div class="glass rounded-2xl p-5 border border-gray-200 text-center">
+            <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 border border-gray-200 text-center">
                 <div class="text-2xl mb-2">⚡</div>
                 <h3 class="font-bold text-gray-800 text-sm mb-1">ลดเวลาทำงาน</h3>
                 <p class="text-xs text-gray-500">จาก 30 นาที เหลือ 30 วินาที</p>
             </div>
-            <div class="glass rounded-2xl p-5 border border-gray-200 text-center">
+            <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 border border-gray-200 text-center">
                 <div class="text-2xl mb-2">🇹🇭</div>
                 <h3 class="font-bold text-gray-800 text-sm mb-1">ภาษาไทย 100%</h3>
                 <p class="text-xs text-gray-500">ตัดคำไทยแม่นยำ ฟอนต์ไม่เพี้ยน</p>
             </div>
-            <div class="glass rounded-2xl p-5 border border-gray-200 text-center">
+            <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 border border-gray-200 text-center">
                 <div class="text-2xl mb-2">🛡️</div>
                 <h3 class="font-bold text-gray-800 text-sm mb-1">ความปลอดภัย PDPA</h3>
                 <p class="text-xs text-gray-500">ประมวลผลบนเซิร์ฟเวอร์ไทย ลบใน 1 ชม.</p>

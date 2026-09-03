@@ -9,13 +9,13 @@
     @php $user = auth()->user(); $plan = $user->getActivePlan(); $sub = $user->activeSubscription; @endphp
 
     {{-- Current Plan --}}
-    <div class="glass rounded-2xl p-6 border border-gray-100 mb-6">
+    <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-6 border border-gray-100 mb-6">
         <div class="flex items-start justify-between gap-4">
             <div>
                 <p class="text-gray-500 text-sm mb-1">แผนปัจจุบัน</p>
                 <h2 class="text-2xl font-bold text-gray-800">{{ $plan->display_name_th ?? $plan->display_name }}</h2>
                 @if($sub && $sub->isOnTrial())
-                <p class="text-accent-400 text-sm mt-1">🎁 ช่วงทดลองใช้ — สิ้นสุด {{ $sub->trial_ends_at->format('d/m/Y') }}</p>
+                <p class="text-accent-600 text-sm mt-1">🎁 ช่วงทดลองใช้ — สิ้นสุด {{ $sub->trial_ends_at->format('d/m/Y') }}</p>
                 @elseif($sub)
                 <p class="text-gray-500 text-sm mt-1">รอบถัดไป {{ $sub->current_period_end?->format('d/m/Y') ?? 'N/A' }}</p>
                 @endif
@@ -25,7 +25,7 @@
             @else
             <div class="text-right">
                 <p class="text-2xl font-bold text-gray-800">฿{{ number_format($plan->price_monthly) }}<span class="text-gray-500 text-sm font-normal">/เดือน</span></p>
-                <a href="{{ route('pricing') }}" class="text-xs text-gray-400 hover:text-brand-400 transition-colors mt-1 block">เปลี่ยนแผน</a>
+                <a href="{{ route('pricing') }}" class="text-xs text-gray-400 hover:text-brand-600 transition-colors mt-1 block">เปลี่ยนแผน</a>
             </div>
             @endif
         </div>
@@ -54,7 +54,7 @@
 
     {{-- Upgrade prompt for free users --}}
     @if($plan->isFree())
-    <div class="glass rounded-2xl p-6 border border-brand-500/20 glow-blue mb-6">
+    <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-6 border border-brand-200 shadow-md mb-6">
         <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <div class="flex-1">
                 <h3 class="text-lg font-bold text-gray-800 mb-1">อัปเกรดเป็น Pro</h3>
@@ -68,7 +68,7 @@
 
     {{-- Cancel subscription --}}
     @if($sub && $sub->isActive() && !$plan->isFree())
-    <div class="glass rounded-xl p-5 border border-white/[0.05]">
+    <div class="bg-white border border-gray-100 shadow-sm rounded-xl p-5 border border-gray-100">
         <h3 class="font-semibold text-gray-800 mb-2">ยกเลิกการสมัครสมาชิก</h3>
         <p class="text-gray-500 text-sm mb-4">หลังยกเลิก คุณยังสามารถใช้งานได้จนครบรอบบิล</p>
         <button onclick="if(confirm('ยืนยันการยกเลิก?')) { /* TODO: POST /billing/cancel */ }"

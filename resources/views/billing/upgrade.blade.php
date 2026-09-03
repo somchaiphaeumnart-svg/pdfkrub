@@ -11,7 +11,7 @@
 
     <div class="grid md:grid-cols-2 gap-8 items-start">
         {{-- Plan Summary --}}
-        <div class="glass rounded-2xl p-6 border {{ $plan->name === 'pro' ? 'border-brand-500/30' : 'border-gray-100' }}">
+        <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-6 border {{ $plan->name === 'pro' ? 'border-brand-200' : 'border-gray-100' }}">
             <h2 class="font-bold text-gray-800 text-lg mb-5">สรุปแผน</h2>
 
             <div class="flex items-baseline gap-2 mb-6">
@@ -20,8 +20,8 @@
             </div>
 
             @if($plan->price_yearly > 0)
-            <div class="glass-light rounded-xl px-4 py-3 mb-6 border border-success-500/20" x-show="period === 'yearly'">
-                <p class="text-sm text-success-400 font-medium">💡 จ่ายรายปี ฿{{ number_format($plan->price_yearly) }} — ประหยัด ฿{{ number_format($plan->price_monthly * 12 - $plan->price_yearly) }}</p>
+            <div class="bg-white border border-gray-100 shadow-sm-light rounded-xl px-4 py-3 mb-6 border border-success-200" x-show="period === 'yearly'">
+                <p class="text-sm text-success-600 font-medium">💡 จ่ายรายปี ฿{{ number_format($plan->price_yearly) }} — ประหยัด ฿{{ number_format($plan->price_monthly * 12 - $plan->price_yearly) }}</p>
             </div>
             @endif
 
@@ -53,19 +53,19 @@
         {{-- Payment Methods & Form --}}
         <div class="space-y-4">
             {{-- Billing period --}}
-            <div class="glass rounded-2xl p-5 border border-gray-100" x-show="!promptPayQrUrl">
+            <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 border border-gray-100" x-show="!promptPayQrUrl">
                 <h3 class="text-sm font-semibold text-gray-800 mb-3">รอบการชำระเงิน</h3>
                 <div class="grid grid-cols-2 gap-3">
                     <button type="button" @click="period = 'monthly'"
                             class="py-3 rounded-xl border text-sm transition-all text-center"
-                            :class="period === 'monthly' ? 'border-brand-500 bg-brand-500/10 text-gray-800 font-medium' : 'border-gray-200 text-gray-500'">
+                            :class="period === 'monthly' ? 'border-brand-500 bg-brand-50 text-gray-800 font-medium' : 'border-gray-200 text-gray-500'">
                         <div class="font-semibold">รายเดือน</div>
                         <div class="text-xs opacity-75">฿{{ number_format($plan->price_monthly) }}/เดือน</div>
                     </button>
                     @if($plan->price_yearly > 0)
                     <button type="button" @click="period = 'yearly'"
                             class="py-3 rounded-xl border text-sm transition-all text-center relative"
-                            :class="period === 'yearly' ? 'border-success-500 bg-success-500/10 text-gray-800 font-medium' : 'border-gray-200 text-gray-500'">
+                            :class="period === 'yearly' ? 'border-success-500 bg-success-50 text-gray-800 font-medium' : 'border-gray-200 text-gray-500'">
                         <div class="absolute -top-2.5 right-2 bg-success-500 text-gray-800 text-[10px] font-bold px-2 py-0.5 rounded-full">ประหยัด 20%</div>
                         <div class="font-semibold">รายปี</div>
                         <div class="text-xs opacity-75">฿{{ number_format($plan->price_yearly) }}/ปี</div>
@@ -75,12 +75,12 @@
             </div>
 
             {{-- Payment method selector --}}
-            <div class="glass rounded-2xl p-5 border border-gray-100" x-show="!promptPayQrUrl">
+            <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 border border-gray-100" x-show="!promptPayQrUrl">
                 <h3 class="text-sm font-semibold text-gray-800 mb-3">วิธีชำระเงิน</h3>
                 <div class="space-y-2">
                     <button type="button" @click="method = 'promptpay'"
                             class="w-full flex items-center gap-3 p-3.5 rounded-xl border text-sm transition-all"
-                            :class="method === 'promptpay' ? 'border-brand-500 bg-brand-500/10' : 'border-gray-200 hover:border-gray-200'">
+                            :class="method === 'promptpay' ? 'border-brand-500 bg-brand-50' : 'border-gray-200 hover:border-gray-200'">
                         <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0 text-gray-800 text-xs font-bold">P</div>
                         <div class="text-left flex-1">
                             <div class="font-medium text-gray-800 text-sm">PromptPay / QR Code</div>
@@ -92,7 +92,7 @@
 
                     <button type="button" @click="method = 'card'"
                             class="w-full flex items-center gap-3 p-3.5 rounded-xl border text-sm transition-all"
-                            :class="method === 'card' ? 'border-brand-500 bg-brand-500/10' : 'border-gray-200 hover:border-gray-200'">
+                            :class="method === 'card' ? 'border-brand-500 bg-brand-50' : 'border-gray-200 hover:border-gray-200'">
                         <div class="w-8 h-8 flex-shrink-0">
                             <svg viewBox="0 0 38 24" fill="none" class="w-full h-full">
                                 <rect width="38" height="24" rx="4" fill="#1a1f36"/>
@@ -112,7 +112,7 @@
             </div>
 
             {{-- Card Form --}}
-            <div x-show="method === 'card' && !promptPayQrUrl" class="glass rounded-2xl p-5 border border-gray-100 space-y-4">
+            <div x-show="method === 'card' && !promptPayQrUrl" class="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 border border-gray-100 space-y-4">
                 <h3 class="text-sm font-semibold text-gray-800">ข้อมูลบัตร</h3>
 
                 <div>
@@ -143,7 +143,7 @@
             </div>
 
             {{-- PromptPay QR Code Display --}}
-            <div x-show="promptPayQrUrl" class="glass rounded-2xl p-6 border border-brand-500/40 text-center space-y-4" style="display:none">
+            <div x-show="promptPayQrUrl" class="bg-white border border-gray-100 shadow-sm rounded-2xl p-6 border border-brand-500/40 text-center space-y-4" style="display:none">
                 <div class="flex items-center justify-between pb-3 border-b border-gray-100">
                     <div class="flex items-center gap-2">
                         <span class="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></span>
@@ -162,7 +162,7 @@
                     <p class="text-xs text-gray-500">เปิดแอปธนาคาร แล้วเลือก สแกน QR Code</p>
                 </div>
 
-                <div class="pt-2 flex items-center justify-center gap-2 text-xs text-brand-400">
+                <div class="pt-2 flex items-center justify-center gap-2 text-xs text-brand-600">
                     <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
                     ระบบจะอัปเกรดอัตโนมัติทันทีที่ชำระเสร็จ
                 </div>

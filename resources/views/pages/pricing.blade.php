@@ -8,7 +8,7 @@
 
     {{-- Header --}}
     <div class="text-center mb-16">
-        <div class="inline-flex items-center gap-2 glass px-3 py-1.5 rounded-full text-xs text-brand-300 mb-4 border border-brand-500/20">
+        <div class="inline-flex items-center gap-2 bg-white border border-gray-100 shadow-sm px-3 py-1.5 rounded-full text-xs text-brand-600 mb-4 border border-brand-200">
             <span class="text-base">🏫</span>
             ราคาสำหรับครูและโรงเรียน
         </div>
@@ -16,7 +16,7 @@
         <p class="text-gray-500 max-w-xl mx-auto">เริ่มต้นฟรี ไม่ต้องใส่บัตรเครดิต · รองรับ PDPA · ประมวลผลในประเทศไทย</p>
 
         {{-- Billing toggle --}}
-        <div class="mt-8 inline-flex items-center glass rounded-full p-1.5 border border-gray-100" x-data="{ yearly: false }">
+        <div class="mt-8 inline-flex items-center bg-white border border-gray-100 shadow-sm rounded-full p-1.5 border border-gray-100" x-data="{ yearly: false }">
             <button @click="yearly = false"
                     class="px-5 py-2 text-sm rounded-full transition-all"
                     :class="!yearly ? 'bg-brand-600 text-white font-medium' : 'text-gray-500 hover:text-gray-800'">
@@ -26,7 +26,7 @@
                     class="px-5 py-2 text-sm rounded-full transition-all flex items-center gap-2"
                     :class="yearly ? 'bg-brand-600 text-white font-medium' : 'text-gray-500 hover:text-gray-800'">
                 รายปี
-                <span class="text-xs bg-success-500/20 text-success-400 px-2 py-0.5 rounded-full">ประหยัดสูงสุด 40%</span>
+                <span class="text-xs bg-success-100 text-success-600 px-2 py-0.5 rounded-full">ประหยัดสูงสุด 40%</span>
             </button>
         </div>
     </div>
@@ -51,8 +51,8 @@
         };
         @endphp
 
-        <div class="glass rounded-2xl p-8 border card-hover relative flex flex-col
-                    {{ $isFeatured ? 'border-brand-500/50 glow-blue' : ($isTeacher ? 'border-success-500/30' : 'border-gray-100') }}">
+        <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-8 border card-hover relative flex flex-col
+                    {{ $isFeatured ? 'border-brand-400 shadow-md' : ($isTeacher ? 'border-success-200' : 'border-gray-100') }}">
 
             @if($isFeatured)
             <div class="absolute -top-4 left-1/2 -translate-x-1/2">
@@ -93,7 +93,7 @@
                         <span class="text-4xl font-bold text-gray-800">฿{{ number_format(round($plan->price_yearly / 12)) }}</span>
                         <span class="text-gray-500 text-sm">/เดือน</span>
                     </div>
-                    <p class="text-xs text-success-400 mt-1">฿{{ number_format($plan->price_yearly) }}/ปี · ประหยัด ฿{{ number_format($plan->price_monthly * 12 - $plan->price_yearly) }}</p>
+                    <p class="text-xs text-success-600 mt-1">฿{{ number_format($plan->price_yearly) }}/ปี · ประหยัด ฿{{ number_format($plan->price_monthly * 12 - $plan->price_yearly) }}</p>
                     @else
                     <span class="text-4xl font-bold text-gray-800">ฟรี</span>
                     @endif
@@ -171,7 +171,7 @@
             $emoji = $isSchool ? '🏫' : '🏢';
             @endphp
 
-            <div class="glass rounded-2xl p-8 border {{ $isSchool ? 'border-brand-500/30' : 'border-gray-100' }} card-hover relative flex flex-col">
+            <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-8 border {{ $isSchool ? 'border-brand-200' : 'border-gray-100' }} card-hover relative flex flex-col">
                 @if($isSchool)
                 <div class="absolute -top-3 right-6">
                     <span class="bg-brand-600/80 backdrop-blur text-gray-800 text-xs font-bold px-3 py-1 rounded-full">🏫 โรงเรียน</span>
@@ -193,7 +193,7 @@
                     </div>
                     <p class="text-xs text-gray-400 mt-1">≈ ฿{{ number_format(round($plan->price_yearly / 12)) }}/เดือน</p>
                     @if($isSchool)
-                    <p class="text-xs text-success-400 mt-1">📞 ติดต่อขอราคาพิเศษสำหรับโรงเรียนขนาดใหญ่</p>
+                    <p class="text-xs text-success-600 mt-1">📞 ติดต่อขอราคาพิเศษสำหรับโรงเรียนขนาดใหญ่</p>
                     @endif
                 </div>
 
@@ -222,7 +222,7 @@
 
     {{-- PDPA Trust Bar --}}
     <div class="max-w-5xl mx-auto mb-16">
-        <div class="glass rounded-2xl p-6 border border-success-500/20 bg-gradient-to-r from-success-500/5 to-brand-500/5">
+        <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-6 border border-success-200 bg-gradient-to-r from-success-500/5 to-brand-500/5">
             <div class="flex flex-col md:flex-row items-center gap-4 text-center md:text-left">
                 <div class="text-3xl">🛡️</div>
                 <div class="flex-1">
@@ -230,9 +230,9 @@
                     <p class="text-gray-500 text-sm">เอกสารทุกไฟล์ประมวลผลบนเซิร์ฟเวอร์ไทย ไม่ส่งออกนอกประเทศ ลบอัตโนมัติตามแผน เหมาะสำหรับเอกสารสำคัญ เช่น เลขบัตรประชาชน โปรไฟล์นักเรียน</p>
                 </div>
                 <div class="flex flex-wrap gap-2 justify-center">
-                    <span class="text-xs px-3 py-1.5 rounded-full bg-success-500/10 text-success-400 border border-success-500/20">🔒 AES-256</span>
-                    <span class="text-xs px-3 py-1.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20">🇹🇭 เซิร์ฟเวอร์ไทย</span>
-                    <span class="text-xs px-3 py-1.5 rounded-full bg-accent-500/10 text-accent-400 border border-accent-500/20">⏱️ ลบอัตโนมัติ</span>
+                    <span class="text-xs px-3 py-1.5 rounded-full bg-success-50 text-success-600 border border-success-200">🔒 AES-256</span>
+                    <span class="text-xs px-3 py-1.5 rounded-full bg-brand-50 text-brand-600 border border-brand-200">🇹🇭 เซิร์ฟเวอร์ไทย</span>
+                    <span class="text-xs px-3 py-1.5 rounded-full bg-accent-50 text-accent-600 border border-accent-500/20">⏱️ ลบอัตโนมัติ</span>
                 </div>
             </div>
         </div>
@@ -261,7 +261,7 @@
             @endphp
 
             @foreach($faqs as $i => $faq)
-            <div class="glass rounded-xl border border-gray-100 overflow-hidden">
+            <div class="bg-white border border-gray-100 shadow-sm rounded-xl border border-gray-100 overflow-hidden">
                 <button class="w-full flex items-center justify-between px-6 py-4 text-left"
                         @click="open = open === {{ $i }} ? null : {{ $i }}">
                     <span class="font-medium text-gray-800 text-sm">{{ $faq['q'] }}</span>

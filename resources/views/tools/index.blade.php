@@ -27,7 +27,7 @@
                 <div class="w-12 h-12 rounded-xl bg-gradient-to-br {{ $tool['color'] }} flex items-center justify-center text-xl mb-4 transition-transform group-hover:scale-110 shadow-lg">
                     {{ $tool['icon'] }}
                 </div>
-                <h3 class="text-sm font-semibold text-gray-800 group-hover:text-brand-400 transition-colors leading-tight">
+                <h3 class="text-sm font-semibold text-gray-800 group-hover:text-brand-600 transition-colors leading-tight">
                     {{ $tool['name_th'] }}
                 </h3>
                 <p class="text-xs text-gray-400 mt-1 line-clamp-2 leading-relaxed">{{ $tool['description_th'] }}</p>

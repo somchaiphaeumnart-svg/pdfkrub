@@ -10,9 +10,9 @@
 
     {{-- Breadcrumb --}}
     <nav class="flex items-center gap-2 text-sm text-gray-400 mb-8">
-        <a href="{{ route('home') }}" class="hover:text-brand-400 transition-colors">หน้าแรก</a>
+        <a href="{{ route('home') }}" class="hover:text-brand-600 transition-colors">หน้าแรก</a>
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
-        <a href="{{ route('tools') }}" class="hover:text-brand-400 transition-colors">เครื่องมือ</a>
+        <a href="{{ route('tools') }}" class="hover:text-brand-600 transition-colors">เครื่องมือ</a>
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
         <span class="text-gray-600">เซ็นเอกสาร PDF</span>
     </nav>
@@ -39,10 +39,10 @@
 
     {{-- Premium Gate --}}
     @if(!auth()->check() || !auth()->user()->getActivePlan()->has_esign)
-    <div class="glass rounded-2xl p-8 border border-accent-500/30 mb-8">
+    <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-8 border border-accent-200 mb-8">
         <div class="flex flex-col sm:flex-row items-start gap-5">
-            <div class="w-12 h-12 bg-accent-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                <svg class="w-6 h-6 text-accent-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <div class="w-12 h-12 bg-accent-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6 text-accent-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/>
                 </svg>
             </div>
@@ -64,7 +64,7 @@
 
         {{-- Left: PDF Upload + Preview --}}
         <div class="space-y-5">
-            <div class="glass rounded-2xl border border-gray-100 overflow-hidden">
+            <div class="bg-white border border-gray-100 shadow-sm rounded-2xl border border-gray-100 overflow-hidden">
                 <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                     <h2 class="font-semibold text-gray-800">เอกสาร PDF</h2>
                     <template x-if="pdfLoaded">
@@ -122,7 +122,7 @@
         {{-- Right: Signature Tools --}}
         <div class="space-y-5">
             {{-- Signature Tabs --}}
-            <div class="glass rounded-2xl border border-gray-100 overflow-hidden">
+            <div class="bg-white border border-gray-100 shadow-sm rounded-2xl border border-gray-100 overflow-hidden">
                 <div class="px-5 py-4 border-b border-gray-100">
                     <h2 class="font-semibold text-gray-800 mb-3">ลายเซ็น</h2>
                     {{-- Tab buttons --}}
@@ -246,7 +246,7 @@
             </div>
 
             {{-- Place Signature + Actions --}}
-            <div class="glass rounded-2xl border border-gray-100 p-5 space-y-4">
+            <div class="bg-white border border-gray-100 shadow-sm rounded-2xl border border-gray-100 p-5 space-y-4">
                 <template x-if="!pdfLoaded">
                     <p class="text-gray-400 text-sm text-center py-2">อัปโหลด PDF ก่อน แล้วคลิกตำแหน่งที่ต้องการวางลายเซ็น</p>
                 </template>

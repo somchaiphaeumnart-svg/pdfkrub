@@ -26,10 +26,10 @@
     {{-- Top Metric Cards --}}
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {{-- Total Users --}}
-        <div class="glass rounded-2xl p-5 border border-gray-100">
+        <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 border border-gray-100">
             <div class="flex items-center justify-between mb-3">
                 <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">ผู้ใช้งานทั้งหมด</span>
-                <span class="w-8 h-8 rounded-xl bg-brand-500/10 text-brand-400 flex items-center justify-center text-sm">👥</span>
+                <span class="w-8 h-8 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center text-sm">👥</span>
             </div>
             <p class="text-3xl font-bold text-gray-800 mb-1">{{ number_format($totalUsers) }}</p>
             <p class="text-xs text-emerald-400 flex items-center gap-1">
@@ -38,7 +38,7 @@
         </div>
 
         {{-- Active Subscriptions --}}
-        <div class="glass rounded-2xl p-5 border border-gray-100">
+        <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 border border-gray-100">
             <div class="flex items-center justify-between mb-3">
                 <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">สมาชิกพรีเมียม</span>
                 <span class="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center text-sm">⚡</span>
@@ -48,7 +48,7 @@
         </div>
 
         {{-- Total Jobs --}}
-        <div class="glass rounded-2xl p-5 border border-gray-100">
+        <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 border border-gray-100">
             <div class="flex items-center justify-between mb-3">
                 <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">งานประมวลผล</span>
                 <span class="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-sm">⚙️</span>
@@ -58,7 +58,7 @@
         </div>
 
         {{-- Total Files / Storage --}}
-        <div class="glass rounded-2xl p-5 border border-gray-100">
+        <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 border border-gray-100">
             <div class="flex items-center justify-between mb-3">
                 <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">พื้นที่จัดเก็บทั้งหมด</span>
                 <span class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-sm">💾</span>
@@ -75,7 +75,7 @@
 
     <div class="grid lg:grid-cols-3 gap-8 mb-8">
         {{-- Top Tools Ranking --}}
-        <div class="glass rounded-2xl p-6 border border-gray-100">
+        <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-6 border border-gray-100">
             <h2 class="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <span>🔥</span> เครื่องมือยอดนิยม (Top Tools)
             </h2>
@@ -84,7 +84,7 @@
                 @php $maxCount = $topTools->first()->count ?? 1; $pct = round(($tool->count / max(1, $maxCount)) * 100); @endphp
                 <div>
                     <div class="flex items-center justify-between text-xs mb-1">
-                        <span class="font-medium text-slate-200 capitalize">{{ str_replace('-', ' ', $tool->tool_name) }}</span>
+                        <span class="font-medium text-gray-700 capitalize">{{ str_replace('-', ' ', $tool->tool_name) }}</span>
                         <span class="text-gray-500">{{ number_format($tool->count) }} ครั้ง</span>
                     </div>
                     <div class="w-full bg-gray-50 h-2 rounded-full overflow-hidden">
@@ -98,13 +98,13 @@
         </div>
 
         {{-- Subscription Plans Distribution --}}
-        <div class="glass rounded-2xl p-6 border border-gray-100">
+        <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-6 border border-gray-100">
             <h2 class="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <span>💳</span> การกระจายแผนสมาชิก (Subscriptions)
             </h2>
             <div class="space-y-4">
                 @foreach($plansBreakdown as $plan)
-                <div class="glass-light p-3.5 rounded-xl border border-white/[0.04] flex items-center justify-between">
+                <div class="bg-white border border-gray-100 shadow-sm-light p-3.5 rounded-xl border border-white/[0.04] flex items-center justify-between">
                     <div>
                         <p class="text-sm font-semibold text-gray-800">{{ $plan->display_name_th ?? $plan->display_name }}</p>
                         <p class="text-xs text-gray-500">{{ $plan->price_monthly > 0 ? '฿' . number_format($plan->price_monthly) . '/เดือน' : 'แผนฟรี' }}</p>
@@ -119,7 +119,7 @@
         </div>
 
         {{-- Newest Users --}}
-        <div class="glass rounded-2xl p-6 border border-gray-100">
+        <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-6 border border-gray-100">
             <h2 class="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <span>✨</span> สมาชิกใหม่ล่าสุด
             </h2>
@@ -127,7 +127,7 @@
                 @forelse($recentUsers as $u)
                 <div class="flex items-center justify-between text-xs py-1.5 border-b border-white/[0.04] last:border-0">
                     <div class="min-w-0 flex items-center gap-2">
-                        <div class="w-7 h-7 rounded-full bg-brand-500/20 text-brand-300 font-bold flex items-center justify-center flex-shrink-0 text-xs">
+                        <div class="w-7 h-7 rounded-full bg-brand-100 text-brand-600 font-bold flex items-center justify-center flex-shrink-0 text-xs">
                             {{ substr($u->name, 0, 1) }}
                         </div>
                         <div class="truncate">
@@ -145,7 +145,7 @@
     </div>
 
     {{-- Recent Jobs Stream --}}
-    <div class="glass rounded-2xl border border-gray-100 overflow-hidden">
+    <div class="bg-white border border-gray-100 shadow-sm rounded-2xl border border-gray-100 overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <h2 class="font-bold text-gray-800 text-base flex items-center gap-2">
                 <span>⚡</span> กิจกรรมการแปลงไฟล์ล่าสุด (Live Job Stream)
@@ -185,7 +185,7 @@
                             @if($job->status === 'done')
                             <span class="text-emerald-400 flex items-center gap-1 font-medium">✓ สำเร็จ</span>
                             @elseif($job->status === 'processing')
-                            <span class="text-brand-400 flex items-center gap-1 font-medium">⏳ กำลังทำ</span>
+                            <span class="text-brand-600 flex items-center gap-1 font-medium">⏳ กำลังทำ</span>
                             @elseif($job->status === 'failed')
                             <span class="text-rose-400 flex items-center gap-1 font-medium">✕ ล้มเหลว</span>
                             @else

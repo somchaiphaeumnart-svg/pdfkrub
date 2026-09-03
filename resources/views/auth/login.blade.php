@@ -21,7 +21,7 @@
         </div>
 
         {{-- Card --}}
-        <div class="glass rounded-2xl p-8 border border-gray-100">
+        <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-8 border border-gray-100">
 
             {{-- Google OAuth --}}
             <a href="{{ route('auth.google') }}"
@@ -67,7 +67,7 @@
                 <div x-data="{ show: false }">
                     <div class="flex items-center justify-between mb-1.5">
                         <label for="password" class="text-sm font-medium text-gray-600">รหัสผ่าน</label>
-                        <a href="{{ route('password.request') }}" class="text-xs text-brand-400 hover:text-brand-300 transition-colors">ลืมรหัสผ่าน?</a>
+                        <a href="{{ route('password.request') }}" class="text-xs text-brand-600 hover:text-brand-600 transition-colors">ลืมรหัสผ่าน?</a>
                     </div>
                     <div class="relative">
                         <input
@@ -106,7 +106,7 @@
         {{-- Register link --}}
         <p class="text-center text-sm text-gray-400 mt-6">
             ยังไม่มีบัญชี?
-            <a href="{{ route('register') }}" class="text-brand-400 hover:text-brand-300 font-medium transition-colors">สมัครสมาชิกฟรี</a>
+            <a href="{{ route('register') }}" class="text-brand-600 hover:text-brand-600 font-medium transition-colors">สมัครสมาชิกฟรี</a>
         </p>
     </div>
 </div>

@@ -7,7 +7,7 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12" x-data="templateLibrary()">
     {{-- Hero Section --}}
     <div class="text-center max-w-3xl mx-auto mb-12">
-        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-xs font-semibold mb-4">
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-50 border border-brand-200 text-brand-600 text-xs font-semibold mb-4">
             <span>🏫</span> คลังแบบฟอร์มครู การศึกษา และนิติกรรมสัญญาไทย
         </div>
         <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-800 tracking-tight mb-4">
@@ -32,7 +32,7 @@
         <template x-for="cat in categories" :key="cat.id">
             <button @click="activeCategory = cat.id"
                     class="px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all flex items-center gap-2"
-                    :class="activeCategory === cat.id ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/25' : 'glass text-gray-500 hover:text-gray-800 border border-gray-100'">
+                    :class="activeCategory === cat.id ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/25' : 'bg-white border border-gray-100 shadow-sm text-gray-500 hover:text-gray-800 border border-gray-100'">
                 <span x-text="cat.icon"></span>
                 <span x-text="cat.name"></span>
                 <span class="text-xs px-2 py-0.5 rounded-full"
@@ -45,7 +45,7 @@
     {{-- Template Grid --}}
     <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         <template x-for="item in filteredTemplates" :key="item.id">
-            <div class="glass rounded-2xl p-6 border border-gray-100 card-hover flex flex-col justify-between group">
+            <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-6 border border-gray-100 card-hover flex flex-col justify-between group">
                 <div>
                     {{-- Header with badge --}}
                     <div class="flex items-start justify-between gap-3 mb-4">
@@ -59,7 +59,7 @@
                     </div>
 
                     {{-- Title & Description --}}
-                    <h3 class="text-lg font-bold text-gray-800 mb-2 group-hover:text-brand-300 transition-colors" x-text="item.title"></h3>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2 group-hover:text-brand-600 transition-colors" x-text="item.title"></h3>
                     <p class="text-gray-500 text-xs leading-relaxed mb-4" x-text="item.description"></p>
 
                     {{-- Tags --}}
@@ -102,7 +102,7 @@
          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
          style="display:none"
          @keydown.escape.window="previewModal = false">
-        <div class="glass max-w-2xl w-full rounded-3xl border border-gray-200 p-6 sm:p-8 space-y-6 shadow-2xl relative"
+        <div class="bg-white border border-gray-100 shadow-sm max-w-2xl w-full rounded-3xl border border-gray-200 p-6 sm:p-8 space-y-6 shadow-2xl relative"
              @click.away="previewModal = false">
             {{-- Close button --}}
             <button @click="previewModal = false" class="absolute top-6 right-6 text-gray-500 hover:text-gray-800 text-lg">✕</button>
@@ -119,7 +119,7 @@
             <div class="bg-gray-50 border border-gray-200 rounded-2xl p-5 text-gray-600 text-xs font-mono leading-relaxed max-h-72 overflow-y-auto space-y-3">
                 <p class="text-center font-bold text-sm text-gray-800" x-text="activeTemplate?.title"></p>
                 <p class="text-right text-[11px] text-gray-500">ทำขึ้น ณ .............................................................. วันที่ ....... เดือน ................... พ.ศ. ............</p>
-                <p>สัญญานี้ทำขึ้นระหว่าง <span class="text-brand-300">[ชื่อผู้ว่าจ้าง/ผู้ให้เช่า/ผู้มอบอำนาจ]</span> ฝ่ายหนึ่ง กับ <span class="text-brand-300">[ชื่อผู้รับจ้าง/ผู้เช่า/ผู้รับมอบอำนาจ]</span> อีกฝ่ายหนึ่ง โดยมีข้อตกลงดังต่อไปนี้:</p>
+                <p>สัญญานี้ทำขึ้นระหว่าง <span class="text-brand-600">[ชื่อผู้ว่าจ้าง/ผู้ให้เช่า/ผู้มอบอำนาจ]</span> ฝ่ายหนึ่ง กับ <span class="text-brand-600">[ชื่อผู้รับจ้าง/ผู้เช่า/ผู้รับมอบอำนาจ]</span> อีกฝ่ายหนึ่ง โดยมีข้อตกลงดังต่อไปนี้:</p>
                 <p>ข้อ 1. วัตถุประสงค์และขอบเขตข้อตกลง...</p>
                 <p>ข้อ 2. ค่าตอบแทนและการชำระเงินตามที่ตกลงกัน...</p>
                 <p>ข้อ 3. การรักษาความลับและข้อมูลส่วนบุคคลตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล (PDPA)...</p>
@@ -166,8 +166,8 @@ function templateLibrary() {
                 categoryName: 'ครู & การศึกษา',
                 icon: '📋',
                 badge: 'ยอดนิยมสำหรับครู',
-                badgeClass: 'bg-success-500/20 text-success-300 border border-success-500/30',
-                bgClass: 'bg-success-500/10 text-success-400',
+                badgeClass: 'bg-success-100 text-success-300 border border-success-200',
+                bgClass: 'bg-success-50 text-success-600',
                 tags: ['PA', 'ว PA', 'วิทยฐานะ', 'ครู', 'ก.ค.ศ.'],
             },
             {
@@ -178,8 +178,8 @@ function templateLibrary() {
                 categoryName: 'ครู & การศึกษา',
                 icon: '📖',
                 badge: 'มาตรฐาน สพฐ.',
-                badgeClass: 'bg-brand-500/20 text-brand-300 border border-brand-500/30',
-                bgClass: 'bg-brand-500/10 text-brand-400',
+                badgeClass: 'bg-brand-100 text-brand-600 border border-brand-200',
+                bgClass: 'bg-brand-50 text-brand-600',
                 tags: ['แผนการสอน', 'Active Learning', 'สพฐ', 'การจัดการเรียนรู้'],
             },
             {
@@ -214,8 +214,8 @@ function templateLibrary() {
                 categoryName: 'สัญญาจ้าง & ธุรกิจ',
                 icon: '👔',
                 badge: 'ยอดนิยม',
-                badgeClass: 'bg-brand-500/20 text-brand-300 border border-brand-500/30',
-                bgClass: 'bg-brand-500/10 text-brand-400',
+                badgeClass: 'bg-brand-100 text-brand-600 border border-brand-200',
+                bgClass: 'bg-brand-50 text-brand-600',
                 tags: ['สัญญาจ้างงาน', 'HR', 'ทดลองงาน', 'แรงงาน'],
             },
             {
@@ -250,8 +250,8 @@ function templateLibrary() {
                 categoryName: 'อสังหาฯ & เช่า',
                 icon: '🏢',
                 badge: 'ยอดนิยม',
-                badgeClass: 'bg-brand-500/20 text-brand-300 border border-brand-500/30',
-                bgClass: 'bg-brand-500/10 text-brand-400',
+                badgeClass: 'bg-brand-100 text-brand-600 border border-brand-200',
+                bgClass: 'bg-brand-50 text-brand-600',
                 tags: ['เช่าคอนโด', 'เช่าบ้าน', 'เงินประกัน', 'อสังหา'],
             },
             {
@@ -322,8 +322,8 @@ function templateLibrary() {
                 categoryName: 'การเงิน & ภาษี',
                 icon: '📊',
                 badge: 'ยอดนิยม',
-                badgeClass: 'bg-brand-500/20 text-brand-300 border border-brand-500/30',
-                bgClass: 'bg-brand-500/10 text-brand-400',
+                badgeClass: 'bg-brand-100 text-brand-600 border border-brand-200',
+                bgClass: 'bg-brand-50 text-brand-600',
                 tags: ['ใบเสนอราคา', 'Quotation', 'การขาย'],
             },
             {

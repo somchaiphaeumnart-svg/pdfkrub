@@ -20,7 +20,7 @@
             <p class="text-gray-500 mt-1 text-sm">เริ่มจัดการ PDF ได้ทันที ไม่ต้องใส่บัตรเครดิต</p>
         </div>
 
-        <div class="glass rounded-2xl p-8 border border-gray-100">
+        <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-8 border border-gray-100">
 
             {{-- Google OAuth --}}
             <a href="{{ route('auth.google') }}"
@@ -100,9 +100,9 @@
                     <input id="terms" name="terms" type="checkbox" required
                            class="w-4 h-4 rounded border-gray-200 bg-gray-50 text-brand-500 focus:ring-brand-500/50 mt-0.5 flex-shrink-0">
                     <label for="terms" class="text-xs text-gray-500 leading-relaxed">
-                        ฉันยอมรับ <a href="{{ route('terms') }}" class="text-brand-400 hover:underline">ข้อกำหนดการใช้งาน</a>
-                        และ <a href="{{ route('privacy') }}" class="text-brand-400 hover:underline">นโยบายความเป็นส่วนตัว</a>
-                        รวมถึง <a href="{{ route('pdpa') }}" class="text-brand-400 hover:underline">นโยบาย PDPA</a>
+                        ฉันยอมรับ <a href="{{ route('terms') }}" class="text-brand-600 hover:underline">ข้อกำหนดการใช้งาน</a>
+                        และ <a href="{{ route('privacy') }}" class="text-brand-600 hover:underline">นโยบายความเป็นส่วนตัว</a>
+                        รวมถึง <a href="{{ route('pdpa') }}" class="text-brand-600 hover:underline">นโยบาย PDPA</a>
                     </label>
                 </div>
 
@@ -114,7 +114,7 @@
 
         <p class="text-center text-sm text-gray-400 mt-6">
             มีบัญชีแล้ว?
-            <a href="{{ route('login') }}" class="text-brand-400 hover:text-brand-300 font-medium transition-colors">เข้าสู่ระบบ</a>
+            <a href="{{ route('login') }}" class="text-brand-600 hover:text-brand-600 font-medium transition-colors">เข้าสู่ระบบ</a>
         </p>
     </div>
 </div>

@@ -6,7 +6,7 @@
 @section('content')
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
     <div class="text-center mb-12">
-        <div class="inline-flex items-center gap-2 glass px-3.5 py-1.5 rounded-full text-xs text-brand-300 mb-4 border border-brand-500/20">
+        <div class="inline-flex items-center gap-2 bg-white border border-gray-100 shadow-sm px-3.5 py-1.5 rounded-full text-xs text-brand-600 mb-4 border border-brand-200">
             <span>📜</span> ข้อกำหนดและเงื่อนไข
         </div>
         <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-800 mb-4">
@@ -17,7 +17,7 @@
         </p>
     </div>
 
-    <div class="glass rounded-3xl p-8 sm:p-12 border border-gray-100 space-y-8 text-gray-600 leading-relaxed text-sm">
+    <div class="bg-white border border-gray-100 shadow-sm rounded-3xl p-8 sm:p-12 border border-gray-100 space-y-8 text-gray-600 leading-relaxed text-sm">
         <section class="space-y-3">
             <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-brand-500"></span>

@@ -8,7 +8,7 @@
 
     {{-- Header --}}
     <div class="text-center mb-12">
-        <div class="inline-flex items-center gap-2 glass px-3.5 py-1.5 rounded-full text-xs text-brand-300 mb-4 border border-brand-500/20">
+        <div class="inline-flex items-center gap-2 bg-white border border-gray-100 shadow-sm px-3.5 py-1.5 rounded-full text-xs text-brand-600 mb-4 border border-brand-200">
             <span class="text-base">🛡️</span>
             พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 (PDPA)
         </div>
@@ -22,17 +22,17 @@
 
     {{-- Highlight Cards --}}
     <div class="grid sm:grid-cols-3 gap-4 mb-12">
-        <div class="glass rounded-2xl p-5 border border-success-500/30 text-center">
+        <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 border border-success-200 text-center">
             <div class="text-2xl mb-2">🇹🇭</div>
             <h3 class="font-bold text-gray-800 text-sm mb-1">เซิร์ฟเวอร์ในประเทศไทย</h3>
             <p class="text-xs text-gray-500">ข้อมูลและไฟล์เอกสารถูกประมวลผลบน Cloud VPS ในประเทศไทย ไม่มีการโอนย้ายออกนอกประเทศ</p>
         </div>
-        <div class="glass rounded-2xl p-5 border border-brand-500/30 text-center">
+        <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 border border-brand-200 text-center">
             <div class="text-2xl mb-2">⏱️</div>
             <h3 class="font-bold text-gray-800 text-sm mb-1">ลบไฟล์อัตโนมัติ (1 ชม.)</h3>
             <p class="text-xs text-gray-500">ไฟล์ต้นฉบับและผลลัพธ์ของผู้ใช้ฟรีจะถูกทำลายถาวรจากดิสก์อัตโนมัติภายใน 1 ชั่วโมง</p>
         </div>
-        <div class="glass rounded-2xl p-5 border border-purple-500/30 text-center">
+        <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 border border-purple-500/30 text-center">
             <div class="text-2xl mb-2">🔒</div>
             <h3 class="font-bold text-gray-800 text-sm mb-1">ไม่นำข้อมูลไปเทรน AI</h3>
             <p class="text-xs text-gray-500">ไม่มีการนำเอกสาร รูปภาพ บัตรประชาชน หรือข้อมูลนักเรียนไปฝึกฝน AI หรือจำหน่ายให้บุคคลที่สาม</p>
@@ -40,7 +40,7 @@
     </div>
 
     {{-- Content Body --}}
-    <div class="glass rounded-3xl p-8 sm:p-12 border border-gray-100 space-y-8 text-gray-600 leading-relaxed text-sm">
+    <div class="bg-white border border-gray-100 shadow-sm rounded-3xl p-8 sm:p-12 border border-gray-100 space-y-8 text-gray-600 leading-relaxed text-sm">
 
         <section class="space-y-3">
             <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
@@ -67,7 +67,7 @@
                 <li>ข้อมูลผลการเรียน, ประวัติการทำงาน, วิทยฐานะ</li>
                 <li>ข้อมูลสถานศึกษา, สังกัดเขตพื้นที่การศึกษา</li>
             </ul>
-            <p class="bg-brand-500/10 border border-brand-500/20 rounded-xl p-3.5 text-xs text-brand-300">
+            <p class="bg-brand-50 border border-brand-200 rounded-xl p-3.5 text-xs text-brand-600">
                 💡 <strong>คำแนะนำสำหรับคุณครู:</strong> ก่อนการแชร์เอกสารสู่สาธารณะ แนะนำให้ใช้เครื่องมือ "ปิดเลขบัตรประชาชน" หรือ "ประทับสำเนาถูกต้อง" เพื่อปฏิบัติตามแนวทางคุ้มครองข้อมูลของกระทรวงศึกษาธิการ
             </p>
         </section>
@@ -97,7 +97,7 @@
                         </tr>
                         <tr>
                             <td class="py-2.5 px-4 text-gray-800 font-medium">ครู (Teacher) / โปร (Pro)</td>
-                            <td class="py-2.5 px-4 text-brand-400 font-semibold">7 วัน (หรือกดลบทันที)</td>
+                            <td class="py-2.5 px-4 text-brand-600 font-semibold">7 วัน (หรือกดลบทันที)</td>
                             <td class="py-2.5 px-4">ลบอัตโนมัติ หรือลบเองได้จากหน้า Dashboard</td>
                         </tr>
                         <tr>
@@ -144,7 +144,7 @@
             </h2>
             <p class="text-xs text-gray-500">
                 หากท่านมีข้อสงสัย ข้อเสนอแนะ หรือต้องการใช้สิทธิตามกฎหมาย PDPA สามารถติดต่อได้ที่:<br>
-                📧 อีเมล: <a href="mailto:dpo@pdfkrub.com" class="text-brand-400 hover:underline">dpo@pdfkrub.com</a> หรือ <a href="mailto:support@pdfkrub.com" class="text-brand-400 hover:underline">support@pdfkrub.com</a><br>
+                📧 อีเมล: <a href="mailto:dpo@pdfkrub.com" class="text-brand-600 hover:underline">dpo@pdfkrub.com</a> หรือ <a href="mailto:support@pdfkrub.com" class="text-brand-600 hover:underline">support@pdfkrub.com</a><br>
                 📍 แพลตฟอร์ม PDFkrub ประเทศไทย
             </p>
         </section>

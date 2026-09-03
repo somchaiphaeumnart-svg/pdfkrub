@@ -6,7 +6,7 @@
 @section('content')
 <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
     <div class="text-center mb-12">
-        <div class="inline-flex items-center gap-2 glass px-3.5 py-1.5 rounded-full text-xs text-brand-300 mb-4 border border-brand-500/20">
+        <div class="inline-flex items-center gap-2 bg-white border border-gray-100 shadow-sm px-3.5 py-1.5 rounded-full text-xs text-brand-600 mb-4 border border-brand-200">
             <span>💬</span> ติดต่อทีมงาน
         </div>
         <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-800 mb-4">
@@ -17,18 +17,18 @@
         </p>
     </div>
 
-    <div class="glass rounded-3xl p-8 sm:p-10 border border-gray-100 space-y-6">
+    <div class="bg-white border border-gray-100 shadow-sm rounded-3xl p-8 sm:p-10 border border-gray-100 space-y-6">
         <div class="grid sm:grid-cols-2 gap-4 mb-6">
             <div class="bg-gray-50 border border-gray-200 rounded-2xl p-5 text-center">
                 <div class="text-2xl mb-2">📧</div>
                 <h3 class="font-bold text-gray-800 text-sm mb-1">อีเมลติดต่อ</h3>
-                <p class="text-xs text-brand-400">support@pdfkrub.com</p>
+                <p class="text-xs text-brand-600">support@pdfkrub.com</p>
                 <p class="text-[11px] text-gray-400 mt-1">ตอบกลับภายใน 24 ชม.</p>
             </div>
             <div class="bg-gray-50 border border-gray-200 rounded-2xl p-5 text-center">
                 <div class="text-2xl mb-2">🏫</div>
                 <h3 class="font-bold text-gray-800 text-sm mb-1">ประสานงานโรงเรียน</h3>
-                <p class="text-xs text-brand-400">school@pdfkrub.com</p>
+                <p class="text-xs text-brand-600">school@pdfkrub.com</p>
                 <p class="text-[11px] text-gray-400 mt-1">สำหรับขอใบเสนอราคา / หัก ณ ที่จ่าย</p>
             </div>
         </div>
