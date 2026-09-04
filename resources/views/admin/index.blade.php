@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'Admin Dashboard — ผู้ดูแลระบบ PDFkrub')
 
@@ -23,19 +23,33 @@
         </div>
     </div>
 
+    {{-- Admin Nav Tabs --}}
+    <div class="flex items-center gap-2 mb-8 border-b border-gray-200/80 pb-3">
+        <a href="{{ route('admin.index') }}" class="px-4 py-2 text-sm font-semibold rounded-xl bg-brand-50 text-brand-700 border border-brand-200 shadow-xs flex items-center gap-2">
+            <span>📊</span> แดชบอร์ดภาพรวม
+        </a>
+        <a href="{{ route('admin.users.index') }}" class="px-4 py-2 text-sm font-medium rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors flex items-center gap-2">
+            <span>👥</span> จัดการผู้ใช้งานทั้งหมด
+            <span class="px-2 py-0.5 text-xs bg-gray-100 rounded-full text-gray-600 font-bold">{{ number_format($totalUsers) }}</span>
+        </a>
+    </div>
+
     {{-- Top Metric Cards --}}
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {{-- Total Users --}}
-        <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 border border-gray-100">
+        {{-- Total Users (Clickable link to user management) --}}
+        <a href="{{ route('admin.users.index') }}" class="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 border border-gray-100 hover:border-brand-300 hover:shadow-md transition-all group block">
             <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">ผู้ใช้งานทั้งหมด</span>
-                <span class="w-8 h-8 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center text-sm">👥</span>
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider group-hover:text-brand-600 transition-colors">ผู้ใช้งานทั้งหมด</span>
+                <span class="w-8 h-8 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center text-sm group-hover:scale-110 transition-transform">👥</span>
             </div>
             <p class="text-3xl font-bold text-gray-800 mb-1">{{ number_format($totalUsers) }}</p>
-            <p class="text-xs text-emerald-400 flex items-center gap-1">
-                <span>↑ +{{ $newUsersToday }} วันนี้</span>
-            </p>
-        </div>
+            <div class="flex items-center justify-between">
+                <p class="text-xs text-emerald-500 flex items-center gap-1 font-medium">
+                    <span>↑ +{{ $newUsersToday }} วันนี้</span>
+                </p>
+                <span class="text-[11px] text-brand-600 font-semibold group-hover:underline">จัดการผู้ใช้ →</span>
+            </div>
+        </a>
 
         {{-- Active Subscriptions --}}
         <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-5 border border-gray-100">
@@ -120,9 +134,12 @@
 
         {{-- Newest Users --}}
         <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-6 border border-gray-100">
-            <h2 class="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <span>✨</span> สมาชิกใหม่ล่าสุด
-            </h2>
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-base font-bold text-gray-800 flex items-center gap-2">
+                    <span>✨</span> สมาชิกใหม่ล่าสุด
+                </h2>
+                <a href="{{ route('admin.users.index') }}" class="text-xs text-brand-600 hover:underline font-semibold">ดูทั้งหมด →</a>
+            </div>
             <div class="space-y-3">
                 @forelse($recentUsers as $u)
                 <div class="flex items-center justify-between text-xs py-1.5 border-b border-white/[0.04] last:border-0">
