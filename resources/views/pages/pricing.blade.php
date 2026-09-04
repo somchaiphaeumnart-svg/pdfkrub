@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'ราคา — PDFkrub')
 @section('description', 'แผนราคา PDFkrub สำหรับครูและโรงเรียน เริ่มต้นฟรี ครูรายปี 390 บาท โรงเรียน 2,990 บาท/ปี รองรับ PDPA')
@@ -98,6 +98,15 @@
                     <span class="text-4xl font-bold text-gray-800">ฟรี</span>
                     @endif
                 </div>
+
+                {{-- Size Badge --}}
+                <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+                    <span class="text-gray-500 flex items-center gap-1.5 font-medium">
+                        <svg class="w-4 h-4 text-brand-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+                        ขนาดไฟล์สูงสุด
+                    </span>
+                    <span class="font-bold text-gray-800 bg-gray-100 px-2.5 py-0.5 rounded-md">{{ $plan->max_file_size_mb }} MB</span>
+                </div>
             </div>
 
             {{-- Features --}}
@@ -195,6 +204,15 @@
                     @if($isSchool)
                     <p class="text-xs text-success-600 mt-1">📞 ติดต่อขอราคาพิเศษสำหรับโรงเรียนขนาดใหญ่</p>
                     @endif
+
+                    {{-- Size Badge --}}
+                    <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+                        <span class="text-gray-500 flex items-center gap-1.5 font-medium">
+                            <svg class="w-4 h-4 text-brand-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+                            ขนาดไฟล์สูงสุด
+                        </span>
+                        <span class="font-bold text-brand-700 bg-brand-50 border border-brand-200 px-2.5 py-1 rounded-lg text-sm">{{ $plan->max_file_size_mb }} MB</span>
+                    </div>
                 </div>
 
                 <ul class="space-y-2.5 flex-1 mb-8">

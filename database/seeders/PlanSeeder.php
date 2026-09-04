@@ -102,7 +102,7 @@ class PlanSeeder extends Seeder
                 'price_monthly' => 499,   // representative monthly
                 'price_yearly' => 2990,  // entry tier
                 'currency' => 'THB',
-                'max_file_size_mb' => 200,
+                'max_file_size_mb' => 400,
                 'daily_conversions' => -1,
                 'file_retention_hours' => 720,   // 30 days
                 'has_ocr' => true,
@@ -113,6 +113,7 @@ class PlanSeeder extends Seeder
                 'is_active' => true,
                 'sort_order' => 4,
                 'features' => [
+                    'size' => 'รองรับไฟล์สูงสุด 400 MB',
                     'tools' => 'เครื่องมือ PDF ครบทุกอย่าง',
                     'storage' => 'เก็บไฟล์ 30 วัน',
                     'team' => 'ครูในโรงเรียนสูงสุด 30 คน',
@@ -134,7 +135,7 @@ class PlanSeeder extends Seeder
                 'price_monthly' => 990,
                 'price_yearly' => 9900,
                 'currency' => 'THB',
-                'max_file_size_mb' => 200,
+                'max_file_size_mb' => 400,
                 'daily_conversions' => -1,
                 'file_retention_hours' => 720,
                 'has_ocr' => true,
@@ -145,6 +146,7 @@ class PlanSeeder extends Seeder
                 'is_active' => true,
                 'sort_order' => 5,
                 'features' => [
+                    'size' => 'รองรับไฟล์สูงสุด 400 MB',
                     'tools' => 'เครื่องมือ PDF ครบทุกอย่าง',
                     'storage' => 'เก็บไฟล์ 30 วัน',
                     'api' => 'REST API Access ไม่จำกัด',

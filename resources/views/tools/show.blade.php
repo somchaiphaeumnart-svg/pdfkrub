@@ -53,7 +53,7 @@
 
     {{-- Upload Zone --}}
     <div class="bg-white border border-gray-100 shadow-sm rounded-3xl p-8 border border-gray-100"
-         x-data="fileUpload({ maxSizeMb: {{ auth()->check() && auth()->user()->getActivePlan()->max_file_size_mb >= 200 ? 200 : 10 }}, accept: '{{ $tool['accepts'] }}', maxFiles: {{ in_array($tool['slug'], ['merge-pdf', 'image-to-pdf']) ? 20 : 1 }} })"
+         x-data="fileUpload({ maxSizeMb: {{ auth()->check() ? auth()->user()->getActivePlan()->max_file_size_mb : 10 }}, accept: '{{ $tool['accepts'] }}', maxFiles: {{ in_array($tool['slug'], ['merge-pdf', 'image-to-pdf']) ? 20 : 1 }} })"
          x-init="$watch('files', val => {})">
 
         {{-- Drop zone --}}
@@ -81,7 +81,7 @@
                     <p class="text-gray-800 font-semibold text-lg mb-2">ลากและวางไฟล์ที่นี่</p>
                     <p class="text-gray-500 text-sm">รองรับ <span class="text-brand-600">{{ str_replace(',', ', ', $tool['accepts']) }}</span></p>
                     <p class="text-gray-400 text-xs mt-2">
-                        ขนาดสูงสุด {{ auth()->check() && auth()->user()->getActivePlan()->max_file_size_mb >= 200 ? '200' : '10' }} MB
+                        ขนาดสูงสุด {{ auth()->check() ? auth()->user()->getActivePlan()->max_file_size_mb : '10' }} MB
                         @if(!auth()->check()) · <a href="{{ route('register') }}" class="text-brand-600 hover:underline">สมัครสมาชิก</a>เพื่อเพิ่มขีดจำกัด @endif
                     </p>
                 </div>

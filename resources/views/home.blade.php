@@ -57,7 +57,7 @@
         {{-- Quick upload widget --}}
         <div class="max-w-2xl mx-auto">
             <div class="upload-zone p-10 text-center cursor-pointer transition-all"
-                 x-data="fileUpload({ maxSizeMb: {{ auth()->check() && auth()->user()->getActivePlan()->max_file_size_mb >= 200 ? 200 : 10 }}, accept: '.pdf', isHome: true })"
+                 x-data="fileUpload({ maxSizeMb: {{ auth()->check() ? auth()->user()->getActivePlan()->max_file_size_mb : 10 }}, accept: '.pdf', isHome: true })"
                  @dragover.prevent="isDragging = true"
                  @dragleave.prevent="isDragging = false"
                  @drop.prevent="handleDrop($event)"
@@ -75,7 +75,7 @@
                         </div>
                         <p class="text-gray-800 font-semibold text-lg mb-1">ลากและวางไฟล์ PDF ที่นี่</p>
                         <p class="text-gray-500 text-sm">หรือ <span class="underline underline-offset-2" style="color:#e63946">คลิกเพื่อเลือกไฟล์</span></p>
-                        <p class="text-gray-400 text-xs mt-3">รองรับไฟล์สูงสุด {{ auth()->check() && auth()->user()->getActivePlan()->max_file_size_mb >= 200 ? '200' : '10' }} MB</p>
+                        <p class="text-gray-400 text-xs mt-3">รองรับไฟล์สูงสุด {{ auth()->check() ? auth()->user()->getActivePlan()->max_file_size_mb : '10' }} MB</p>
                     </div>
                 </template>
 
