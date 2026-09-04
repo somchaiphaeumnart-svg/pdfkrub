@@ -8,11 +8,18 @@
     <title>@yield('title', 'PDFkrub') — แพลตฟอร์มจัดการ PDF สำหรับครูและโรงเรียน</title>
     <meta name="description" content="@yield('description', 'PDFkrub — แพลตฟอร์มจัดการเอกสาร PDF ภาษาไทย สำหรับครูและโรงเรียน รองรับ PDPA ประมวลผลในประเทศไทย')">
 
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ asset('favicon-192x192.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
+
     <!-- Open Graph -->
     <meta property="og:title" content="@yield('title', 'PDFkrub') — แพลตฟอร์มจัดการ PDF สำหรับครูไทย">
     <meta property="og:description" content="PDFkrub จัดการ PDF เพื่อครู รวม PA, OCR, บีบอัด, ลงนาม, ประทับ 'สำเนาถูกต้อง' รองรับ PDPA">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:image" content="{{ asset('images/logo.png') }}">
 
     <!-- Google Fonts: Noto Sans Thai + Instrument Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,15 +32,15 @@
     <!-- Schema.org JSON-LD -->
     <script type="application/ld+json">
     {
-      "@@context": "https://schema.org",
-      "@@type": "WebApplication",
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
       "name": "PDFkrub",
       "url": "{{ url('/') }}",
       "applicationCategory": "Productivity",
       "operatingSystem": "All",
       "description": "แพลตฟอร์มจัดการเอกสาร PDF ภาษาไทย สำหรับครูและโรงเรียน รองรับ PDPA",
       "offers": {
-        "@@type": "Offer",
+        "@type": "Offer",
         "price": "0",
         "priceCurrency": "THB"
       }
@@ -51,12 +58,8 @@
         <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <!-- Logo -->
-                <a href="{{ route('home') }}" class="flex items-center gap-2 group">
-                    <div class="w-8 h-8 rounded-lg flex items-center justify-center shadow-md transition-transform group-hover:scale-110" style="background:linear-gradient(135deg,#e63946,#d32535)">
-                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-                        </svg>
-                    </div>
+                <a href="{{ route('home') }}" class="flex items-center gap-2.5 group">
+                    <img src="{{ asset('images/logo-mascot.png') }}" alt="PDFkrub" class="w-9 h-9 object-contain rounded-xl shadow-sm border border-gray-100 transition-transform group-hover:scale-105">
                     <span class="text-lg font-bold" style="color:#16324f">PDF<span class="text-gradient">krub</span></span>
                 </a>
 
@@ -234,13 +237,9 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
                 <!-- Brand -->
                 <div class="lg:col-span-1">
-                    <div class="flex items-center gap-2 mb-4">
-                        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:linear-gradient(135deg,#e63946,#d32535)">
-                            <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-                            </svg>
-                        </div>
-                        <span class="text-lg font-bold text-white">PDFkrub</span>
+                    <div class="flex items-center gap-2.5 mb-4">
+                        <img src="{{ asset('images/logo-mascot.png') }}" alt="PDFkrub" class="w-9 h-9 object-contain rounded-xl bg-white p-0.5 shadow-md">
+                        <span class="text-xl font-bold text-white tracking-tight">PDFkrub</span>
                     </div>
                     <p class="text-sm leading-relaxed" style="color:rgba(255,255,255,0.65)">แพลตฟอร์มจัดการเอกสาร PDF สำหรับครูและโรงเรียน รองรับ PDPA ประมวลผลในประเทศไทย</p>
                     <div class="mt-4 flex flex-wrap items-center gap-2">

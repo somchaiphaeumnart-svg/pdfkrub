@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'เกี่ยวกับเรา — PDFkrub')
 @section('description', 'PDFkrub แพลตฟอร์มจัดการเอกสาร PDF ภาษาไทย เพื่อช่วยเหลือครูและบุคลากรทางการศึกษาไทย ลดภาระงานเอกสาร')
@@ -6,6 +6,9 @@
 @section('content')
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
     <div class="text-center mb-12">
+        <a href="{{ route('home') }}" class="inline-block mb-6 transition-transform hover:scale-105">
+            <img src="{{ asset('images/logo.png') }}" alt="PDFkrub Logo" class="w-32 h-32 sm:w-40 sm:h-40 mx-auto object-contain rounded-3xl shadow-md border border-gray-100 bg-white p-2">
+        </a>
         <div class="inline-flex items-center gap-2 bg-white border border-gray-100 shadow-sm px-3.5 py-1.5 rounded-full text-xs text-brand-600 mb-4 border border-brand-200">
             <span>🏫</span> เกี่ยวกับ PDFkrub
         </div>

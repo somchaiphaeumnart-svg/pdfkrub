@@ -1,9 +1,13 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @section('title', 'ลืมรหัสผ่าน')
 @section('content')
 <div class='min-h-[calc(100vh-4rem)] flex items-center justify-center py-16 px-4'>
     <div class='w-full max-w-md'>
         <div class='text-center mb-8'>
+            <a href="{{ route('home') }}" class="inline-flex items-center gap-3 mb-6 group">
+                <img src="{{ asset('images/logo-mascot.png') }}" alt="PDFkrub" class="w-12 h-12 object-contain rounded-2xl shadow-md border border-gray-100 transition-transform group-hover:scale-105">
+                <span class="text-2xl font-bold tracking-tight text-gray-800">PDF<span class="text-gradient">krub</span></span>
+            </a>
             <h1 class='text-2xl font-bold text-gray-800'>รีเซ็ตรหัสผ่าน</h1>
             <p class='text-gray-500 text-sm mt-2'>กรอกอีเมลเพื่อรับลิงก์รีเซ็ต</p>
         </div>

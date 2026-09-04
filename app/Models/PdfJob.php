@@ -83,14 +83,14 @@ class PdfJob extends Model
 
     public function markAsComplete(string $outputFileId): void
     {
-        $startedAt = $this->started_at ?? now();
+        $ms = $this->started_at ? abs((int) now()->diffInMilliseconds($this->started_at)) : 0;
 
         $this->update([
             'status' => self::STATUS_DONE,
             'output_file_id' => $outputFileId,
             'progress' => 100,
             'completed_at' => now(),
-            'processing_time_ms' => now()->diffInMilliseconds($startedAt),
+            'processing_time_ms' => max(0, $ms),
         ]);
     }
 

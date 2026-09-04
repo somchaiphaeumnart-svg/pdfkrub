@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'PDFkrub')
 @section('description', 'PDFkrub — PDF ภาษาไทย ทำง่ายในไม่กี่วินาที สำหรับครูและโรงเรียน รองรับ PDPA ประมวลผลในประเทศไทย')
@@ -18,9 +18,9 @@
 
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         {{-- Badge --}}
-        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm mb-8" style="background:rgba(230,57,70,0.08);color:#e63946;border:1px solid rgba(230,57,70,0.2)">
-            <span class="w-1.5 h-1.5 rounded-full animate-pulse" style="background:#16a34a"></span>
-            เครื่องมือ PDF สำหรับครูไทย &middot; รองรับ PDPA &middot; ประมวลผลในประเทศไทย
+        <div class="inline-flex items-center gap-2.5 px-4 py-2 rounded-full text-sm mb-8 shadow-xs" style="background:rgba(230,57,70,0.08);color:#e63946;border:1px solid rgba(230,57,70,0.2)">
+            <img src="{{ asset('images/logo-mascot.png') }}" alt="PDFkrub" class="w-5 h-5 object-contain rounded-full shadow-xs">
+            <span>เครื่องมือ PDF สำหรับครูไทย &middot; รองรับ PDPA &middot; ประมวลผลในประเทศไทย</span>
         </div>
 
         {{-- Heading --}}

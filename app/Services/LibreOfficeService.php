@@ -77,25 +77,50 @@ class LibreOfficeService
     {
         $this->ensureBinaryExists();
 
-        $formatMap = [
-            'docx' => 'docx:MS Word 2007 XML',
-            'xlsx' => 'xlsx:Calc MS Excel 2007 XML',
-            'pptx' => 'pptx:Impress MS PowerPoint 2007 XML',
-            'txt' => 'txt:Text',
-            'html' => 'html:HTML (StarWriter)',
-        ];
+        $infilter = match ($targetFormat) {
+            'docx' => 'writer_pdf_import',
+            'pptx' => 'impress_pdf_import',
+            'xlsx' => 'calc_pdf_import',
+            default => null,
+        };
 
-        $convertTo = $formatMap[$targetFormat] ?? $targetFormat;
+        // Try pdf2docx first for DOCX if available (highest quality layout & font retention)
+        if ($targetFormat === 'docx') {
+            $basename = pathinfo($inputPdf, PATHINFO_FILENAME);
+            $outputPath = rtrim($outputDir, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.$basename.'.docx';
+            
+            $pythonCmd = file_exists('/opt/pdf2docx-env/bin/python3') 
+                ? '/opt/pdf2docx-env/bin/python3' 
+                : 'python3';
 
-        $result = Process::timeout($this->timeoutSeconds)->run([
+            $pyResult = Process::timeout($this->timeoutSeconds)->run([
+                $pythonCmd,
+                '-c',
+                "from pdf2docx import Converter; cv = Converter('{$inputPdf}'); cv.convert('{$outputPath}'); cv.close()"
+            ]);
+
+            if ($pyResult->successful() && file_exists($outputPath)) {
+                return $outputPath;
+            }
+        }
+
+        $cmd = [
             $this->binaryPath,
             '--headless',
             '--norestore',
-            '--infilter=impress_pdf_import',
-            '--convert-to', $convertTo,
-            '--outdir', $outputDir,
-            $inputPdf,
-        ]);
+        ];
+
+        if ($infilter) {
+            $cmd[] = "--infilter={$infilter}";
+        }
+
+        $cmd[] = '--convert-to';
+        $cmd[] = $targetFormat;
+        $cmd[] = '--outdir';
+        $cmd[] = $outputDir;
+        $cmd[] = $inputPdf;
+
+        $result = Process::timeout($this->timeoutSeconds)->run($cmd);
 
         if (! $result->successful()) {
             Log::error('LibreOffice convert-from-pdf failed', [
