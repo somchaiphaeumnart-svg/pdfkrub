@@ -149,6 +149,17 @@ Alpine.data('fileUpload', (config = {}) => ({
                 const res = await fetch(statusUrl, {
                     headers: { 'Accept': 'application/json' }
                 });
+
+                if (!res.ok) {
+                    if (res.status === 403) {
+                        clearInterval(this.pollTimer);
+                        this.isUploading = false;
+                        this.jobStatus = 'failed';
+                        this.errorMessage = 'เซสชันหมดอายุ กรุณารีเฟรชหน้าเว็บแล้วลองใหม่อีกครั้ง';
+                    }
+                    return;
+                }
+
                 const data = await res.json();
 
                 this.jobStatus = data.status;
