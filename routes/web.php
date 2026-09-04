@@ -24,55 +24,7 @@ Route::get('/', function () {
     return view('home', compact('plans'));
 })->name('home');
 
-Route::get('/debug-jobs', function () {
-    if (request('process')) {
-        $latest = \App\Models\PdfJob::where('status', \App\Models\PdfJob::STATUS_QUEUED)->latest()->first();
-        if ($latest) {
-            try {
-                $p = app(\App\Services\PdfProcessingService::class);
-                (new \App\Jobs\ProcessPdfJob($latest))->handle($p);
-                $latest->refresh();
-                return response()->json(['processed_job' => $latest]);
-            } catch (\Throwable $e) {
-                return response()->json(['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()], 500);
-            }
-        }
-        return response()->json(['message' => 'No queued jobs found']);
-    }
 
-    $jobs = \App\Models\PdfJob::latest()->limit(5)->get()->map(function ($j) {
-        return [
-            'id' => $j->id,
-            'tool' => $j->tool_name,
-            'status' => $j->status,
-            'progress' => $j->progress,
-            'error' => $j->error_message,
-            'created_at' => (string) $j->created_at,
-            'input_file_ids' => $j->input_file_ids,
-        ];
-    });
-
-    $tools = [
-        'gs' => trim((string) shell_exec('which gs 2>&1') ?: 'not found'),
-        'pdfunite' => trim((string) shell_exec('which pdfunite 2>&1') ?: 'not found'),
-        'qpdf' => trim((string) shell_exec('which qpdf 2>&1') ?: 'not found'),
-        'soffice' => trim((string) shell_exec('which soffice 2>&1') ?: 'not found'),
-    ];
-
-    $log = '';
-    $logFile = storage_path('logs/laravel.log');
-    if (file_exists($logFile)) {
-        $lines = file($logFile);
-        $log = implode('', array_slice($lines, -25));
-    }
-
-    return response()->json([
-        'queue_connection' => config('queue.default'),
-        'tools' => $tools,
-        'recent_jobs' => $jobs,
-        'last_logs' => $log,
-    ]);
-});
 
 // Static pages (stub views for now)
 Route::get('/about', fn () => view('pages.about'))->name('about');

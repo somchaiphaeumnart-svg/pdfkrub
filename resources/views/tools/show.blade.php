@@ -136,7 +136,7 @@
             </div>
 
             {{-- Processing state: progress --}}
-            <div x-show="isProcessing" class="space-y-4 max-w-md mx-auto">
+            <div x-show="isProcessing && !isDone && !isFailed" class="space-y-4 max-w-md mx-auto">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2.5">
                         <svg class="w-5 h-5 text-brand-600 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24">
