@@ -36,8 +36,14 @@ class LibreOfficeService
     {
         $this->ensureBinaryExists();
 
+        $profileDir = rtrim($outputDir, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.'lo_profile';
+        if (! is_dir($profileDir)) {
+            @mkdir($profileDir, 0755, true);
+        }
+
         $result = Process::timeout($this->timeoutSeconds)->run([
             $this->binaryPath,
+            "-env:UserInstallation=file://{$profileDir}",
             '--headless',
             '--norestore',
             '--convert-to', 'pdf',
@@ -75,12 +81,17 @@ class LibreOfficeService
      */
     public function convertFromPdf(string $inputPdf, string $targetFormat, string $outputDir): string
     {
+        // For Excel (xlsx), use specialized table extraction (Python / pdftotext)
+        // LibreOffice does NOT natively support converting PDF to XLSX directly
+        if ($targetFormat === 'xlsx') {
+            return $this->convertPdfToExcel($inputPdf, $outputDir);
+        }
+
         $this->ensureBinaryExists();
 
         $infilter = match ($targetFormat) {
             'docx' => 'writer_pdf_import',
             'pptx' => 'impress_pdf_import',
-            'xlsx' => 'calc_pdf_import',
             default => null,
         };
 
@@ -104,8 +115,14 @@ class LibreOfficeService
             }
         }
 
+        $profileDir = rtrim($outputDir, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.'lo_profile';
+        if (! is_dir($profileDir)) {
+            @mkdir($profileDir, 0755, true);
+        }
+
         $cmd = [
             $this->binaryPath,
+            "-env:UserInstallation=file://{$profileDir}",
             '--headless',
             '--norestore',
         ];
@@ -136,6 +153,60 @@ class LibreOfficeService
 
         if (! file_exists($outputPath)) {
             throw new RuntimeException("LibreOffice output not found: {$outputPath}");
+        }
+
+        return $outputPath;
+    }
+
+    /**
+     * Convert PDF to Excel (.xlsx) using python table extraction or pdftotext fallback.
+     */
+    public function convertPdfToExcel(string $inputPdf, string $outputDir): string
+    {
+        $basename = pathinfo($inputPdf, PATHINFO_FILENAME);
+        $outputPath = rtrim($outputDir, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.$basename.'.xlsx';
+
+        $pythonCmd = file_exists('/opt/pdf2docx-env/bin/python3')
+            ? '/opt/pdf2docx-env/bin/python3'
+            : 'python3';
+
+        $scriptPath = base_path('scripts/pdf_to_excel.py');
+
+        if (file_exists($scriptPath)) {
+            $result = Process::timeout($this->timeoutSeconds)->run([
+                $pythonCmd,
+                $scriptPath,
+                $inputPdf,
+                $outputPath,
+            ]);
+
+            if ($result->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                return $outputPath;
+            }
+
+            Log::warning('Python pdf_to_excel via env python failed, trying system python', [
+                'input' => $inputPdf,
+                'exit_code' => $result->exitCode(),
+                'stderr' => $result->errorOutput(),
+                'stdout' => $result->output(),
+            ]);
+
+            if ($pythonCmd !== 'python3') {
+                $sysResult = Process::timeout($this->timeoutSeconds)->run([
+                    'python3',
+                    $scriptPath,
+                    $inputPdf,
+                    $outputPath,
+                ]);
+
+                if ($sysResult->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                    return $outputPath;
+                }
+            }
+        }
+
+        if (! file_exists($outputPath) || filesize($outputPath) === 0) {
+            throw new RuntimeException('ไม่สามารถสร้างไฟล์ Excel ได้ กรุณาตรวจสอบว่าไฟล์ PDF มีข้อความหรือตารางที่ถูกต้อง');
         }
 
         return $outputPath;
