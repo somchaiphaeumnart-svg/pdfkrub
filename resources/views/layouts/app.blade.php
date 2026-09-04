@@ -32,15 +32,15 @@
     <!-- Schema.org JSON-LD -->
     <script type="application/ld+json">
     {
-      "@context": "https://schema.org",
-      "@type": "WebApplication",
+      "@@context": "https://schema.org",
+      "@@type": "WebApplication",
       "name": "PDFkrub",
       "url": "{{ url('/') }}",
       "applicationCategory": "Productivity",
       "operatingSystem": "All",
       "description": "แพลตฟอร์มจัดการเอกสาร PDF ภาษาไทย สำหรับครูและโรงเรียน รองรับ PDPA",
       "offers": {
-        "@type": "Offer",
+        "@@type": "Offer",
         "price": "0",
         "priceCurrency": "THB"
       }
