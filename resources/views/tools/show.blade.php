@@ -151,7 +151,10 @@
                     <div class="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-brand-600 to-indigo-500 shadow-sm"
                          :style="`width: ${Math.min(100, Math.max(10, jobProgress))}%`"></div>
                 </div>
-                <p class="text-center text-xs text-gray-400">ระบบกำลังประมวลผล กรุณารอสักครู่ · ไฟล์จะถูกลบอัตโนมัติหลังดาวน์โหลด</p>
+                <div class="flex items-center justify-between text-xs text-gray-400">
+                    <span>ระบบกำลังประมวลผล กรุณารอสักครู่</span>
+                    <button type="button" @click="clearAll()" class="text-brand-600 hover:text-red-500 underline font-medium">ยกเลิก / เริ่มใหม่</button>
+                </div>
             </div>
 
             {{-- Done state: download button --}}

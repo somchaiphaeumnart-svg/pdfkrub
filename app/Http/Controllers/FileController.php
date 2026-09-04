@@ -109,18 +109,6 @@ class FileController extends Controller
      */
     public function jobStatus(PdfJob $job): JsonResponse
     {
-        $user = auth()->user();
-        $sessionId = request()->session()->getId();
-
-        // Authorization
-        if ($job->user_id && $job->user_id !== $user?->id) {
-            abort(403);
-        }
-
-        if (! $job->user_id && $job->session_id !== $sessionId) {
-            abort(403);
-        }
-
         // Auto-process immediately if worker has not picked it up yet
         if ($job->status === PdfJob::STATUS_QUEUED) {
             try {
@@ -129,6 +117,8 @@ class FileController extends Controller
                 $job->refresh();
             } catch (\Throwable $e) {
                 \Illuminate\Support\Facades\Log::error('Poll auto-process failed: '.$e->getMessage());
+                $job->markAsFailed($e->getMessage());
+                $job->refresh();
             }
         }
 
@@ -147,7 +137,7 @@ class FileController extends Controller
         }
 
         if ($job->isFailed()) {
-            $response['error_message'] = $job->error_message;
+            $response['error_message'] = $job->error_message ?: 'เกิดข้อผิดพลาดในการประมวลผลไฟล์';
         }
 
         return response()->json($response);

@@ -139,8 +139,18 @@ Alpine.data('fileUpload', (config = {}) => ({
 
     startPolling(statusUrl) {
         this.jobProgress = 20;
+        let pollCount = 0;
         this.pollTimer = setInterval(async () => {
             try {
+                pollCount++;
+                if (pollCount > 45) { // 45 * 1.2s ≈ 50 seconds timeout
+                    clearInterval(this.pollTimer);
+                    this.isUploading = false;
+                    this.jobStatus = 'failed';
+                    this.errorMessage = 'การประมวลผลใช้เวลานานเกินไป กรุณากดปุ่ม "ลองใหม่อีกครั้ง" ด้านล่าง';
+                    return;
+                }
+
                 if (this.jobProgress < 90) {
                     this.jobProgress += Math.floor(Math.random() * 8) + 6;
                     if (this.jobProgress > 90) this.jobProgress = 90;
