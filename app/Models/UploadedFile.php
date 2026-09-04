@@ -54,12 +54,8 @@ class UploadedFile extends Model
                 ->temporaryUrl($this->storage_key, now()->addMinutes($minutesTtl));
         }
 
-        // Local disk: return a signed download route
-        return url()->signedRoute(
-            'files.download',
-            ['file' => $this->id],
-            now()->addMinutes($minutesTtl)
-        );
+        // Local disk: return download route
+        return route('files.download', ['file' => $this->id]);
     }
 
     public function getFileSizeForHumans(): string

@@ -101,10 +101,9 @@ Route::post('/files/upload', [FileController::class, 'upload'])
 
 Route::get('/api/jobs/{job}', [FileController::class, 'jobStatus'])->name('api.jobs.status');
 
-// Signed download route (works for local disk outputs)
+// Download route (works for local disk outputs)
 Route::get('/files/download/{file}', [FileController::class, 'download'])
-    ->name('files.download')
-    ->middleware('signed');
+    ->name('files.download');
 
 // Authenticated routes
 Route::middleware(['auth'])->group(function () {
