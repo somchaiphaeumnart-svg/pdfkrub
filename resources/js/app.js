@@ -130,7 +130,16 @@ Alpine.data('fileUpload', (config = {}) => ({
 
             this.jobId = data.job_id;
             this.jobStatus = data.status;
-            this.startPolling(data.status_url);
+
+            if (data.status === 'done' && data.download_url) {
+                this.jobProgress = 100;
+                this.isUploading = false;
+                this.downloadUrl = data.download_url;
+                this.downloadFileName = data.file_name || 'merged.pdf';
+                this.downloadFileSize = data.file_size || '';
+            } else {
+                this.startPolling(data.status_url);
+            }
         } catch (err) {
             this.error = err.message;
             this.isUploading = false;

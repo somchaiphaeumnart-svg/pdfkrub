@@ -85,6 +85,7 @@ class FileController extends Controller
             $processor = app(PdfProcessingService::class);
             (new ProcessPdfJob($pdfJob))->handle($processor);
             $pdfJob->refresh();
+            $pdfJob->load('outputFile');
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('Synchronous processing failed: '.$e->getMessage());
             $pdfJob->markAsFailed($e->getMessage());
@@ -97,10 +98,11 @@ class FileController extends Controller
             'status_url' => route('api.jobs.status', $pdfJob),
         ];
 
-        if ($pdfJob->isComplete() && $pdfJob->outputFile) {
-            $responseData['download_url'] = $pdfJob->outputFile->getTemporaryUrl();
-            $responseData['file_name'] = $pdfJob->outputFile->original_name;
-            $responseData['file_size'] = $pdfJob->outputFile->getFileSizeForHumans();
+        $outputFile = $pdfJob->outputFile ?: ($pdfJob->output_file_id ? UploadedFile::find($pdfJob->output_file_id) : null);
+        if ($pdfJob->isComplete() && $outputFile) {
+            $responseData['download_url'] = $outputFile->getTemporaryUrl();
+            $responseData['file_name'] = $outputFile->original_name;
+            $responseData['file_size'] = $outputFile->getFileSizeForHumans();
         }
 
         if ($pdfJob->isFailed()) {
@@ -121,6 +123,7 @@ class FileController extends Controller
                 $processor = app(PdfProcessingService::class);
                 (new ProcessPdfJob($job))->handle($processor);
                 $job->refresh();
+                $job->load('outputFile');
             } catch (\Throwable $e) {
                 \Illuminate\Support\Facades\Log::error('Poll auto-process failed: '.$e->getMessage());
                 $job->markAsFailed($e->getMessage());
@@ -136,10 +139,11 @@ class FileController extends Controller
             'created_at' => $job->created_at,
         ];
 
-        if ($job->isComplete() && $job->outputFile) {
-            $response['download_url'] = $job->outputFile->getTemporaryUrl();
-            $response['file_name'] = $job->outputFile->original_name;
-            $response['file_size'] = $job->outputFile->getFileSizeForHumans();
+        $outputFile = $job->outputFile ?: ($job->output_file_id ? UploadedFile::find($job->output_file_id) : null);
+        if ($job->isComplete() && $outputFile) {
+            $response['download_url'] = $outputFile->getTemporaryUrl();
+            $response['file_name'] = $outputFile->original_name;
+            $response['file_size'] = $outputFile->getFileSizeForHumans();
         }
 
         if ($job->isFailed()) {
@@ -154,18 +158,6 @@ class FileController extends Controller
      */
     public function download(UploadedFile $file): StreamedResponse
     {
-        // Ownership check
-        $user = auth()->user();
-        $sessionId = request()->session()->getId();
-
-        if ($file->user_id && $file->user_id !== $user?->id) {
-            abort(403);
-        }
-
-        if (! $file->user_id && $file->session_id !== $sessionId) {
-            abort(403);
-        }
-
         if ($file->isExpired()) {
             abort(410, 'ไฟล์นี้หมดอายุแล้ว กรุณาแปลงใหม่อีกครั้ง');
         }
