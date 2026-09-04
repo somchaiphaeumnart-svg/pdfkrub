@@ -85,8 +85,9 @@ class FileController extends Controller
             (new ProcessPdfJob($pdfJob))->handle($processor);
             $pdfJob->refresh();
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('Synchronous processing fallback to queue: '.$e->getMessage());
-            ProcessPdfJob::dispatch($pdfJob);
+            \Illuminate\Support\Facades\Log::error('Synchronous processing failed: '.$e->getMessage());
+            $pdfJob->markAsFailed($e->getMessage());
+            $pdfJob->refresh();
         }
 
         $responseData = [
@@ -99,6 +100,10 @@ class FileController extends Controller
             $responseData['download_url'] = $pdfJob->outputFile->getTemporaryUrl();
             $responseData['file_name'] = $pdfJob->outputFile->original_name;
             $responseData['file_size'] = $pdfJob->outputFile->getFileSizeForHumans();
+        }
+
+        if ($pdfJob->isFailed()) {
+            $responseData['error'] = $pdfJob->error_message ?: 'เกิดข้อผิดพลาดในการประมวลผลไฟล์';
         }
 
         return response()->json($responseData, 201);
