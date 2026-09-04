@@ -1,0 +1,14 @@
+[Unit]
+Description=PDFkrub Queue Worker
+After=network.target mysql.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/pdfkrub
+ExecStart=/usr/bin/php /var/www/pdfkrub/artisan queue:work database --sleep=2 --tries=3 --timeout=300 --max-time=3600
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
