@@ -4,6 +4,87 @@ import focus from '@alpinejs/focus';
 Alpine.plugin(focus);
 
 // =====================================================
+// Staged Files Store (IndexedDB)
+// Carries files seamlessly across pages (e.g. Home -> Tool)
+// =====================================================
+const STAGE_DB_NAME = 'pdfkrub_staged_db';
+const STAGE_STORE_NAME = 'staged_files';
+
+function getStageDB() {
+    return new Promise((resolve) => {
+        if (typeof window === 'undefined' || !window.indexedDB) {
+            return resolve(null);
+        }
+        try {
+            const req = window.indexedDB.open(STAGE_DB_NAME, 1);
+            req.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(STAGE_STORE_NAME)) {
+                    db.createObjectStore(STAGE_STORE_NAME, { keyPath: 'id' });
+                }
+            };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => resolve(null);
+        } catch (err) {
+            resolve(null);
+        }
+    });
+}
+
+async function saveStagedFiles(fileList) {
+    try {
+        const db = await getStageDB();
+        if (!db) return false;
+        const tx = db.transaction(STAGE_STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STAGE_STORE_NAME);
+        store.clear();
+        const timestamp = Date.now();
+        for (let i = 0; i < fileList.length; i++) {
+            store.put({
+                id: i,
+                file: fileList[i],
+                name: fileList[i].name,
+                size: fileList[i].size,
+                type: fileList[i].type,
+                timestamp: timestamp,
+            });
+        }
+        return new Promise((resolve) => {
+            tx.oncomplete = () => resolve(true);
+            tx.onerror = () => resolve(false);
+        });
+    } catch (e) {
+        console.warn('saveStagedFiles error:', e);
+        return false;
+    }
+}
+
+async function getStagedFiles() {
+    try {
+        const db = await getStageDB();
+        if (!db) return [];
+        const tx = db.transaction(STAGE_STORE_NAME, 'readonly');
+        const store = tx.objectStore(STAGE_STORE_NAME);
+        return new Promise((resolve) => {
+            const req = store.getAll();
+            req.onsuccess = () => resolve(req.result || []);
+            req.onerror = () => resolve([]);
+        });
+    } catch (e) {
+        return [];
+    }
+}
+
+async function clearStagedFiles() {
+    try {
+        const db = await getStageDB();
+        if (!db) return;
+        const tx = db.transaction(STAGE_STORE_NAME, 'readwrite');
+        tx.objectStore(STAGE_STORE_NAME).clear();
+    } catch (e) {}
+}
+
+// =====================================================
 // Alpine Component: fileUpload
 // Handles drag-drop, file validation, and submission
 // =====================================================
@@ -14,6 +95,7 @@ Alpine.data('fileUpload', (config = {}) => ({
     accept: config.accept ?? '.pdf',
     maxFiles: config.maxFiles ?? 10,
     tool: config.tool ?? null,
+    isHome: config.isHome ?? false,
     error: null,
 
     // Processing state
@@ -27,6 +109,61 @@ Alpine.data('fileUpload', (config = {}) => ({
     downloadFileSize: null,
     errorMessage: null,
     pollTimer: null,
+
+    async init() {
+        // If on a tool page, auto-restore staged files from the homepage
+        if (!this.isHome) {
+            await this.loadStagedFiles();
+        }
+    },
+
+    async loadStagedFiles() {
+        try {
+            const staged = await getStagedFiles();
+            if (staged && staged.length > 0) {
+                const now = Date.now();
+                // Valid for 1 hour
+                const validItems = staged.filter(item => !item.timestamp || (now - item.timestamp < 3600000));
+                const compatibleFiles = [];
+                for (const item of validItems) {
+                    if (item.file && this.isAccepted(item.file)) {
+                        compatibleFiles.push(item.file);
+                    }
+                }
+                if (compatibleFiles.length > 0) {
+                    this.addFiles(compatibleFiles);
+                    // Clear after loading
+                    await clearStagedFiles();
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to restore staged files:', e);
+        }
+    },
+
+    isAccepted(file) {
+        if (!this.accept || this.accept === '*' || this.accept === '*/*') return true;
+        const patterns = this.accept.split(',').map(p => p.trim().toLowerCase());
+        const fileName = (file.name || '').toLowerCase();
+        const fileType = (file.type || '').toLowerCase();
+
+        return patterns.some(pattern => {
+            if (pattern.startsWith('.')) {
+                return fileName.endsWith(pattern);
+            }
+            if (pattern.endsWith('/*')) {
+                return fileType.startsWith(pattern.slice(0, -2));
+            }
+            return fileType === pattern;
+        });
+    },
+
+    async stageAndGo(targetUrl) {
+        if (this.files.length > 0) {
+            await saveStagedFiles(this.files.map(f => f.file));
+        }
+        window.location.href = targetUrl;
+    },
 
     handleDrop(event) {
         this.isDragging = false;
@@ -58,17 +195,30 @@ Alpine.data('fileUpload', (config = {}) => ({
                 sizeFormatted: this.formatSize(file.size),
             });
         }
+
+        // Auto-save to IndexedDB if on homepage
+        if (this.isHome && this.files.length > 0) {
+            saveStagedFiles(this.files.map(f => f.file));
+        }
     },
 
     removeFile(id) {
         this.files = this.files.filter(f => f.id !== id);
         this.error = null;
+        if (this.isHome) {
+            if (this.files.length > 0) {
+                saveStagedFiles(this.files.map(f => f.file));
+            } else {
+                clearStagedFiles();
+            }
+        }
     },
 
     clearAll() {
         this.files = [];
         this.error = null;
         this.reset();
+        clearStagedFiles();
     },
 
     reset() {

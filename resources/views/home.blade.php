@@ -57,7 +57,7 @@
         {{-- Quick upload widget --}}
         <div class="max-w-2xl mx-auto">
             <div class="upload-zone p-10 text-center cursor-pointer transition-all"
-                 x-data="fileUpload({ maxSizeMb: {{ auth()->check() && auth()->user()->getActivePlan()->max_file_size_mb >= 200 ? 200 : 10 }}, accept: '.pdf' })"
+                 x-data="fileUpload({ maxSizeMb: {{ auth()->check() && auth()->user()->getActivePlan()->max_file_size_mb >= 200 ? 200 : 10 }}, accept: '.pdf', isHome: true })"
                  @dragover.prevent="isDragging = true"
                  @dragleave.prevent="isDragging = false"
                  @drop.prevent="handleDrop($event)"
@@ -101,8 +101,17 @@
                                 </div>
                             </template>
                         </div>
-                        <div class="mt-4 flex gap-3 justify-end">
-                            <a href="{{ route('tools') }}" class="btn-primary text-sm px-5 py-2.5 rounded-xl">เลือกเครื่องมือ →</a>
+                        <div class="mt-5 pt-3 border-t border-gray-200/60 flex flex-wrap gap-2.5 justify-end items-center">
+                            <button type="button" @click="stageAndGo('{{ route('tools.pdf-to-word') }}')" class="px-3.5 py-2 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl transition-all shadow-xs hover:border-brand-300 flex items-center gap-1.5">
+                                <span>📄</span> PDF เป็น Word
+                            </button>
+                            <button type="button" @click="stageAndGo('{{ route('tools.pdf-to-excel') }}')" class="px-3.5 py-2 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl transition-all shadow-xs hover:border-brand-300 flex items-center gap-1.5">
+                                <span>📊</span> PDF เป็น Excel
+                            </button>
+                            <button type="button" @click="stageAndGo('{{ route('tools') }}')" class="btn-primary text-sm px-5 py-2.5 rounded-xl shadow-sm flex items-center gap-1.5">
+                                <span>เลือกเครื่องมือ</span>
+                                <span>→</span>
+                            </button>
                         </div>
                     </div>
                 </template>
