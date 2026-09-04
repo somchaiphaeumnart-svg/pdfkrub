@@ -79,14 +79,29 @@ class FileController extends Controller
             'queue_name' => 'default',
         ]);
 
-        // Dispatch async processing job
-        ProcessPdfJob::dispatch($pdfJob);
+        // Try direct processing so user gets instant results without waiting in queue
+        try {
+            $processor = app(PdfProcessingService::class);
+            (new ProcessPdfJob($pdfJob))->handle($processor);
+            $pdfJob->refresh();
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Synchronous processing fallback to queue: '.$e->getMessage());
+            ProcessPdfJob::dispatch($pdfJob);
+        }
 
-        return response()->json([
+        $responseData = [
             'job_id' => $pdfJob->id,
             'status' => $pdfJob->status,
             'status_url' => route('api.jobs.status', $pdfJob),
-        ], 201);
+        ];
+
+        if ($pdfJob->isComplete() && $pdfJob->outputFile) {
+            $responseData['download_url'] = $pdfJob->outputFile->getTemporaryUrl();
+            $responseData['file_name'] = $pdfJob->outputFile->original_name;
+            $responseData['file_size'] = $pdfJob->outputFile->getFileSizeForHumans();
+        }
+
+        return response()->json($responseData, 201);
     }
 
     /**
@@ -104,6 +119,17 @@ class FileController extends Controller
 
         if (! $job->user_id && $job->session_id !== $sessionId) {
             abort(403);
+        }
+
+        // Auto-process immediately if worker has not picked it up yet
+        if ($job->status === PdfJob::STATUS_QUEUED) {
+            try {
+                $processor = app(PdfProcessingService::class);
+                (new ProcessPdfJob($job))->handle($processor);
+                $job->refresh();
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Poll auto-process failed: '.$e->getMessage());
+            }
         }
 
         $response = [

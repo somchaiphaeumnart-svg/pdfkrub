@@ -114,14 +114,60 @@ class PdfProcessingService
         }
 
         try {
-            $result = Process::timeout(120)->run(array_merge(
-                ['gs', '-dBATCH', '-dNOPAUSE', '-q', '-sDEVICE=pdfwrite',
-                    '-dPDFSETTINGS=/default', "-sOutputFile={$outputPath}"],
-                $inputPaths
-            ));
+            $merged = false;
+            $lastError = '';
 
-            if (! $result->successful()) {
-                throw new RuntimeException('Ghostscript merge failed: '.$result->errorOutput());
+            // 1. Try Ghostscript (gs)
+            $gsCheck = Process::run(['which', 'gs']);
+            if ($gsCheck->successful()) {
+                $result = Process::timeout(120)->run(array_merge(
+                    ['gs', '-dBATCH', '-dNOPAUSE', '-q', '-sDEVICE=pdfwrite',
+                        '-dPDFSETTINGS=/default', "-sOutputFile={$outputPath}"],
+                    $inputPaths
+                ));
+                if ($result->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                    $merged = true;
+                } else {
+                    $lastError = $result->errorOutput();
+                }
+            }
+
+            // 2. Try pdfunite (from poppler-utils)
+            if (! $merged) {
+                $puCheck = Process::run(['which', 'pdfunite']);
+                if ($puCheck->successful()) {
+                    $result = Process::timeout(120)->run(array_merge(
+                        ['pdfunite'],
+                        $inputPaths,
+                        [$outputPath]
+                    ));
+                    if ($result->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                        $merged = true;
+                    } else {
+                        $lastError = $result->errorOutput();
+                    }
+                }
+            }
+
+            // 3. Try qpdf
+            if (! $merged) {
+                $qpdfCheck = Process::run(['which', 'qpdf']);
+                if ($qpdfCheck->successful()) {
+                    $result = Process::timeout(120)->run(array_merge(
+                        ['qpdf', '--empty', '--pages'],
+                        $inputPaths,
+                        ['--', $outputPath]
+                    ));
+                    if ($result->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                        $merged = true;
+                    } else {
+                        $lastError = $result->errorOutput();
+                    }
+                }
+            }
+
+            if (! $merged) {
+                throw new RuntimeException('ไม่สามารถรวมไฟล์ PDF ได้ กรุณาติดตั้ง ghostscript หรือ poppler-utils บนเซิร์ฟเวอร์ (Error: '.$lastError.')');
             }
 
             return $this->storeOutput($job, $outputPath, 'merged.pdf', 'application/pdf');
