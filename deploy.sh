@@ -64,13 +64,26 @@ $PHP artisan view:cache --quiet
 
 # ─── 7. Permissions ─────────────────────────────────────────
 echo "🔐 Fixing permissions..."
-sudo chown -R pdfkrub:www-data storage bootstrap/cache
-sudo chmod -R 775 storage bootstrap/cache
+if command -v sudo > /dev/null 2>&1; then
+    SUDO="sudo"
+else
+    SUDO=""
+fi
+
+WEB_USER="www-data:www-data"
+if id "pdfkrub" >/dev/null 2>&1; then
+    WEB_USER="pdfkrub:www-data"
+fi
+
+$SUDO chown -R $WEB_USER storage bootstrap/cache
+$SUDO chmod -R 775 storage bootstrap/cache
 
 # ─── 8. Queue Workers ───────────────────────────────────────
 echo "⚙️  Restarting queue workers..."
 $PHP artisan queue:restart --quiet
-sudo supervisorctl restart pdfkrub-worker:* > /dev/null 2>&1 || true
+if command -v supervisorctl > /dev/null 2>&1; then
+    $SUDO supervisorctl restart pdfkrub-worker:* > /dev/null 2>&1 || true
+fi
 
 # ─── 9. Health Check ────────────────────────────────────────
 echo "🏥 Running health check..."
@@ -93,6 +106,6 @@ echo ""
 echo "📊 Quick stats:"
 echo "   App URL:    $(grep APP_URL .env | cut -d= -f2)"
 echo "   DB:         $(grep DB_DATABASE .env | cut -d= -f2)"
-echo "   Queue:      $(sudo supervisorctl status pdfkrub-worker:* 2>/dev/null | head -1 | awk '{print $2}')"
+echo "   Queue:      $(command -v supervisorctl >/dev/null 2>&1 && $SUDO supervisorctl status pdfkrub-worker:* 2>/dev/null | head -1 | awk '{print $2}')"
 echo "   Log:        tail -f storage/logs/laravel.log"
 echo ""
