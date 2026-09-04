@@ -7,6 +7,9 @@ use App\Models\Plan;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 
 class SocialiteController extends Controller
@@ -27,8 +30,15 @@ class SocialiteController extends Controller
         try {
             $googleUser = Socialite::driver('google')->user();
         } catch (\Exception $e) {
-            return redirect()->route('login')
-                ->withErrors(['email' => 'ไม่สามารถเชื่อมต่อ Google ได้ กรุณาลองใหม่']);
+            // Fallback to stateless in case of session/cookie mismatch (e.g. Cloudflare or cross-site)
+            try {
+                $googleUser = Socialite::driver('google')->stateless()->user();
+            } catch (\Exception $e2) {
+                Log::error('Google Login Error: ' . $e2->getMessage());
+
+                return redirect()->route('login')
+                    ->withErrors(['email' => 'ไม่สามารถเชื่อมต่อ Google ได้ (' . $e2->getMessage() . ')']);
+            }
         }
 
         $freePlan = Plan::where('name', 'free')->first();
@@ -52,9 +62,9 @@ class SocialiteController extends Controller
             } else {
                 // Create new user
                 $user = User::create([
-                    'name' => $googleUser->getName(),
+                    'name' => $googleUser->getName() ?? $googleUser->getNickname() ?? 'User',
                     'email' => $googleUser->getEmail(),
-                    'password' => null,
+                    'password' => Hash::make(Str::random(32)),
                     'avatar_url' => $googleUser->getAvatar(),
                     'provider' => 'google',
                     'provider_id' => $googleUser->getId(),
