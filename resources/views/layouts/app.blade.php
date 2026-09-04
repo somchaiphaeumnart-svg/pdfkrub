@@ -123,6 +123,9 @@
                                     <a href="{{ route('dashboard.files') }}" class="flex items-center gap-2 px-3 py-2 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-colors font-medium">
                                         <span>📁</span> คลังไฟล์ของฉัน
                                     </a>
+                                    <a href="{{ route('profile.edit') }}" class="flex items-center gap-2 px-3 py-2 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-colors font-medium">
+                                        <span>👤</span> จัดการโปรไฟล์ / รหัสผ่าน
+                                    </a>
                                     <a href="{{ route('billing.index') }}" class="flex items-center gap-2 px-3 py-2 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-colors font-medium">
                                         <span>💳</span> จัดการการสมัครสมาชิก
                                     </a>
@@ -189,6 +192,7 @@
                         <a href="{{ route('admin.index') }}" class="btn-ghost text-sm text-center rounded-xl font-semibold" style="color:#16324f;border-color:rgba(22,50,79,0.25)">⚙️ แผงควบคุมแอดมิน</a>
                         @endif
                         <a href="{{ route('dashboard') }}" class="btn-primary text-sm text-center rounded-xl">แดชบอร์ด</a>
+                        <a href="{{ route('profile.edit') }}" class="btn-ghost text-sm text-center rounded-xl font-medium">👤 จัดการโปรไฟล์ / รหัสผ่าน</a>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button type="submit" class="w-full btn-ghost text-sm text-center rounded-xl py-2.5 font-semibold" style="color:#e63946;border-color:rgba(230,57,70,0.3)">

@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\SocialiteController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FileController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ToolController;
 use App\Models\Plan;
 use Illuminate\Support\Facades\Route;
@@ -113,6 +114,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/files', [DashboardController::class, 'files'])->name('dashboard.files');
     Route::delete('/dashboard/files/{file}', [DashboardController::class, 'deleteFile'])->name('dashboard.files.delete');
+
+    // Profile & Password Management
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
 
     Route::get('/billing', [BillingController::class, 'index'])->name('billing.index');
     Route::get('/billing/upgrade/{plan}', [BillingController::class, 'upgrade'])->name('billing.upgrade');
