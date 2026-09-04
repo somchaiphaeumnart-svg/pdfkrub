@@ -138,15 +138,26 @@ Alpine.data('fileUpload', (config = {}) => ({
     },
 
     startPolling(statusUrl) {
+        this.jobProgress = 20;
         this.pollTimer = setInterval(async () => {
             try {
-                const res = await fetch(statusUrl);
+                if (this.jobProgress < 90) {
+                    this.jobProgress += Math.floor(Math.random() * 8) + 6;
+                    if (this.jobProgress > 90) this.jobProgress = 90;
+                }
+
+                const res = await fetch(statusUrl, {
+                    headers: { 'Accept': 'application/json' }
+                });
                 const data = await res.json();
 
                 this.jobStatus = data.status;
-                this.jobProgress = data.progress ?? 0;
+                if (data.progress && data.progress > this.jobProgress) {
+                    this.jobProgress = data.progress;
+                }
 
                 if (data.status === 'done') {
+                    this.jobProgress = 100;
                     clearInterval(this.pollTimer);
                     this.isUploading = false;
                     this.downloadUrl = data.download_url;
@@ -160,7 +171,7 @@ Alpine.data('fileUpload', (config = {}) => ({
             } catch (e) {
                 console.error('Poll error:', e);
             }
-        }, 1500);
+        }, 1200);
     },
 
     formatSize(bytes) {

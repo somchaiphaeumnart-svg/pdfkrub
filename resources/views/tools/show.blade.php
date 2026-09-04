@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', $tool['name_th'] ?? $tool['name'])
 @section('description', $tool['description_th'] ?? '')
@@ -136,19 +136,22 @@
             </div>
 
             {{-- Processing state: progress --}}
-            <div x-show="isProcessing" class="space-y-4">
-                <div class="flex items-center justify-center gap-3">
-                    <svg class="w-5 h-5 text-brand-600 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span class="text-gray-600 font-medium" x-text="jobStatus === 'queued' ? 'รอในคิว...' : 'กำลังประมวลผล...'"></span>
+            <div x-show="isProcessing" class="space-y-4 max-w-md mx-auto">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <svg class="w-5 h-5 text-brand-600 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span class="text-gray-700 font-medium text-sm" x-text="jobStatus === 'queued' ? 'กำลังจัดคิวและเตรียมไฟล์...' : 'กำลังประมวลผลไฟล์...'"></span>
+                    </div>
+                    <span class="text-brand-600 font-bold text-sm bg-brand-50 border border-brand-100 px-2.5 py-0.5 rounded-full" x-text="`${Math.min(100, Math.max(10, jobProgress))}%`"></span>
                 </div>
-                <div class="progress-bar h-2 rounded-full overflow-hidden">
-                    <div class="progress-fill h-full rounded-full transition-all duration-500"
-                         :style="`width: ${jobProgress || 10}%`"></div>
+                <div class="h-3 bg-gray-100 rounded-full overflow-hidden p-0.5 border border-gray-200">
+                    <div class="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-brand-600 to-indigo-500 shadow-sm"
+                         :style="`width: ${Math.min(100, Math.max(10, jobProgress))}%`"></div>
                 </div>
-                <p class="text-center text-xs text-gray-400">ไฟล์จะถูกลบอัตโนมัติหลังดาวน์โหลด</p>
+                <p class="text-center text-xs text-gray-400">ระบบกำลังประมวลผล กรุณารอสักครู่ · ไฟล์จะถูกลบอัตโนมัติหลังดาวน์โหลด</p>
             </div>
 
             {{-- Done state: download button --}}
