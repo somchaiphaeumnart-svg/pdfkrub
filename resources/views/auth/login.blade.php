@@ -19,6 +19,23 @@
         {{-- Card --}}
         <div class="bg-white border border-gray-100 shadow-sm rounded-2xl p-8 border border-gray-100">
 
+            {{-- Notice when redirected from tool --}}
+            @if(session('info') || session('status'))
+            <div class="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-center gap-3">
+                <svg class="w-5 h-5 flex-shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"/>
+                </svg>
+                <span>{{ session('info') ?? session('status') }}</span>
+            </div>
+            @elseif(session('url.intended') && !str_contains(session('url.intended'), 'dashboard') && !str_contains(session('url.intended'), 'billing'))
+            <div class="mb-6 p-4 rounded-xl bg-brand-50 border border-brand-200 text-brand-900 text-sm flex items-center gap-3">
+                <svg class="w-5 h-5 flex-shrink-0 text-brand-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/>
+                </svg>
+                <span>กรุณาเข้าสู่ระบบก่อนเริ่มใช้งานเครื่องมือ (เมื่อเข้าสู่ระบบแล้วจะนำท่านไปยังฟังก์ชั่นที่เลือกทันที)</span>
+            </div>
+            @endif
+
             {{-- Google OAuth --}}
             <a href="{{ route('auth.google') }}"
                class="w-full flex items-center justify-center gap-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 hover:border-gray-200 text-gray-800 font-medium py-3 px-4 rounded-xl transition-all mb-6">

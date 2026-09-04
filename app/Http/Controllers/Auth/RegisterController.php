@@ -56,6 +56,6 @@ class RegisterController extends Controller
 
         Auth::login($user);
 
-        return redirect()->route('dashboard')->with('success', 'ยินดีต้อนรับ! บัญชีของคุณถูกสร้างเรียบร้อยแล้ว 🎉');
+        return redirect()->intended(route('dashboard'))->with('success', 'ยินดีต้อนรับ! บัญชีของคุณถูกสร้างเรียบร้อยแล้ว 🎉');
     }
 }

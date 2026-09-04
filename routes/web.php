@@ -39,8 +39,8 @@ Route::get('/pdpa', fn () => view('pages.pdpa'))->name('pdpa');
 // Tools index
 Route::get('/tools', [ToolController::class, 'index'])->name('tools');
 
-// Individual tools — PDF editing
-Route::prefix('tools')->name('tools.')->group(function () {
+// Individual tools — PDF editing (Requires authentication)
+Route::prefix('tools')->name('tools.')->middleware(['auth'])->group(function () {
     Route::get('/pdf-to-word', [ToolController::class, 'pdfToWord'])->name('pdf-to-word');
     Route::get('/pdf-to-excel', [ToolController::class, 'pdfToExcel'])->name('pdf-to-excel');
     Route::get('/pdf-to-pptx', [ToolController::class, 'pdfToPptx'])->name('pdf-to-pptx');
@@ -94,16 +94,19 @@ Route::get('/sitemap.xml', function () {
     return response($xml, 200)->header('Content-Type', 'application/xml');
 })->name('sitemap');
 
-// File management API (public + authenticated) with rate-limiting
+// File management API (Requires authentication) with rate-limiting
 Route::post('/files/upload', [FileController::class, 'upload'])
     ->name('files.upload')
-    ->middleware('throttle:60,1');
+    ->middleware(['auth', 'throttle:60,1']);
 
-Route::get('/api/jobs/{job}', [FileController::class, 'jobStatus'])->name('api.jobs.status');
+Route::get('/api/jobs/{job}', [FileController::class, 'jobStatus'])
+    ->name('api.jobs.status')
+    ->middleware(['auth']);
 
 // Download route (works for local disk outputs)
 Route::get('/files/download/{file}', [FileController::class, 'download'])
-    ->name('files.download');
+    ->name('files.download')
+    ->middleware(['auth']);
 
 // Authenticated routes
 Route::middleware(['auth'])->group(function () {

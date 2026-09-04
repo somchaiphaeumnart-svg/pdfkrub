@@ -20,7 +20,14 @@ class FileController extends Controller
     public function upload(Request $request): JsonResponse
     {
         $user = $request->user();
-        $plan = $user ? $user->getActivePlan() : null;
+        if (! $user) {
+            return response()->json([
+                'error' => 'กรุณาเข้าสู่ระบบก่อนใช้งานฟังก์ชั่น',
+                'login_url' => route('login'),
+            ], 401);
+        }
+
+        $plan = $user->getActivePlan();
         $maxMb = $plan ? $plan->max_file_size_mb : 10;
 
         $maxKb = $maxMb * 1024;

@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'เครื่องมือ PDF ทั้งหมด')
 @section('description', 'เครื่องมือ PDF ครบครัน 50+ รายการ แปลง, แก้ไข, บีบอัด, รวม, แยก, OCR ไฟล์ PDF ออนไลน์ฟรี')
@@ -6,10 +6,31 @@
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
     {{-- Page header --}}
-    <div class="mb-12 text-center">
+    <div class="mb-10 text-center">
         <h1 class="text-4xl font-bold text-gray-800 mb-3">เครื่องมือ PDF ทั้งหมด</h1>
         <p class="text-gray-500">ครบครัน 50+ รายการ รองรับภาษาไทย 100%</p>
     </div>
+
+    {{-- Guest Call-to-action banner --}}
+    @guest
+    <div class="mb-10 p-5 rounded-2xl bg-gradient-to-r from-brand-50 to-red-50 border border-brand-100 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+        <div class="flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-2xl bg-brand-600 text-white flex items-center justify-center flex-shrink-0 shadow-md">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/>
+                </svg>
+            </div>
+            <div>
+                <h3 class="font-bold text-gray-800 text-sm">เข้าสู่ระบบก่อนเริ่มใช้งานเครื่องมือ</h3>
+                <p class="text-xs text-gray-500">กรุณาเข้าสู่ระบบหรือสมัครสมาชิกฟรีก่อนคลิกเลือกใช้งานเครื่องมือ</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2.5">
+            <a href="{{ route('login') }}" class="px-4 py-2 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl transition-all shadow-xs">เข้าสู่ระบบ</a>
+            <a href="{{ route('register') }}" class="btn-primary px-4 py-2 text-xs font-semibold rounded-xl shadow-sm">สมัครสมาชิกฟรี</a>
+        </div>
+    </div>
+    @endguest
 
     {{-- Tool categories --}}
     @foreach($grouped as $categoryKey => $tools)
