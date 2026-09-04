@@ -7,7 +7,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::dropIfExists('templates');
+        // Table 'templates' is already created in 2026_09_02_041623_create_template_categories_table
     }
 
     public function down(): void
