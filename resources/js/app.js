@@ -97,13 +97,30 @@ Alpine.data('fileUpload', (config = {}) => ({
         try {
             const response = await fetch('/files/upload', {
                 method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
                 body: formData,
             });
 
-            const data = await response.json();
+            let data = {};
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                data = await response.json();
+            } else {
+                if (response.status === 413) {
+                    throw new Error('ไฟล์มีขนาดรวมใหญ่เกินกว่าที่เซิร์ฟเวอร์รองรับ (เกินขีดจำกัด)');
+                }
+                throw new Error(`เกิดข้อผิดพลาด (${response.status}) กรุณาลองใหม่อีกครั้ง`);
+            }
 
             if (!response.ok) {
-                throw new Error(data.error || `Upload failed (${response.status})`);
+                let msg = data.error || data.message;
+                if (!msg && data.errors) {
+                    msg = Object.values(data.errors).flat().join(' | ');
+                }
+                throw new Error(msg || `Upload failed (${response.status})`);
             }
 
             this.jobId = data.job_id;

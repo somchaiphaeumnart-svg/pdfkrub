@@ -22,10 +22,15 @@ class FileController extends Controller
         $plan = $user ? $user->getActivePlan() : null;
         $maxMb = $plan ? $plan->max_file_size_mb : 10;
 
+        $maxKb = $maxMb * 1024;
         $request->validate([
             'files' => ['required', 'array', 'min:1', 'max:20'],
-            'files.*' => ['required', 'file', "max:{$maxMb}000", 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt,jpg,jpeg,png,webp'],
+            'files.*' => ['required', 'file', "max:{$maxKb}", 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt,jpg,jpeg,png,webp'],
             'tool' => ['required', 'string', 'max:100'],
+        ], [
+            'files.required' => 'กรุณาเลือกไฟล์ที่ต้องการประมวลผล (หรือไฟล์อาจมีขนาดใหญ่เกินกว่าที่เซิร์ฟเวอร์รับได้)',
+            'files.*.max' => "ขนาดไฟล์แต่ละไฟล์ต้องไม่เกิน {$maxMb} MB (อัปเกรดเป็น Pro เพื่อเพิ่มขนาดไฟล์)",
+            'files.*.mimes' => 'รองรับเฉพาะไฟล์เอกสารและรูปภาพที่กำหนดเท่านั้น',
         ]);
 
         // Check daily usage limit for authenticated users on limited plans
