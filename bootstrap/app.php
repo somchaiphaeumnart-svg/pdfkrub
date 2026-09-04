@@ -27,4 +27,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        $exceptions->render(function (\Illuminate\Http\Exceptions\PostTooLargeException $e, Request $request) {
+            return response()->json([
+                'error' => 'ไฟล์ที่อัปโหลดมีขนาดรวมใหญ่เกินกว่าที่เซิร์ฟเวอร์กำหนด (สูงสุด 200 MB)',
+            ], 413);
+        });
     })->create();

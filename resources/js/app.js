@@ -120,7 +120,12 @@ Alpine.data('fileUpload', (config = {}) => ({
                 if (!msg && data.errors) {
                     msg = Object.values(data.errors).flat().join(' | ');
                 }
-                throw new Error(msg || `Upload failed (${response.status})`);
+                if (msg && msg.toLowerCase().includes('post data is too large')) {
+                    msg = 'ไฟล์ที่อัปโหลดมีขนาดรวมใหญ่เกินกว่าที่เซิร์ฟเวอร์กำหนด (กรุณาลดขนาดไฟล์ หรือแบ่งรวมทีละชุด)';
+                } else if (msg && msg.toLowerCase().includes('upload failed')) {
+                    msg = 'อัปโหลดไฟล์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง';
+                }
+                throw new Error(msg || `การอัปโหลดขัดข้อง (${response.status})`);
             }
 
             this.jobId = data.job_id;
