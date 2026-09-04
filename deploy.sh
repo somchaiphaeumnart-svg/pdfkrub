@@ -84,6 +84,9 @@ $PHP artisan queue:restart --quiet
 if command -v supervisorctl > /dev/null 2>&1; then
     $SUDO supervisorctl restart pdfkrub-worker:* > /dev/null 2>&1 || true
 fi
+if systemctl is-active --quiet pdfkrub-worker; then
+    systemctl restart pdfkrub-worker > /dev/null 2>&1 || true
+fi
 
 # ─── 9. Health Check ────────────────────────────────────────
 echo "🏥 Running health check..."
