@@ -29,8 +29,9 @@ return Application::configure(basePath: dirname(__DIR__))
         );
 
         $exceptions->render(function (\Illuminate\Http\Exceptions\PostTooLargeException $e, Request $request) {
+            $currentLimit = ini_get('post_max_size');
             return response()->json([
-                'error' => 'ไฟล์ที่อัปโหลดมีขนาดรวมใหญ่เกินกว่าที่เซิร์ฟเวอร์กำหนด (สูงสุด 200 MB)',
+                'error' => "ขนาดไฟล์รวมใหญ่เกินกว่าที่ระบบรองรับ (PHP จำกัดไว้ที่ {$currentLimit})",
             ], 413);
         });
     })->create();
