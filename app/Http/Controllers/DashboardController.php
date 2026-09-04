@@ -28,8 +28,8 @@ class DashboardController extends Controller
             'storage_used_formatted' => $this->formatBytes($user->storage_used),
             'plan' => $plan,
             'daily_remaining' => $plan->hasUnlimitedConversions()
-                ? '∞'
-                : $user->getRemainingDailyConversions('all').'/'.$plan->daily_conversions,
+                ? 'ไม่จำกัด'
+                : 'เหลือ '.$user->getRemainingDailyConversions().' / '.$plan->daily_conversions.' ครั้ง',
         ];
 
         return view('dashboard.index', compact('recentJobs', 'stats'));

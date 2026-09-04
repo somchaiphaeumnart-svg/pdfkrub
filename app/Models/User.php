@@ -96,7 +96,7 @@ class User extends Authenticatable
         return $fileSizeBytes <= $plan->getMaxFileSizeBytes();
     }
 
-    public function getRemainingDailyConversions(string $toolName): int
+    public function getRemainingDailyConversions(?string $toolName = null): int
     {
         $plan = $this->getActivePlan();
 
@@ -104,9 +104,9 @@ class User extends Authenticatable
             return PHP_INT_MAX;
         }
 
-        $used = $this->usageLogs()
+        $used = $this->pdfJobs()
             ->whereDate('created_at', today())
-            ->where('tool_name', $toolName)
+            ->where('status', '!=', PdfJob::STATUS_FAILED)
             ->count();
 
         return max(0, $plan->daily_conversions - $used);

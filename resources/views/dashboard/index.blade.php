@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'แดชบอร์ด')
 
@@ -35,7 +35,7 @@
             ['label' => 'งานทั้งหมด', 'value' => number_format($stats['total_jobs']), 'icon' => 'M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z', 'color' => 'text-brand-600', 'bg' => 'bg-brand-50'],
             ['label' => 'สำเร็จ', 'value' => number_format($stats['completed_jobs']), 'icon' => 'M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z', 'color' => 'text-success-500', 'bg' => 'bg-success-50'],
             ['label' => 'พื้นที่ใช้ไป', 'value' => $stats['storage_used_formatted'], 'icon' => 'M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 2.25v2.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V8.625m16.5 2.25v2.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125v-2.625', 'color' => 'text-accent-600', 'bg' => 'bg-accent-50'],
-            ['label' => 'โควต้าวันนี้', 'value' => $stats['daily_remaining'], 'icon' => 'M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z', 'color' => 'text-purple-400', 'bg' => 'bg-purple-500/10'],
+            ['label' => 'โควต้าคงเหลือวันนี้', 'value' => $stats['daily_remaining'], 'icon' => 'M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z', 'color' => 'text-purple-400', 'bg' => 'bg-purple-500/10'],
         ];
         @endphp
 
@@ -46,7 +46,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="{{ $card['icon'] }}"/>
                 </svg>
             </div>
-            <p class="text-2xl font-bold text-gray-800">{{ $card['value'] }}</p>
+            <p class="text-xl sm:text-2xl font-bold text-gray-800">{{ $card['value'] }}</p>
             <p class="text-xs text-gray-400 mt-1">{{ $card['label'] }}</p>
         </div>
         @endforeach
