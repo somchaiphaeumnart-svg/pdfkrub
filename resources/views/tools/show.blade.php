@@ -198,6 +198,13 @@
                                 </span>
                             </div>
 
+                            {{-- Page Counter Badge --}}
+                            <div class="absolute top-3 right-3 z-10" x-show="pdfTotalPages > 0">
+                                <span class="text-[11px] font-medium text-slate-600 bg-white/95 backdrop-blur-xs px-2.5 py-1 rounded-md border border-slate-200 shadow-2xs">
+                                    หน้า <span class="font-bold text-slate-900" x-text="pdfCurrentPage"></span> จาก <span x-text="pdfTotalPages"></span>
+                                </span>
+                            </div>
+
                             {{-- Canvas Preview Screen with Loading Overlay --}}
                             <div class="relative w-full flex items-center justify-center py-4 min-h-[310px]">
                                 {{-- Loading Spinner Overlay --}}
@@ -221,25 +228,44 @@
                                 </div>
                             </div>
 
+                            {{-- Blank page explanation alert --}}
+                            <div x-show="isCurrentPageBlank"
+                                 class="mt-2 flex items-center justify-center gap-1.5 text-xs text-amber-700 bg-amber-50/95 border border-amber-200/80 px-3 py-1.5 rounded-xl shadow-2xs">
+                                <svg class="w-4 h-4 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>หน้านี้เป็นหน้าว่างในไฟล์ PDF ต้นฉบับ (ไม่มีข้อความหรือเนื้อหา)</span>
+                            </div>
+
                             {{-- Error notice if any --}}
                             <p x-show="pdfRenderError" class="text-xs text-amber-600 mt-2 text-center" x-text="pdfRenderError"></p>
 
                             {{-- Pagination if multi-page PDF --}}
-                            <div x-show="pdfTotalPages > 1" class="flex items-center justify-center gap-3 mt-4 pt-3 border-t border-slate-200/70 w-full text-xs text-slate-600">
+                            <div x-show="pdfTotalPages > 1" class="flex flex-wrap items-center justify-center gap-2 mt-4 pt-3 border-t border-slate-200/70 w-full text-xs text-slate-600">
                                 <button type="button"
                                         @click="prevPage()"
                                         :disabled="pdfCurrentPage <= 1 || isRenderingPdf"
-                                        class="px-3 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs font-medium transition-all cursor-pointer">
-                                    ‹ หน้าก่อน
+                                        class="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs font-medium transition-all cursor-pointer flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                                    หน้าก่อน
                                 </button>
-                                <span>
-                                    หน้า <strong class="text-slate-800" x-text="pdfCurrentPage"></strong> จาก <span x-text="pdfTotalPages"></span>
-                                </span>
+                                <div class="flex items-center gap-1">
+                                    <template x-for="p in Math.min(pdfTotalPages, 10)" :key="p">
+                                        <button type="button"
+                                                @click="goToPage(p)"
+                                                :class="pdfCurrentPage === p ? 'bg-brand-600 text-white font-bold border-brand-600 shadow-2xs' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
+                                                class="w-7 h-7 rounded-lg border text-xs flex items-center justify-center font-medium transition-all cursor-pointer"
+                                                x-text="p">
+                                        </button>
+                                    </template>
+                                    <span x-show="pdfTotalPages > 10" class="text-slate-400 text-xs px-1">...</span>
+                                </div>
                                 <button type="button"
                                         @click="nextPage()"
                                         :disabled="pdfCurrentPage >= pdfTotalPages || isRenderingPdf"
-                                        class="px-3 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs font-medium transition-all cursor-pointer">
-                                    หน้าถัดไป ›
+                                        class="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs font-medium transition-all cursor-pointer flex items-center gap-1">
+                                    หน้าถัดไป
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                                 </button>
                             </div>
                         </div>

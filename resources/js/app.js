@@ -89,6 +89,7 @@ async function clearStagedFiles() {
 let rotatePdfDoc = null;
 let rotateRenderTask = null;
 let pageImageCache = {};
+let blankPageCache = {};
 
 // =====================================================
 // Alpine Component: fileUpload
@@ -107,6 +108,7 @@ Alpine.data('fileUpload', (config = {}) => ({
     // Rotate PDF state
     rotationAngle: 90,
     isRenderingPdf: false,
+    isCurrentPageBlank: false,
     pdfTotalPages: 0,
     pdfCurrentPage: 1,
     pdfRenderError: null,
@@ -247,6 +249,8 @@ Alpine.data('fileUpload', (config = {}) => ({
         }
         if (this.tool === 'rotate-pdf') {
             pageImageCache = {};
+            blankPageCache = {};
+            this.isCurrentPageBlank = false;
             this.previewImageUrl = null;
             if (this.files.length > 0) {
                 setTimeout(() => this.loadPdfPreview(), 60);
@@ -272,6 +276,8 @@ Alpine.data('fileUpload', (config = {}) => ({
             rotateRenderTask = null;
         }
         pageImageCache = {};
+        blankPageCache = {};
+        this.isCurrentPageBlank = false;
         this.previewImageUrl = null;
         this.pdfTotalPages = 0;
         this.pdfCurrentPage = 1;
@@ -624,6 +630,13 @@ Alpine.data('fileUpload', (config = {}) => ({
         }
     },
 
+    async goToPage(pageNum) {
+        if (pageNum >= 1 && pageNum <= this.pdfTotalPages && pageNum !== this.pdfCurrentPage && !this.isRenderingPdf) {
+            this.pdfCurrentPage = pageNum;
+            await this.renderCurrentPage();
+        }
+    },
+
     async ensurePdfJs() {
         if (window.pdfjsLib) {
             if (window.pdfjsLib.GlobalWorkerOptions && !window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
@@ -649,6 +662,8 @@ Alpine.data('fileUpload', (config = {}) => ({
         if (!this.files.length || !this.files[0].file) {
             rotatePdfDoc = null;
             pageImageCache = {};
+            blankPageCache = {};
+            this.isCurrentPageBlank = false;
             this.previewImageUrl = null;
             this.pdfTotalPages = 0;
             this.pdfCurrentPage = 1;
@@ -662,6 +677,8 @@ Alpine.data('fileUpload', (config = {}) => ({
         this.isRenderingPdf = true;
         this.pdfRenderError = null;
         pageImageCache = {};
+        blankPageCache = {};
+        this.isCurrentPageBlank = false;
         this.previewImageUrl = null;
 
         try {
@@ -692,6 +709,7 @@ Alpine.data('fileUpload', (config = {}) => ({
         // Check cache first - instantaneous page switching!
         if (pageImageCache[pageNum]) {
             this.previewImageUrl = pageImageCache[pageNum];
+            this.isCurrentPageBlank = !!blankPageCache[pageNum];
             this.isRenderingPdf = false;
             this.pdfRenderError = null;
             return;
@@ -743,13 +761,58 @@ Alpine.data('fileUpload', (config = {}) => ({
                 rotateRenderTask = null;
             }
 
+            // Check whether the page has actual text or drawn content
+            let hasText = false;
+            try {
+                const textContent = await page.getTextContent();
+                hasText = (textContent.items || []).some(item => item.str && item.str.trim().length > 0);
+            } catch (te) {}
+
+            const imgData = ctx.getImageData(0, 0, offCanvas.width, offCanvas.height).data;
+            let hasNonWhitePixels = false;
+            for (let i = 0; i < imgData.length; i += 16) {
+                const r = imgData[i];
+                const g = imgData[i + 1];
+                const b = imgData[i + 2];
+                if (r < 245 || g < 245 || b < 245) {
+                    hasNonWhitePixels = true;
+                    break;
+                }
+            }
+
+            const isBlank = !hasText && !hasNonWhitePixels;
+            if (isBlank) {
+                ctx.save();
+                // Subtle dashed border inside the page
+                ctx.strokeStyle = '#cbd5e1';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([6, 6]);
+                ctx.strokeRect(20, 20, offCanvas.width - 40, offCanvas.height - 40);
+
+                const cx = offCanvas.width / 2;
+                const cy = offCanvas.height / 2;
+
+                ctx.fillStyle = '#64748b';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = 'bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Thai", sans-serif';
+                ctx.fillText('📄 หน้านี้เป็นหน้าว่าง', cx, cy - 12);
+
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Thai", sans-serif';
+                ctx.fillText('(ไม่มีข้อความในไฟล์ PDF ต้นฉบับ)', cx, cy + 14);
+                ctx.restore();
+            }
+
             // Convert rendered canvas to PNG data URL and store in cache
             const dataUrl = offCanvas.toDataURL('image/png');
             pageImageCache[pageNum] = dataUrl;
+            blankPageCache[pageNum] = isBlank;
 
             // Only update active display if user is still on this page
             if (this.pdfCurrentPage === pageNum) {
                 this.previewImageUrl = dataUrl;
+                this.isCurrentPageBlank = isBlank;
             }
             this.pdfRenderError = null;
         } catch (e) {
