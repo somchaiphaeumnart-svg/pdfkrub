@@ -4845,18 +4845,35 @@ Alpine.data('pdfEditor', () => ({
                 this.pageTextCache[this.currentPage] = { textContent, viewport };
             }
 
+            if (!textContent || !textContent.items || textContent.items.length === 0) {
+                this.currentOriginalTextBlocks = [];
+                return;
+            }
+
+            const vpWidth = (viewport && viewport.width) ? viewport.width : (this.unscaledWidth || 595.28);
+            const vpHeight = (viewport && viewport.height) ? viewport.height : (this.unscaledHeight || 841.89);
+
             const rawItems = [];
             for (const item of textContent.items) {
                 const str = item.str || '';
                 if (!str) continue;
                 if (!str.trim() && (item.width || 0) <= 1) continue;
+                if (!item.transform || item.transform.length < 6) continue;
 
                 const transX = item.transform[4];
                 const transY = item.transform[5];
                 const fontSize = Math.max(9, Math.round(Math.abs(item.transform[3]) || item.height || 14));
 
                 // Convert PDF point to Viewport point
-                const [vx, vy] = viewport.convertToViewportPoint(transX, transY);
+                let vx = transX;
+                let vy = transY;
+                if (viewport && typeof viewport.convertToViewportPoint === 'function') {
+                    const pt = viewport.convertToViewportPoint(transX, transY);
+                    vx = pt[0];
+                    vy = pt[1];
+                } else {
+                    vy = vpHeight - transY;
+                }
                 const itemWidth = Math.max(item.width || 0, fontSize * 0.45 * str.length);
 
                 let itemColor = '#111827';
@@ -4950,7 +4967,12 @@ Alpine.data('pdfEditor', () => ({
                     prevItem = it;
                 }
 
-                lineText = this.normalizeThaiText(lineText);
+                try {
+                    if (typeof this.normalizeThaiText === 'function') {
+                        lineText = this.normalizeThaiText(lineText);
+                    }
+                } catch {}
+
                 const trimmed = lineText.trim();
                 if (trimmed) {
                     let isBold = false;
@@ -4958,7 +4980,12 @@ Alpine.data('pdfEditor', () => ({
                     let fontFam = 'TH Niramit AS';
                     for (const it of lc.items) {
                         const fn = (it.fontName || '').toLowerCase();
-                        const sf = ((textContent.styles[it.fontName]?.fontFamily) || '').toLowerCase();
+                        let sf = '';
+                        try {
+                            if (textContent.styles && it.fontName && textContent.styles[it.fontName]) {
+                                sf = (textContent.styles[it.fontName].fontFamily || '').toLowerCase();
+                            }
+                        } catch {}
                         if (fn.includes('bold') || fn.includes('-b') || fn.includes('black') || fn.includes('heavy') || sf.includes('bold') || sf.includes('700') || sf.includes('800')) {
                             isBold = true;
                         }
@@ -5012,30 +5039,30 @@ Alpine.data('pdfEditor', () => ({
             const padX = 8;
             const padY = 6;
             const boundedMinX = Math.max(0, mMinX - padX);
-            const boundedMaxX = Math.min(viewport.width, mMaxX + padX);
+            const boundedMaxX = Math.min(vpWidth, mMaxX + padX);
             const boundedMinY = Math.max(0, mMinY - padY);
-            const boundedMaxY = Math.min(viewport.height, mMaxY + padY);
+            const boundedMaxY = Math.min(vpHeight, mMaxY + padY);
             const masterW = Math.max(10, boundedMaxX - boundedMinX);
             const masterH = Math.max(10, boundedMaxY - boundedMinY);
 
             // Compute exact relative percentage positions for each line (100% identical to original PDF)
             const exactLines = intermediateLines.map((l, idx) => {
                 const lineCenter = (l.minX + l.maxX) / 2;
-                const pageCenter = viewport.width / 2;
+                const pageCenter = vpWidth / 2;
                 let align = 'left';
-                const isShort = (l.maxX - l.minX) < (viewport.width * 0.6);
+                const isShort = (l.maxX - l.minX) < (vpWidth * 0.6);
                 if (isShort && Math.abs(lineCenter - pageCenter) <= 30) {
                     align = 'center';
-                } else if (l.minX > (viewport.width * 0.45)) {
+                } else if (l.minX > (vpWidth * 0.45)) {
                     align = 'right';
                 }
 
-                const relX = ((l.minX - boundedMinX) / masterW) * 100;
+                const relX = Math.max(0, Math.min(95, ((l.minX - boundedMinX) / masterW) * 100));
                 const lineTop = l.baselineY - l.fontSize * 0.95;
                 const lineH = l.fontSize * 1.35;
-                const relY = ((lineTop - boundedMinY) / masterH) * 100;
+                const relY = Math.max(0, Math.min(98, ((lineTop - boundedMinY) / masterH) * 100));
                 const relW = Math.min(100 - relX, Math.max(5, ((l.maxX - l.minX + 24) / masterW) * 100));
-                const relH = Math.max(2, (lineH / masterH) * 100);
+                const relH = Math.max(1.8, (lineH / masterH) * 100);
 
                 return {
                     id: `line_${idx}`,
@@ -5049,26 +5076,26 @@ Alpine.data('pdfEditor', () => ({
                     italic: l.italic,
                     fontFamily: l.fontFam,
                     color: l.color,
-                    relPctX: Math.max(0, +relX.toFixed(2)),
-                    relPctY: Math.max(0, +relY.toFixed(2)),
-                    relPctW: Math.min(100, +relW.toFixed(2)),
-                    relPctH: Math.max(1.5, +relH.toFixed(2))
+                    relPctX: Math.max(0, +(relX || 0).toFixed(2)),
+                    relPctY: Math.max(0, +(relY || 0).toFixed(2)),
+                    relPctW: Math.min(100, +(relW || 10).toFixed(2)),
+                    relPctH: Math.max(1.5, +(relH || 3).toFixed(2))
                 };
             });
 
             this.pageContentBox = {
-                pctX: Math.max(0, (boundedMinX / viewport.width) * 100),
-                pctY: Math.max(0, (boundedMinY / viewport.height) * 100),
-                pctW: Math.min(100, (masterW / viewport.width) * 100),
-                pctH: Math.min(100, (masterH / viewport.height) * 100)
+                pctX: Math.max(0, (boundedMinX / vpWidth) * 100),
+                pctY: Math.max(0, (boundedMinY / vpHeight) * 100),
+                pctW: Math.min(100, (masterW / vpWidth) * 100),
+                pctH: Math.min(100, (masterH / vpHeight) * 100)
             };
 
             this.currentOriginalTextBlocks = [{
                 id: `orig_doc_${this.currentPage}`,
-                pctX: Math.max(0, (boundedMinX / viewport.width) * 100),
-                pctY: Math.max(0, (boundedMinY / viewport.height) * 100),
-                pctW: Math.min(100, (masterW / viewport.width) * 100),
-                pctH: Math.min(100, (masterH / viewport.height) * 100),
+                pctX: Math.max(0, (boundedMinX / vpWidth) * 100),
+                pctY: Math.max(0, (boundedMinY / vpHeight) * 100),
+                pctW: Math.min(100, (masterW / vpWidth) * 100),
+                pctH: Math.min(100, (masterH / vpHeight) * 100),
                 masterW: masterW,
                 masterH: masterH,
                 boundedMinX: boundedMinX,
@@ -5084,14 +5111,72 @@ Alpine.data('pdfEditor', () => ({
         }
     },
 
-    handleMasterBoxClick(e) {
-        if (this.currentOriginalTextBlocks && this.currentOriginalTextBlocks.length > 0) {
-            this.startEditingOriginalText(this.currentOriginalTextBlocks[0], e);
+    async startEditingCurrentPageText() {
+        this.activeTool = 'pointer';
+        const existing = this.pageAnnotations.find(a => a.type === 'text_document');
+        if (existing) {
+            this.selectedAnnotationId = existing.id;
+            this.focusDocLine(existing.id, 0);
+            return;
         }
+        if (!this.currentOriginalTextBlocks || this.currentOriginalTextBlocks.length === 0) {
+            await this.extractPageTextBlocks();
+        }
+        if (this.currentOriginalTextBlocks && this.currentOriginalTextBlocks.length > 0) {
+            this.startEditingOriginalText(this.currentOriginalTextBlocks[0]);
+        }
+    },
+
+    focusDocLine(annId, lineIdx) {
+        this.activeDocLineIdx = lineIdx;
+        this.$nextTick(() => {
+            const inputs = document.querySelectorAll(`input[data-doc-ann="${annId}"]`);
+            if (inputs[lineIdx]) {
+                inputs[lineIdx].focus();
+                const ann = this.annotations.find(a => a.id === annId);
+                if (ann && ann.lines && ann.lines[lineIdx]) {
+                    this.syncToolbarToLine(ann.lines[lineIdx]);
+                }
+            }
+        });
+    },
+
+    handleDocContainerClick(e, ann) {
+        if (!ann || !ann.lines || ann.lines.length === 0) return;
+        if (e.target && e.target.tagName === 'INPUT') return; // clicked directly on input
+
+        const overlay = document.getElementById('pdfEditorOverlay');
+        let clickRelPctY = 0;
+        if (overlay) {
+            const oRect = overlay.getBoundingClientRect();
+            const clickClientY = e.clientY - oRect.top;
+            const clickPctYInOverlay = (clickClientY / oRect.height) * 100;
+            clickRelPctY = ((clickPctYInOverlay - ann.pctY) / ann.pctH) * 100;
+        }
+
+        let closestIdx = 0;
+        let minDist = Infinity;
+        ann.lines.forEach((l, idx) => {
+            const dist = Math.abs(l.relPctY - clickRelPctY);
+            if (dist < minDist) {
+                minDist = dist;
+                closestIdx = idx;
+            }
+        });
+
+        this.selectedAnnotationId = ann.id;
+        this.focusDocLine(ann.id, closestIdx);
     },
 
     startEditingOriginalText(block, e) {
         if (!block) return;
+        const existing = this.pageAnnotations.find(a => a.type === 'text_document');
+        if (existing) {
+            this.selectedAnnotationId = existing.id;
+            this.handleDocContainerClick(e, existing);
+            return;
+        }
+
         const newId = 'doc_exact_' + Date.now();
         const lines = JSON.parse(JSON.stringify(block.lines || []));
 
@@ -5114,13 +5199,15 @@ Alpine.data('pdfEditor', () => ({
         // Focus the line that was clicked
         let targetIdx = 0;
         if (e && lines.length > 0) {
-            const rect = e.currentTarget ? e.currentTarget.getBoundingClientRect() : null;
-            if (rect && rect.height > 0) {
-                const clickY = e.clientY - rect.top;
-                const clickPctY = (clickY / rect.height) * 100;
+            const overlay = document.getElementById('pdfEditorOverlay');
+            if (overlay) {
+                const oRect = overlay.getBoundingClientRect();
+                const clickClientY = e.clientY - oRect.top;
+                const clickPctYInOverlay = (clickClientY / oRect.height) * 100;
+                const clickRelPctY = ((clickPctYInOverlay - block.pctY) / block.pctH) * 100;
                 let closestDist = Infinity;
                 lines.forEach((l, idx) => {
-                    const dist = Math.abs(l.relPctY - clickPctY);
+                    const dist = Math.abs(l.relPctY - clickRelPctY);
                     if (dist < closestDist) {
                         closestDist = dist;
                         targetIdx = idx;
@@ -5136,21 +5223,10 @@ Alpine.data('pdfEditor', () => ({
         this.currentOriginalTextBlocks = [];
         this.pushHistory('แก้ไขข้อความเอกสาร (ตรงตามต้นฉบับ 100%)');
 
-        this.$nextTick(() => {
-            const inputs = document.querySelectorAll(`input[data-doc-ann="${newId}"]`);
-            if (inputs[targetIdx]) {
-                inputs[targetIdx].focus();
-                if (lines[targetIdx]) {
-                    this.syncToolbarToLine(lines[targetIdx]);
-                }
-            } else if (inputs[0]) {
-                inputs[0].focus();
-                if (lines[0]) this.syncToolbarToLine(lines[0]);
-            }
-        });
+        this.focusDocLine(newId, targetIdx);
     },
 
-        syncToolbarToLine(line) {
+    syncToolbarToLine(line) {
         if (!line) return;
         if (line.fontFamily) this.textFontFamily = line.fontFamily;
         if (line.fontSize) this.textSize = line.fontSize;
@@ -5446,11 +5522,25 @@ Alpine.data('pdfEditor', () => ({
         }
 
         if (this.activeTool === 'pointer') {
-            // Deselect if clicking on empty area
-            if (e.target === overlay || e.target.id === 'pdfEditorCanvas' || e.target.id === 'drawingSvg') {
-                this.selectedAnnotationId = null;
+            // Check if an existing text_document is on this page
+            const existingDoc = this.pageAnnotations.find(a => a.type === 'text_document');
+            if (existingDoc) {
+                this.handleDocContainerClick(e, existingDoc);
+                return;
             }
-            return;
+
+            // Trigger in-place editing immediately on text click
+            if (this.currentOriginalTextBlocks && this.currentOriginalTextBlocks.length > 0) {
+                this.startEditingOriginalText(this.currentOriginalTextBlocks[0], e);
+                return;
+            } else {
+                this.extractPageTextBlocks().then(() => {
+                    if (this.currentOriginalTextBlocks && this.currentOriginalTextBlocks.length > 0) {
+                        this.startEditingOriginalText(this.currentOriginalTextBlocks[0], e);
+                    }
+                });
+                return;
+            }
         }
 
         if (this.activeTool === 'draw') {
@@ -5753,10 +5843,10 @@ Alpine.data('pdfEditor', () => ({
     startDragAnnotation(e, id) {
         if (e.button !== 0) return;
         if (this.activeTool !== 'pointer') return;
+        const ann = this.annotations.find(a => a.id === id);
+        if (!ann || ann.type === 'text_document') return; // Do not drag in-place document editor
         e.stopPropagation();
         this.selectedAnnotationId = id;
-        const ann = this.annotations.find(a => a.id === id);
-        if (!ann) return;
 
         this.isDraggingAnnotation = true;
         this.dragStart = {
@@ -5769,9 +5859,9 @@ Alpine.data('pdfEditor', () => ({
 
     startResizeAnnotation(e, id, handle) {
         if (e.button !== 0) return;
-        e.stopPropagation();
         const ann = this.annotations.find(a => a.id === id);
-        if (!ann) return;
+        if (!ann || ann.type === 'text_document') return; // Do not resize in-place document editor
+        e.stopPropagation();
 
         this.isResizingAnnotation = true;
         this.resizeStart = {

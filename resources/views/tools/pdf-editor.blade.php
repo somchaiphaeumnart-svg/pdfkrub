@@ -202,6 +202,16 @@
                     <span>Picture</span>
                 </button>
 
+                {{-- Edit Document Text Button --}}
+                <button type="button"
+                        @click="startEditingCurrentPageText()"
+                        :class="activeTool === 'pointer' ? 'bg-brand-50 border-brand-500 text-brand-700 font-bold shadow-2xs' : 'text-slate-700 hover:bg-slate-100 border-slate-200'"
+                        class="px-2.5 py-1 rounded text-xs font-semibold border flex items-center gap-1.5 cursor-pointer transition-all"
+                        title="คลิกข้อความในเอกสารเพื่อแก้ไขข้อความเดิมได้ทันที (คงรูปแบบ ฟอนต์ ขนาด และตำแหน่งเดิม 100%)">
+                    <svg class="w-4 h-4 text-brand-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/></svg>
+                    <span>แก้ไขข้อความ</span>
+                </button>
+
                 {{-- Add Text --}}
                 <button type="button"
                         @click="setTool('text')"
@@ -760,10 +770,11 @@
                          class="absolute inset-0 w-full h-full"
                          @mousedown="handleOverlayMouseDown($event)"
                          @mousemove="handleOverlayMouseMove($event)"
-                         @mouseup="handleOverlayMouseUp($event)">
+                         @mouseup="handleOverlayMouseUp($event)"
+                         @dblclick="startEditingCurrentPageText()">
 
                         {{-- Layer 0: Detected Original Text Block (Single unified container preserving 100% typography) --}}
-                        <div x-show="['pointer', 'edit-text', 'text'].includes(activeTool) && currentOriginalTextBlocks.length > 0" class="absolute inset-0 pointer-events-none z-10" x-cloak>
+                        <div x-show="['pointer', 'edit-text', 'text'].includes(activeTool) && currentOriginalTextBlocks.length > 0 && !pageAnnotations.some(a => a.type === 'text_document')" class="absolute inset-0 pointer-events-none z-10" x-cloak>
                             <template x-for="block in currentOriginalTextBlocks" :key="block.id">
                                 <div class="absolute pointer-events-auto cursor-pointer border-2 border-dashed border-sky-400 bg-sky-50/10 hover:bg-sky-50/25 hover:border-brand-500 rounded-sm transition-all group"
                                      :style="`left: ${block.pctX}%; top: ${block.pctY}%; width: ${block.pctW}%; height: ${block.pctH}%;`"
@@ -842,7 +853,8 @@
                                 {{-- ── TYPE 1.5: UNIFIED DOCUMENT TEXT CONTAINER (Single unified block preserving 100% typography) ── --}}
                                 <template x-if="ann.type === 'text_document'">
                                     <div class="w-full h-full relative select-text cursor-default overflow-hidden"
-                                         :style="`background-color: ${ann.bgColor || '#ffffff'};`">
+                                         :style="`background-color: ${ann.bgColor || '#ffffff'};`"
+                                         @click="handleDocContainerClick($event, ann)">
                                         <template x-for="(line, lIdx) in (ann.lines || [])" :key="lIdx">
                                             <div class="absolute group/line"
                                                  :style="`left: ${line.relPctX}%; top: ${line.relPctY}%; width: ${line.relPctW}%; height: ${line.relPctH}%;`">
