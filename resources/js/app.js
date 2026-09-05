@@ -4887,9 +4887,6 @@ Alpine.data('pdfEditor', () => ({
 
             // Within each line, sort items left-to-right and assemble text
             const intermediateLines = [];
-            const fontSizeFreq = {};
-            const fontFamFreq = {};
-
             for (const lc of lineClusters) {
                 lc.items.sort((a, b) => a.vx - b.vx);
 
@@ -4954,9 +4951,6 @@ Alpine.data('pdfEditor', () => ({
                         isBold = true;
                     }
 
-                    fontSizeFreq[lc.fontSize] = (fontSizeFreq[lc.fontSize] || 0) + 1;
-                    fontFamFreq[fontFam] = (fontFamFreq[fontFam] || 0) + 1;
-
                     intermediateLines.push({
                         text: lineText,
                         minX: lineMinX,
@@ -4965,7 +4959,7 @@ Alpine.data('pdfEditor', () => ({
                         fontSize: lc.fontSize,
                         bold: isBold,
                         italic: isItalic,
-                        fontFamily: fontFam,
+                        fontFam: fontFam,
                         color: dominantColor
                     });
                 }
@@ -4976,60 +4970,49 @@ Alpine.data('pdfEditor', () => ({
                 return;
             }
 
-            // Find dominant font size & font family
-            let dominantFontSize = 14;
-            let maxFCount = 0;
-            for (const [sz, count] of Object.entries(fontSizeFreq)) {
-                if (count > maxFCount) {
-                    maxFCount = count;
-                    dominantFontSize = parseInt(sz, 10);
-                }
+            // Calculate overall master bounding box enclosing all lines
+            let mMinX = Infinity;
+            let mMaxX = -Infinity;
+            let mMinY = Infinity;
+            let mMaxY = -Infinity;
+            for (const pl of intermediateLines) {
+                if (pl.minX < mMinX) mMinX = pl.minX;
+                if (pl.maxX > mMaxX) mMaxX = pl.maxX;
+                const topY = pl.baselineY - pl.fontSize * 0.95;
+                const botY = pl.baselineY + pl.fontSize * 0.4;
+                if (topY < mMinY) mMinY = topY;
+                if (botY > mMaxY) mMaxY = botY;
             }
+            const padX = 8;
+            const padY = 6;
+            const boundedMinX = Math.max(0, mMinX - padX);
+            const boundedMaxX = Math.min(viewport.width, mMaxX + padX);
+            const boundedMinY = Math.max(0, mMinY - padY);
+            const boundedMaxY = Math.min(viewport.height, mMaxY + padY);
+            const masterW = Math.max(10, boundedMaxX - boundedMinX);
+            const masterH = Math.max(10, boundedMaxY - boundedMinY);
 
-            let dominantFontFam = 'TH Niramit AS';
-            let maxFFCount = 0;
-            for (const [ff, count] of Object.entries(fontFamFreq)) {
-                if (count > maxFFCount) {
-                    maxFFCount = count;
-                    dominantFontFam = ff;
-                }
-            }
-
-            // Detect document body margins (bodyMinX, bodyMaxX)
-            let bodyMinX = Infinity;
-            let bodyMaxX = -Infinity;
-            for (const l of intermediateLines) {
-                if (l.text.trim().length > 15) {
-                    if (l.minX < bodyMinX) bodyMinX = l.minX;
-                    if (l.maxX > bodyMaxX) bodyMaxX = l.maxX;
-                }
-            }
-            if (bodyMinX === Infinity) {
-                bodyMinX = Math.min(...intermediateLines.map(l => l.minX));
-                bodyMaxX = Math.max(...intermediateLines.map(l => l.maxX));
-            }
-
-            // Accurate Alignment
-            const processedLines = [];
-            for (const l of intermediateLines) {
+            // Compute exact relative percentage positions for each line (100% identical to original PDF)
+            const exactLines = intermediateLines.map((l, idx) => {
                 const lineCenter = (l.minX + l.maxX) / 2;
                 const pageCenter = viewport.width / 2;
-
-                const endsAtRightMargin = Math.abs(l.maxX - bodyMaxX) <= 28;
                 let align = 'left';
-                const farFromLeft = l.minX > (bodyMinX + 25);
-                const farFromRight = l.maxX < (bodyMaxX - 25);
-                const isCentered = farFromLeft && farFromRight && Math.abs(lineCenter - pageCenter) <= 35;
-
-                if (isCentered) {
+                const isShort = (l.maxX - l.minX) < (viewport.width * 0.6);
+                if (isShort && Math.abs(lineCenter - pageCenter) <= 30) {
                     align = 'center';
-                } else if (l.minX > (viewport.width * 0.45) && endsAtRightMargin) {
+                } else if (l.minX > (viewport.width * 0.45)) {
                     align = 'right';
-                } else {
-                    align = 'left';
                 }
 
-                processedLines.push({
+                const relX = ((l.minX - boundedMinX) / masterW) * 100;
+                const lineTop = l.baselineY - l.fontSize * 0.95;
+                const lineH = l.fontSize * 1.35;
+                const relY = ((lineTop - boundedMinY) / masterH) * 100;
+                const relW = Math.min(100 - relX, Math.max(5, ((l.maxX - l.minX + 24) / masterW) * 100));
+                const relH = Math.max(2, (lineH / masterH) * 100);
+
+                return {
+                    id: `line_${idx}`,
                     text: l.text,
                     minX: l.minX,
                     maxX: l.maxX,
@@ -5038,32 +5021,14 @@ Alpine.data('pdfEditor', () => ({
                     align: align,
                     bold: l.bold,
                     italic: l.italic,
-                    fontFamily: l.fontFamily,
-                    color: l.color
-                });
-            }
-
-            // Overall master bounding box
-            let mMinX = Infinity;
-            let mMaxX = -Infinity;
-            let mMinY = Infinity;
-            let mMaxY = -Infinity;
-            for (const pl of processedLines) {
-                if (pl.minX < mMinX) mMinX = pl.minX;
-                if (pl.maxX > mMaxX) mMaxX = pl.maxX;
-                const topY = Math.max(0, pl.baselineY - pl.fontSize * 0.95);
-                const botY = pl.baselineY + pl.fontSize * 0.45;
-                if (topY < mMinY) mMinY = topY;
-                if (botY > mMaxY) mMaxY = botY;
-            }
-            const padX = 10;
-            const padY = 6;
-            const boundedMinX = Math.max(0, mMinX - padX);
-            const boundedMaxX = Math.min(viewport.width, mMaxX + padX);
-            const boundedMinY = Math.max(0, mMinY - padY);
-            const boundedMaxY = Math.min(viewport.height, mMaxY + padY);
-            const masterW = boundedMaxX - boundedMinX;
-            const masterH = boundedMaxY - boundedMinY;
+                    fontFamily: l.fontFam,
+                    color: l.color,
+                    relPctX: Math.max(0, +relX.toFixed(2)),
+                    relPctY: Math.max(0, +relY.toFixed(2)),
+                    relPctW: Math.min(100, +relW.toFixed(2)),
+                    relPctH: Math.max(1.5, +relH.toFixed(2))
+                };
+            });
 
             this.pageContentBox = {
                 pctX: Math.max(0, (boundedMinX / viewport.width) * 100),
@@ -5072,10 +5037,6 @@ Alpine.data('pdfEditor', () => ({
                 pctH: Math.min(100, (masterH / viewport.height) * 100)
             };
 
-            // Build ONE SINGLE UNIFIED DOCUMENT TEXT preserving 100% original layout
-            const unifiedText = this.buildUnifiedDocumentText(processedLines);
-
-            const processedParagraphs = this.groupLinesIntoParagraphs(processedLines);
             this.currentOriginalTextBlocks = [{
                 id: `orig_doc_${this.currentPage}`,
                 pctX: Math.max(0, (boundedMinX / viewport.width) * 100),
@@ -5084,8 +5045,9 @@ Alpine.data('pdfEditor', () => ({
                 pctH: Math.min(100, (masterH / viewport.height) * 100),
                 masterW: masterW,
                 masterH: masterH,
-                paragraphs: processedParagraphs,
-                lines: processedParagraphs
+                boundedMinX: boundedMinX,
+                boundedMinY: boundedMinY,
+                lines: exactLines
             }];
         } catch (err) {
             console.warn('Error extracting page text blocks:', err);
@@ -5104,8 +5066,8 @@ Alpine.data('pdfEditor', () => ({
 
     startEditingOriginalText(block, e) {
         if (!block) return;
-        const newId = 'doc_unified_' + Date.now();
-        const paragraphs = JSON.parse(JSON.stringify(block.paragraphs || block.lines || []));
+        const newId = 'doc_exact_' + Date.now();
+        const lines = JSON.parse(JSON.stringify(block.lines || []));
 
         const newAnn = {
             id: newId,
@@ -5117,23 +5079,47 @@ Alpine.data('pdfEditor', () => ({
             pctH: block.pctH,
             masterW: block.masterW,
             masterH: block.masterH,
+            boundedMinX: block.boundedMinX,
+            boundedMinY: block.boundedMinY,
             bgColor: '#ffffff', // Clean white background covering original PDF canvas 100%!
-            paragraphs: paragraphs,
-            lines: paragraphs
+            lines: lines
         };
+
+        // Focus the line that was clicked
+        let targetIdx = 0;
+        if (e && lines.length > 0) {
+            const rect = e.currentTarget ? e.currentTarget.getBoundingClientRect() : null;
+            if (rect && rect.height > 0) {
+                const clickY = e.clientY - rect.top;
+                const clickPctY = (clickY / rect.height) * 100;
+                let closestDist = Infinity;
+                lines.forEach((l, idx) => {
+                    const dist = Math.abs(l.relPctY - clickPctY);
+                    if (dist < closestDist) {
+                        closestDist = dist;
+                        targetIdx = idx;
+                    }
+                });
+            }
+        }
 
         this.annotations.push(newAnn);
         this.selectedAnnotationId = newId;
+        this.activeDocLineIdx = targetIdx;
         this.activeTool = 'pointer';
-        this.activeDocLineIdx = 0;
         this.currentOriginalTextBlocks = [];
-        this.pushHistory('แก้ไขข้อความเอกสาร (กลุ่มเดียวกัน 100% ต้นฉบับ)');
+        this.pushHistory('แก้ไขข้อความเอกสาร (ตรงตามต้นฉบับ 100%)');
 
         this.$nextTick(() => {
-            const textareas = document.querySelectorAll(`textarea[data-doc-ann="${newId}"]`);
-            textareas.forEach(ta => this.autoResizeTextarea(ta));
-            if (textareas[0]) {
-                textareas[0].focus();
+            const inputs = document.querySelectorAll(`input[data-doc-ann="${newId}"]`);
+            if (inputs[targetIdx]) {
+                inputs[targetIdx].focus();
+                if (lines[targetIdx]) {
+                    this.syncToolbarToLine(lines[targetIdx]);
+                }
+            } else if (inputs[0]) {
+                inputs[0].focus();
+                if (lines[0]) this.syncToolbarToLine(lines[0]);
             }
         });
     },
@@ -6063,46 +6049,33 @@ Alpine.data('pdfEditor', () => ({
                         ctx.restore();
                     } else if (ann.type === 'text_document') {
                         ctx.save();
-                        // 1. Cover original PDF canvas under the document container
                         if (ann.bgColor && ann.bgColor !== 'transparent') {
                             ctx.fillStyle = ann.bgColor;
                             ctx.fillRect(x, y, w, h);
                         }
-                        const scaleRatio = ann.masterH ? (h / ann.masterH) : 1;
-                        let curY = y + 8;
-                        const items = ann.paragraphs || ann.lines || [];
-                        const maxTextW = Math.max(50, w - 16);
-
-                        for (const para of items) {
-                            if (!para || !para.text) continue;
-                            const fSize = (para.fontSize || 14) * (scaleRatio || 1);
-                            const fontStyle = `${para.italic ? 'italic ' : ''}${para.bold ? 'bold ' : ''}`;
-                            const fontFam = para.fontFamily || 'TH Niramit AS';
+                        const lines = ann.lines || [];
+                        for (const line of lines) {
+                            if (!line || !line.text) continue;
+                            const lineX = x + ((line.relPctX || 0) / 100) * w;
+                            const lineY = y + ((line.relPctY || 0) / 100) * h;
+                            const fSize = (line.fontSize || 14) * (h / (ann.masterH || h));
+                            const fontStyle = `${line.italic ? 'italic ' : ''}${line.bold ? 'bold ' : ''}`;
+                            const fontFam = line.fontFamily || 'TH Niramit AS';
                             ctx.font = `${fontStyle}${fSize}px '${fontFam}', 'Niramit', 'TH Sarabun PSK', 'Sarabun', sans-serif`;
-                            ctx.fillStyle = para.color || '#111827';
+                            ctx.fillStyle = line.color || '#111827';
                             ctx.textBaseline = 'top';
-                            ctx.textAlign = para.align || 'left';
+                            ctx.textAlign = line.align || 'left';
 
-                            let drawX = x + 8;
-                            if (para.align === 'center') {
-                                drawX = x + w / 2;
-                            } else if (para.align === 'right') {
-                                drawX = x + w - 12;
+                            let drawX = lineX;
+                            if (line.align === 'center') {
+                                const lineW = ((line.relPctW || 10) / 100) * w;
+                                drawX = lineX + lineW / 2;
+                            } else if (line.align === 'right') {
+                                const lineW = ((line.relPctW || 10) / 100) * w;
+                                drawX = lineX + lineW;
                             }
 
-                            const wrappedLines = this.wrapTextLines(ctx, para.text, maxTextW);
-                            const lineH = fSize * (para.lineHeightRatio || para.lineHeight || 1.6);
-
-                            let isFirstLine = true;
-                            for (const lineStr of wrappedLines) {
-                                const lineX = (isFirstLine && para.textIndent && para.align === 'left') ? (drawX + (para.textIndent * scaleRatio)) : drawX;
-                                ctx.fillText(lineStr, lineX, curY);
-                                curY += lineH;
-                                isFirstLine = false;
-                            }
-
-                            const gap = (para.gapAfter !== undefined ? para.gapAfter : 8) * (scaleRatio || 1);
-                            curY += gap;
+                            ctx.fillText(line.text, drawX, lineY);
                         }
                         ctx.restore();
                     } else if (ann.type === 'note') {

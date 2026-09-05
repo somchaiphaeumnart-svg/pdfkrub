@@ -841,20 +841,20 @@
 
                                 {{-- ── TYPE 1.5: UNIFIED DOCUMENT TEXT CONTAINER (Single unified block preserving 100% typography) ── --}}
                                 <template x-if="ann.type === 'text_document'">
-                                    <div class="w-full h-full p-1 rounded-xs overflow-y-auto overflow-x-hidden flex flex-col custom-scrollbar select-text cursor-text"
-                                         :style="`background-color: ${ann.bgColor || '#ffffff'};`;">
-                                        <template x-for="(para, pIdx) in (ann.paragraphs || ann.lines)" :key="pIdx">
-                                            <div class="w-full relative cursor-text select-text"
-                                                 :style="`margin-bottom: ${(para.gapAfter !== undefined ? para.gapAfter : 3) * (zoom / 100)}px;`">
-                                                <textarea x-model="para.text"
-                                                          :data-doc-ann="ann.id"
-                                                          :data-para-idx="pIdx"
-                                                          x-init="$nextTick(() => autoResizeTextarea($el))"
-                                                          @focus="activeDocLineIdx = pIdx; syncToolbarToLine(para)"
-                                                          @input="autoResizeTextarea($el)"
-                                                          class="w-full bg-transparent border-none outline-none resize-none overflow-hidden font-inherit block p-0 m-0 cursor-text shadow-none"
-                                                          :style="`text-align: ${para.align || 'left'}; font-size: ${(para.fontSize || 14) * (zoom / 100)}px; font-weight: ${para.bold ? 'bold' : 'normal'}; font-style: ${para.italic ? 'italic' : 'normal'}; font-family: '${para.fontFamily || 'TH Niramit AS'}', 'TH Sarabun PSK', 'Sarabun', sans-serif; color: ${para.color || '#111827'}; line-height: ${para.lineHeightRatio || 1.35}; text-indent: ${para.textIndent ? (para.textIndent * (zoom / 100)) + 'px' : '0px'}; letter-spacing: ${para.letterSpacing || 'normal'};`;"
-                                                          rows="1"></textarea>
+                                    <div class="w-full h-full relative select-text cursor-default overflow-hidden"
+                                         :style="`background-color: ${ann.bgColor || '#ffffff'};`">
+                                        <template x-for="(line, lIdx) in (ann.lines || [])" :key="lIdx">
+                                            <div class="absolute group/line"
+                                                 :style="`left: ${line.relPctX}%; top: ${line.relPctY}%; width: ${line.relPctW}%; height: ${line.relPctH}%;`">
+                                                <input type="text"
+                                                       x-model="line.text"
+                                                       :data-doc-ann="ann.id"
+                                                       :data-line-idx="lIdx"
+                                                       @focus="activeDocLineIdx = lIdx; syncToolbarToLine(line)"
+                                                       @click.stop
+                                                       @mousedown.stop
+                                                       class="w-full h-full bg-transparent border-none outline-none font-inherit p-0 m-0 cursor-text leading-none shadow-none"
+                                                       :style="`text-align: ${line.align || 'left'}; font-size: ${(line.fontSize || 14) * (zoom / 100)}px; font-weight: ${line.bold ? 'bold' : 'normal'}; font-style: ${line.italic ? 'italic' : 'normal'}; font-family: '${line.fontFamily || 'TH Niramit AS'}', 'TH Sarabun PSK', sans-serif; color: ${line.color || '#111827'}; letter-spacing: ${line.letterSpacing || 'normal'};`">
                                             </div>
                                         </template>
                                     </div>
