@@ -841,12 +841,12 @@
 
                                 {{-- ── TYPE 1.5: UNIFIED DOCUMENT TEXT CONTAINER (Single block preserving per-line format 100%) ── --}}
                                 <template x-if="ann.type === 'text_document'">
-                                    <div class="w-full h-full p-3 rounded-xs overflow-y-auto overflow-x-hidden flex flex-col custom-scrollbar select-text cursor-default"
-                                         :style="`background-color: ${ann.bgColor || '#ffffff'};`">
+                                    <div class="w-full h-full p-2 rounded-xs overflow-y-auto overflow-x-hidden flex flex-col custom-scrollbar select-text cursor-default"
+                                         :style="`background-color: ${ann.bgColor || '#ffffff'};`;">
                                         <template x-for="(para, pIdx) in (ann.paragraphs || ann.lines)" :key="pIdx">
                                             <div class="w-full relative rounded-md transition-all group/para"
                                                  :class="activeDocLineIdx === pIdx ? 'ring-2 ring-brand-500 bg-brand-50/15' : 'hover:ring-1 hover:ring-sky-300'"
-                                                 :style="`margin-bottom: ${(para.gapAfter !== undefined ? para.gapAfter : 8) * (zoom / 100)}px;`">
+                                                 :style="`margin-bottom: ${(para.gapAfter !== undefined ? para.gapAfter : 4) * (zoom / 100)}px;`">
                                                 <textarea x-model="para.text"
                                                           :data-doc-ann="ann.id"
                                                           :data-para-idx="pIdx"
@@ -855,8 +855,8 @@
                                                           @input="autoResizeTextarea($el)"
                                                           @click.stop
                                                           @mousedown.stop
-                                                          class="w-full bg-transparent border-none outline-none resize-none overflow-hidden font-inherit block p-1.5 leading-relaxed"
-                                                          :style="`text-align: ${para.align || 'left'}; font-size: ${(para.fontSize || 14) * (zoom / 100)}px; font-weight: ${para.bold ? 'bold' : 'normal'}; font-style: ${para.italic ? 'italic' : 'normal'}; font-family: '${para.fontFamily || 'TH Niramit AS'}', 'TH Sarabun PSK', 'Sarabun', sans-serif; color: ${para.color || '#111827'}; line-height: ${para.lineHeightRatio || para.lineHeight || 1.6}; text-indent: ${para.textIndent ? (para.textIndent * (zoom / 100)) + 'px' : '0px'}; letter-spacing: ${para.letterSpacing || 'normal'};`"
+                                                          class="w-full bg-transparent border-none outline-none resize-none overflow-hidden font-inherit block px-1 py-0.5"
+                                                          :style="`text-align: ${para.align || 'left'}; font-size: ${(para.fontSize || 14) * (zoom / 100)}px; font-weight: ${para.bold ? 'bold' : 'normal'}; font-style: ${para.italic ? 'italic' : 'normal'}; font-family: '${para.fontFamily || 'TH Niramit AS'}', 'TH Sarabun PSK', 'Sarabun', sans-serif; color: ${para.color || '#111827'}; line-height: ${para.lineHeightRatio || para.lineHeight || 1.35}; text-indent: ${para.textIndent ? (para.textIndent * (zoom / 100)) + 'px' : '0px'}; letter-spacing: ${para.letterSpacing || 'normal'};`;"
                                                           rows="1"></textarea>
                                                 {{-- Paragraph badge indicating whole paragraph is selected --}}
                                                 <div x-show="activeDocLineIdx === pIdx"

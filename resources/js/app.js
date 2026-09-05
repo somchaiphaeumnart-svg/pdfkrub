@@ -4649,7 +4649,7 @@ Alpine.data('pdfEditor', () => ({
         autoResizeTextarea(el) {
         if (!el) return;
         el.style.height = 'auto';
-        el.style.height = Math.max(26, el.scrollHeight + 4) + 'px';
+        el.style.height = Math.max(20, el.scrollHeight + 2) + 'px';
     },
 
     wrapTextLines(ctx, text, maxWidth) {
@@ -4697,16 +4697,16 @@ Alpine.data('pdfEditor', () => ({
                     italic: l.italic,
                     fontFamily: l.fontFamily,
                     color: l.color || '#111827',
-                    lineHeightRatio: 1.6,
+                    lineHeightRatio: 1.35,
                     linesCount: 1,
                     minX: l.minX,
                     maxX: l.maxX,
                     minY: l.baselineY - l.fontSize,
-                    maxY: l.baselineY + (l.fontSize * 0.4),
+                    maxY: l.baselineY + (l.fontSize * 0.35),
                     firstBaselineY: l.baselineY,
                     lastBaselineY: l.baselineY,
                     textIndent: l.indentPx || 0,
-                    gapAfter: 8
+                    gapAfter: 4
                 };
                 continue;
             }
@@ -4715,7 +4715,7 @@ Alpine.data('pdfEditor', () => ({
             const sameAlign = cur.align === l.align;
             const sameBold = cur.bold === l.bold;
             const similarSize = Math.abs(cur.fontSize - l.fontSize) <= 2.2;
-            const isNormalGap = stepY > 0 && stepY <= Math.max(38, cur.fontSize * 2.4);
+            const isNormalGap = stepY > 0 && stepY <= Math.max(34, cur.fontSize * 2.2);
             const isList = /^\s*(\d+[\.\)]|[①-⑩]|[\-\*•])\s+/.test(l.text);
             const isCurHeading = cur.align === 'center' || cur.fontSize >= 17;
             const isLineHeading = l.align === 'center' || l.fontSize >= 17;
@@ -4731,13 +4731,16 @@ Alpine.data('pdfEditor', () => ({
                 cur.text += (needSpace ? ' ' : '') + l.text;
                 cur.linesCount++;
                 cur.lineStepY = stepY;
-                cur.lineHeightRatio = Math.max(1.3, Math.min(2.4, +(stepY / cur.fontSize).toFixed(2)));
+                // Proportional line height for Thai text matching original document (1.25 to 1.45)
+                cur.lineHeightRatio = 1.35;
                 cur.lastBaselineY = l.baselineY;
                 cur.minX = Math.min(cur.minX, l.minX);
                 cur.maxX = Math.max(cur.maxX, l.maxX);
-                cur.maxY = l.baselineY + (l.fontSize * 0.4);
+                cur.maxY = l.baselineY + (l.fontSize * 0.35);
             } else {
-                cur.gapAfter = Math.max(6, Math.min(32, Math.round(stepY - (cur.fontSize * 1.2))));
+                // Compute clean, tight paragraph gap based on baseline distance (prevents overflow and gaps)
+                const baselineGap = Math.max(0, stepY - (cur.fontSize * 1.35));
+                cur.gapAfter = Math.max(2, Math.min(12, Math.round(baselineGap * 0.35)));
                 paragraphs.push(cur);
                 cur = {
                     text: l.text,
@@ -4747,16 +4750,16 @@ Alpine.data('pdfEditor', () => ({
                     italic: l.italic,
                     fontFamily: l.fontFamily,
                     color: l.color || '#111827',
-                    lineHeightRatio: 1.6,
+                    lineHeightRatio: 1.35,
                     linesCount: 1,
                     minX: l.minX,
                     maxX: l.maxX,
                     minY: l.baselineY - l.fontSize,
-                    maxY: l.baselineY + (l.fontSize * 0.4),
+                    maxY: l.baselineY + (l.fontSize * 0.35),
                     firstBaselineY: l.baselineY,
                     lastBaselineY: l.baselineY,
                     textIndent: l.indentPx || 0,
-                    gapAfter: 8
+                    gapAfter: 4
                 };
             }
         }
@@ -5239,12 +5242,20 @@ Alpine.data('pdfEditor', () => ({
         if (!ann) return;
         if (ann.type === 'text') {
             ann[prop] = val;
-        } else if (ann.type === 'text_document' && ann.lines) {
+        } else if (ann.type === 'text_document' && (ann.paragraphs || ann.lines)) {
+            const items = ann.paragraphs || ann.lines;
             const idx = (this.activeDocLineIdx !== null && this.activeDocLineIdx !== undefined) ? this.activeDocLineIdx : 0;
-            if (ann.lines[idx]) {
-                ann.lines[idx][prop] = val;
+            if (items[idx]) {
+                items[idx][prop] = val;
+                if (prop === 'lineHeight') {
+                    items[idx].lineHeightRatio = parseFloat(val);
+                }
             }
         }
+        this.$nextTick(() => {
+            const textareas = document.querySelectorAll('textarea[data-doc-ann]');
+            textareas.forEach(ta => this.autoResizeTextarea(ta));
+        });
     },
 
     addHeaderFooterText(type) {
