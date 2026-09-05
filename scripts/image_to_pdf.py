@@ -28,10 +28,24 @@ def convert_with_img2pdf(image_paths, output_pdf):
         pass
     return False
 
-def convert_with_pillow(image_paths, output_pdf):
+PAGE_SIZES_PT = {
+    "a4": (595.28, 841.89),
+    "letter": (612.0, 792.0),
+}
+
+MARGIN_RATIOS = {
+    "none": 0.0,
+    "small": 0.05,
+    "big": 0.10,
+}
+
+def convert_with_pillow_layout(image_paths, output_pdf, orientation="auto", page_size="fit", margin="none"):
+    """Convert images placing them on formatted pages with orientation and margins."""
     try:
         from PIL import Image
-        pil_images = []
+        resampling = getattr(Image, 'Resampling', Image).LANCZOS
+
+        pil_pages = []
         for p in image_paths:
             im = Image.open(p)
             if im.mode in ("RGBA", "LA") or (im.mode == "P" and "transparency" in im.info):
@@ -39,19 +53,63 @@ def convert_with_pillow(image_paths, output_pdf):
                 if im.mode == "P":
                     im = im.convert("RGBA")
                 bg.paste(im, mask=im.split()[3])
-                pil_images.append(bg)
-            else:
-                pil_images.append(im.convert("RGB"))
+                im = bg
+            elif im.mode != "RGB":
+                im = im.convert("RGB")
 
-        if pil_images:
-            first = pil_images[0]
-            rest = pil_images[1:] if len(pil_images) > 1 else []
-            first.save(output_pdf, "PDF", resolution=100.0, save_all=True, append_images=rest)
+            if page_size == "fit" and margin == "none" and orientation == "auto":
+                pil_pages.append(im)
+                continue
+
+            # Determine page aspect & target dimensions
+            if page_size in PAGE_SIZES_PT:
+                pt_w, pt_h = PAGE_SIZES_PT[page_size]
+            else:
+                pt_w, pt_h = im.width, im.height
+
+            if orientation == "portrait":
+                pw, ph = min(pt_w, pt_h), max(pt_w, pt_h)
+            elif orientation == "landscape":
+                pw, ph = max(pt_w, pt_h), min(pt_w, pt_h)
+            else:  # auto
+                if im.width > im.height:
+                    pw, ph = max(pt_w, pt_h), min(pt_w, pt_h)
+                else:
+                    pw, ph = min(pt_w, pt_h), max(pt_w, pt_h)
+
+            # Scale canvas to high resolution (match image size or 150 DPI)
+            scale = max(im.width / pw, im.height / ph, 2.0)
+            canvas_w = int(pw * scale)
+            canvas_h = int(ph * scale)
+
+            m_ratio = MARGIN_RATIOS.get(margin, 0.0)
+            avail_w = canvas_w * (1.0 - 2.0 * m_ratio)
+            avail_h = canvas_h * (1.0 - 2.0 * m_ratio)
+
+            img_scale = min(avail_w / im.width, avail_h / im.height)
+            new_w = max(1, int(im.width * img_scale))
+            new_h = max(1, int(im.height * img_scale))
+
+            im_resized = im.resize((new_w, new_h), resampling)
+            canvas = Image.new("RGB", (canvas_w, canvas_h), (255, 255, 255))
+            paste_x = int((canvas_w - new_w) / 2)
+            paste_y = int((canvas_h - new_h) / 2)
+            canvas.paste(im_resized, (paste_x, paste_y))
+            pil_pages.append(canvas)
+
+        if pil_pages:
+            first = pil_pages[0]
+            rest = pil_pages[1:] if len(pil_pages) > 1 else []
+            first.save(output_pdf, "PDF", resolution=150.0, save_all=True, append_images=rest)
             if os.path.exists(output_pdf) and os.path.getsize(output_pdf) > 0:
                 return True
     except Exception as e:
-        sys.stderr.write(f"Pillow notice: {e}\n")
+        sys.stderr.write(f"Pillow layout notice: {e}\n")
     return False
+
+def convert_with_pillow(image_paths, output_pdf):
+    return convert_with_pillow_layout(image_paths, output_pdf, "auto", "fit", "none")
+
 
 def convert_with_pymupdf(image_paths, output_pdf):
     try:
@@ -191,12 +249,18 @@ def convert_with_imagemagick(image_paths, output_pdf):
     return False
 
 def main():
-    if len(sys.argv) < 3:
-        print("Usage: python3 image_to_pdf.py <output.pdf> <input1.jpg> [input2.png ...]")
-        sys.exit(1)
+    import argparse
+    parser = argparse.ArgumentParser(description="Convert images to PDF")
+    parser.add_argument("--orientation", default="auto", choices=["auto", "portrait", "landscape"], help="Page orientation")
+    parser.add_argument("--page-size", default="fit", choices=["fit", "a4", "letter"], help="Page size")
+    parser.add_argument("--margin", default="none", choices=["none", "small", "big"], help="Page margin")
+    parser.add_argument("output_pdf", help="Path to output PDF")
+    parser.add_argument("image_paths", nargs="+", help="Input image paths")
 
-    output_pdf = sys.argv[1]
-    image_paths = sys.argv[2:]
+    args = parser.parse_args()
+
+    output_pdf = args.output_pdf
+    image_paths = args.image_paths
 
     valid_images = [p for p in image_paths if os.path.exists(p) and os.path.getsize(p) > 0]
     if not valid_images:
@@ -205,9 +269,16 @@ def main():
 
     os.makedirs(os.path.dirname(os.path.abspath(output_pdf)), exist_ok=True)
 
-    ok = convert_with_img2pdf(valid_images, output_pdf)
+    has_custom_layout = (args.page_size != "fit" or args.margin != "none" or args.orientation != "auto")
+    ok = False
+
+    if has_custom_layout:
+        ok = convert_with_pillow_layout(valid_images, output_pdf, args.orientation, args.page_size, args.margin)
+
     if not ok:
-        ok = convert_with_pillow(valid_images, output_pdf)
+        ok = convert_with_img2pdf(valid_images, output_pdf)
+    if not ok:
+        ok = convert_with_pillow_layout(valid_images, output_pdf, args.orientation, args.page_size, args.margin)
     if not ok:
         ok = convert_with_pymupdf(valid_images, output_pdf)
     if not ok:

@@ -187,6 +187,12 @@ Alpine.data('fileUpload', (config = {}) => ({
     splitPagesError: null,
     isRenderingSplitPages: false,
 
+    // Image to PDF Layout State
+    imageOrientation: 'auto', // 'auto', 'portrait', 'landscape'
+    imagePageSize: 'fit', // 'fit', 'a4', 'letter'
+    imageMargin: 'none', // 'none', 'small', 'big'
+    imageThumbnailsCache: {},
+
     // Processing state
     isUploading: false,
     uploadProgress: 0,
@@ -234,6 +240,9 @@ Alpine.data('fileUpload', (config = {}) => ({
         }
         if (this.tool === 'split-pdf' && this.files.length > 0) {
             this.loadSplitPagesPreview();
+        }
+        if (this.tool === 'image-to-pdf' && this.files.length > 0) {
+            this.loadImageThumbnails();
         }
     },
 
@@ -350,6 +359,10 @@ Alpine.data('fileUpload', (config = {}) => ({
         if (this.tool === 'split-pdf' && this.files.length > 0) {
             setTimeout(() => this.loadSplitPagesPreview(), 60);
         }
+        // If image-to-pdf, load thumbnails
+        if (this.tool === 'image-to-pdf' && this.files.length > 0) {
+            this.loadImageThumbnails();
+        }
     },
 
     removeFile(id) {
@@ -435,6 +448,7 @@ Alpine.data('fileUpload', (config = {}) => ({
         this.draggedFileIndex = null;
         this.clearCompressState();
         this.clearSplitPagesState();
+        this.clearImageToPdfState();
         this.protectPassword = '';
         this.protectPasswordConfirm = '';
         this.showProtectPassword = false;
@@ -592,6 +606,14 @@ Alpine.data('fileUpload', (config = {}) => ({
 
             formData.append('merge_extracted', this.splitMergeExtracted ? '1' : '0');
             formData.append('config[merge_extracted]', this.splitMergeExtracted ? '1' : '0');
+        }
+        if (activeTool === 'image-to-pdf') {
+            formData.append('orientation', this.imageOrientation);
+            formData.append('config[orientation]', this.imageOrientation);
+            formData.append('page_size', this.imagePageSize);
+            formData.append('config[page_size]', this.imagePageSize);
+            formData.append('margin', this.imageMargin);
+            formData.append('config[margin]', this.imageMargin);
         }
         const tokenMeta = document.querySelector('meta[name="csrf-token"]');
         if (tokenMeta) {
@@ -1433,6 +1455,9 @@ Alpine.data('fileUpload', (config = {}) => ({
             }
             return `แยก ${this.selectedPagesToSplit.length} หน้าออกเป็นไฟล์ Zip`;
         }
+        if (this.tool === 'image-to-pdf' && this.hasFiles) {
+            return `แปลง ${this.files.length} รูปภาพเป็น PDF`;
+        }
         return null;
     },
 
@@ -2064,6 +2089,24 @@ Alpine.data('fileUpload', (config = {}) => ({
     get canSubmitSplitPdf() {
         if (this.splitMode === 'all') return true;
         return this.selectedPagesToSplit.length > 0;
+    },
+
+    clearImageToPdfState() {
+        this.imageThumbnailsCache = {};
+        this.imageOrientation = 'auto';
+        this.imagePageSize = 'fit';
+        this.imageMargin = 'none';
+    },
+
+    loadImageThumbnails() {
+        if (this.tool !== 'image-to-pdf') return;
+        for (const f of this.files) {
+            if (f.file && !this.imageThumbnailsCache[f.id]) {
+                try {
+                    this.imageThumbnailsCache[f.id] = URL.createObjectURL(f.file);
+                } catch (e) {}
+            }
+        }
     },
 
     get hasFiles() { return this.files.length > 0; },

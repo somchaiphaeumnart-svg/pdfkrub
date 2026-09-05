@@ -89,17 +89,17 @@
 
             <template x-if="hasFiles">
                 <div class="text-left w-full" @click.stop>
-                    @if($tool['slug'] === 'merge-pdf')
-                    {{-- Visual Reorder Editor for Merge PDF --}}
+                    @if(in_array($tool['slug'], ['merge-pdf', 'image-to-pdf']))
+                    {{-- Visual Reorder Editor for Merge PDF & Image to PDF --}}
                     <div>
                         <!-- Header Bar with Quick Action Controls -->
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100">
                             <div>
                                 <div class="flex items-center gap-2">
-                                    <span class="text-gray-800 font-bold text-base">จัดลำดับไฟล์ PDF</span>
-                                    <span class="bg-brand-50 text-brand-700 text-xs font-semibold px-2.5 py-0.5 rounded-full" x-text="`${files.length} ไฟล์ (${totalSize})`"></span>
+                                    <span class="text-gray-800 font-bold text-base" x-text="tool === 'image-to-pdf' ? 'จัดลำดับรูปภาพเพื่อสร้าง PDF' : 'จัดลำดับไฟล์ PDF'"></span>
+                                    <span class="bg-brand-50 text-brand-700 text-xs font-semibold px-2.5 py-0.5 rounded-full" x-text="`${files.length} ${tool === 'image-to-pdf' ? 'รูป' : 'ไฟล์'} (${totalSize})`"></span>
                                 </div>
-                                <p class="text-xs text-gray-500 mt-0.5">ลากสลับตำแหน่ง หรือใช้ปุ่ม ◀ ▶ เพื่อกำหนดลำดับไฟล์ที่จะรวมจากหน้าแรกไปหน้าสุดท้าย</p>
+                                <p class="text-xs text-gray-500 mt-0.5" x-text="tool === 'image-to-pdf' ? 'ลากสลับตำแหน่ง หรือใช้ปุ่ม ◀ ▶ เพื่อกำหนดลำดับหน้าที่ต้องการแปลงเป็น PDF' : 'ลากสลับตำแหน่ง หรือใช้ปุ่ม ◀ ▶ เพื่อกำหนดลำดับไฟล์ที่จะรวมจากหน้าแรกไปหน้าสุดท้าย'"></p>
                             </div>
 
                             <div class="flex items-center flex-wrap gap-1.5">
@@ -113,7 +113,7 @@
                                 </button>
                                 <button type="button" @click="$refs.fileInput.click()" class="inline-flex items-center gap-1 text-xs text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200 px-2.5 py-1.5 rounded-lg transition-colors font-semibold">
                                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-                                    <span>เพิ่มไฟล์</span>
+                                    <span x-text="tool === 'image-to-pdf' ? 'เพิ่มรูป' : 'เพิ่มไฟล์'"></span>
                                 </button>
                                 <button type="button" @click="clearAll()" class="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-error-500 hover:bg-error-50 px-2 py-1.5 rounded-lg transition-colors" title="ล้างรายการทั้งหมด">
                                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/></svg>
@@ -121,15 +121,96 @@
                             </div>
                         </div>
 
-                        <!-- Minimum files warning banner -->
-                        <div x-show="files.length < 2" class="bg-amber-50 border border-amber-200/80 rounded-xl p-3 mb-4 flex items-center gap-2.5 text-amber-800 text-xs sm:text-sm shadow-xs">
+                        @if($tool['slug'] === 'image-to-pdf')
+                        <!-- Page Layout & Formatting Toolbar for Image to PDF -->
+                        <div class="bg-slate-50/80 border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 mb-4 shadow-xs">
+                            <div class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                                <svg class="w-4 h-4 text-brand-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"/></svg>
+                                <span>การตั้งค่าหน้ากระดาษ PDF</span>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                                <!-- Orientation -->
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1.5">การวางแนวหน้ากระดาษ</label>
+                                    <div class="grid grid-cols-3 gap-1 bg-white p-1 rounded-xl border border-gray-200 shadow-xs">
+                                        <button type="button" @click="imageOrientation = 'auto'"
+                                            :class="imageOrientation === 'auto' ? 'bg-brand-600 text-white shadow-xs font-semibold' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'"
+                                            class="px-2 py-1.5 rounded-lg text-xs transition-all text-center flex flex-col sm:flex-row items-center justify-center gap-1">
+                                            <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"/></svg>
+                                            <span>อัตโนมัติ</span>
+                                        </button>
+                                        <button type="button" @click="imageOrientation = 'portrait'"
+                                            :class="imageOrientation === 'portrait' ? 'bg-brand-600 text-white shadow-xs font-semibold' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'"
+                                            class="px-2 py-1.5 rounded-lg text-xs transition-all text-center flex flex-col sm:flex-row items-center justify-center gap-1">
+                                            <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><rect x="6" y="3" width="12" height="18" rx="2"/></svg>
+                                            <span>แนวตั้ง</span>
+                                        </button>
+                                        <button type="button" @click="imageOrientation = 'landscape'"
+                                            :class="imageOrientation === 'landscape' ? 'bg-brand-600 text-white shadow-xs font-semibold' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'"
+                                            class="px-2 py-1.5 rounded-lg text-xs transition-all text-center flex flex-col sm:flex-row items-center justify-center gap-1">
+                                            <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><rect x="3" y="6" width="18" height="12" rx="2"/></svg>
+                                            <span>แนวนอน</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Page Size -->
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1.5">ขนาดหน้ากระดาษ</label>
+                                    <div class="grid grid-cols-3 gap-1 bg-white p-1 rounded-xl border border-gray-200 shadow-xs">
+                                        <button type="button" @click="imagePageSize = 'fit'"
+                                            :class="imagePageSize === 'fit' ? 'bg-brand-600 text-white shadow-xs font-semibold' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'"
+                                            class="px-2 py-1.5 rounded-lg text-xs transition-all text-center" title="ขนาดกระดาษพอดีกับขนาดรูปภาพ">
+                                            พอดีรูป
+                                        </button>
+                                        <button type="button" @click="imagePageSize = 'a4'"
+                                            :class="imagePageSize === 'a4' ? 'bg-brand-600 text-white shadow-xs font-semibold' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'"
+                                            class="px-2 py-1.5 rounded-lg text-xs transition-all text-center font-medium" title="A4 มาตรฐาน (210 x 297 mm)">
+                                            A4
+                                        </button>
+                                        <button type="button" @click="imagePageSize = 'letter'"
+                                            :class="imagePageSize === 'letter' ? 'bg-brand-600 text-white shadow-xs font-semibold' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'"
+                                            class="px-2 py-1.5 rounded-lg text-xs transition-all text-center" title="US Letter (8.5 x 11 นิ้ว)">
+                                            Letter
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Margin -->
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1.5">ระยะขอบกระดาษ (Margin)</label>
+                                    <div class="grid grid-cols-3 gap-1 bg-white p-1 rounded-xl border border-gray-200 shadow-xs">
+                                        <button type="button" @click="imageMargin = 'none'"
+                                            :class="imageMargin === 'none' ? 'bg-brand-600 text-white shadow-xs font-semibold' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'"
+                                            class="px-2 py-1.5 rounded-lg text-xs transition-all text-center">
+                                            ไร้ขอบ
+                                        </button>
+                                        <button type="button" @click="imageMargin = 'small'"
+                                            :class="imageMargin === 'small' ? 'bg-brand-600 text-white shadow-xs font-semibold' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'"
+                                            class="px-2 py-1.5 rounded-lg text-xs transition-all text-center">
+                                            ขอบเล็ก
+                                        </button>
+                                        <button type="button" @click="imageMargin = 'big'"
+                                            :class="imageMargin === 'big' ? 'bg-brand-600 text-white shadow-xs font-semibold' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'"
+                                            class="px-2 py-1.5 rounded-lg text-xs transition-all text-center">
+                                            ขอบกว้าง
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+
+                        <!-- Minimum files warning banner (only for Merge PDF) -->
+                        <div x-show="tool === 'merge-pdf' && files.length < 2" class="bg-amber-50 border border-amber-200/80 rounded-xl p-3 mb-4 flex items-center gap-2.5 text-amber-800 text-xs sm:text-sm shadow-xs">
                             <svg class="w-5 h-5 text-amber-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg>
                             <div class="flex-1">
                                 <span class="font-bold">ต้องการอีกอย่างน้อย 1 ไฟล์:</span> การรวม PDF ต้องใช้ไฟล์อย่างน้อย 2 ไฟล์ขึ้นไป (กดปุ่ม "เพิ่มไฟล์" เพื่อเลือกไฟล์เพิ่ม)
                             </div>
                         </div>
 
-                        <!-- Visual Grid of PDF Cards -->
+                        <!-- Visual Grid of PDF / Image Cards -->
                         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 mb-3">
                             <template x-for="(f, index) in files" :key="f.id">
                                 <div
@@ -150,10 +231,10 @@
 
                                     <!-- Thumbnail Preview Area -->
                                     <div class="w-full aspect-[3/4] bg-slate-50 rounded-xl overflow-hidden mb-2 relative flex items-center justify-center border border-gray-100 shadow-inner">
-                                        <template x-if="mergeThumbnailsCache[f.id]">
-                                            <img :src="mergeThumbnailsCache[f.id]" class="w-full h-full object-contain pointer-events-none rounded-lg" />
+                                        <template x-if="imageThumbnailsCache[f.id] || mergeThumbnailsCache[f.id]">
+                                            <img :src="imageThumbnailsCache[f.id] || mergeThumbnailsCache[f.id]" class="w-full h-full object-contain pointer-events-none rounded-lg" />
                                         </template>
-                                        <template x-if="!mergeThumbnailsCache[f.id]">
+                                        <template x-if="!imageThumbnailsCache[f.id] && !mergeThumbnailsCache[f.id]">
                                             <div class="flex flex-col items-center justify-center text-gray-400 p-2 text-center">
                                                 <svg class="w-8 h-8 text-brand-300 animate-pulse mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                                                 <span class="text-[10px] text-gray-400">โหลดตัวอย่าง...</span>
@@ -201,8 +282,8 @@
                                 <div class="w-10 h-10 rounded-full bg-brand-50 group-hover:bg-brand-100 text-brand-600 flex items-center justify-center mb-2 transition-colors shadow-xs">
                                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
                                 </div>
-                                <span class="text-xs font-semibold text-gray-700 group-hover:text-brand-600">เพิ่มไฟล์ PDF</span>
-                                <span class="text-[10px] text-gray-400 mt-1">คลิกเพื่อเลือกไฟล์เพิ่ม</span>
+                                <span class="text-xs font-semibold text-gray-700 group-hover:text-brand-600" x-text="tool === 'image-to-pdf' ? 'เพิ่มรูปภาพ' : 'เพิ่มไฟล์ PDF'"></span>
+                                <span class="text-[10px] text-gray-400 mt-1" x-text="tool === 'image-to-pdf' ? 'คลิกเพื่อเลือกรูปเพิ่ม' : 'คลิกเพื่อเลือกไฟล์เพิ่ม'"></span>
                             </div>
                         </div>
                     </div>

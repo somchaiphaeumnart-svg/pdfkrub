@@ -313,6 +313,16 @@ class PdfProcessingService
             throw new RuntimeException('ไม่พบไฟล์รูปภาพที่ต้องการแปลง');
         }
 
+        $config = $job->tool_config ?? [];
+        $orientation = in_array($config['orientation'] ?? '', ['portrait', 'landscape', 'auto']) ? $config['orientation'] : 'auto';
+        $pageSize = in_array($config['page_size'] ?? '', ['fit', 'a4', 'letter']) ? $config['page_size'] : 'fit';
+        $margin = in_array($config['margin'] ?? '', ['none', 'small', 'big']) ? $config['margin'] : 'none';
+        $layoutArgs = [
+            '--orientation', $orientation,
+            '--page-size', $pageSize,
+            '--margin', $margin,
+        ];
+
         try {
             $converted = false;
             $scriptPath = base_path('scripts/image_to_pdf.py');
@@ -323,7 +333,9 @@ class PdfProcessingService
             // 1. Try Python image_to_pdf script (Pillow / PyMuPDF / img2pdf / pure-python)
             if (file_exists($scriptPath)) {
                 $pyResult = Process::timeout(120)->run(array_merge(
-                    [$pythonCmd, $scriptPath, $outputPath],
+                    [$pythonCmd, $scriptPath],
+                    $layoutArgs,
+                    [$outputPath],
                     $inputPaths
                 ));
 
@@ -331,7 +343,9 @@ class PdfProcessingService
                     $converted = true;
                 } elseif ($pythonCmd !== 'python3') {
                     $sysResult = Process::timeout(120)->run(array_merge(
-                        ['python3', $scriptPath, $outputPath],
+                        ['python3', $scriptPath],
+                        $layoutArgs,
+                        [$outputPath],
                         $inputPaths
                     ));
                     if ($sysResult->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {

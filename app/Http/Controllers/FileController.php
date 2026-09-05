@@ -125,6 +125,11 @@ class FileController extends Controller
         if ($request->has('merge_extracted')) {
             $config['merge_extracted'] = filter_var($request->input('merge_extracted'), FILTER_VALIDATE_BOOLEAN);
         }
+        foreach (['orientation', 'page_size', 'margin'] as $imgParam) {
+            if ($request->filled($imgParam)) {
+                $config[$imgParam] = (string) $request->input($imgParam);
+            }
+        }
 
         // Create the processing job record
         $pdfJob = PdfJob::create([
