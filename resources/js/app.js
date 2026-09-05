@@ -224,6 +224,19 @@ Alpine.data('fileUpload', (config = {}) => ({
     pnTotalPages: 0,
     isRenderingPnPages: false,
 
+    // Crop PDF State
+    cropMode: 'custom', // 'custom', 'auto-margins', 'trim-scanner'
+    cropTop: 8,
+    cropBottom: 8,
+    cropLeft: 8,
+    cropRight: 8,
+    cropPages: 'all', // 'all', 'custom'
+    cropCustomPages: '',
+    cropPreviewUrl: null,
+    cropTotalPages: 0,
+    cropCurrentPage: 1,
+    isRenderingCropPreview: false,
+
     // Processing state
     isUploading: false,
     uploadProgress: 0,
@@ -283,6 +296,9 @@ Alpine.data('fileUpload', (config = {}) => ({
         }
         if (this.tool === 'page-numbers' && this.files.length > 0) {
             this.loadPageNumbersPreview();
+        }
+        if (this.tool === 'crop-pdf' && this.files.length > 0) {
+            this.loadCropPreview();
         }
     },
 
@@ -415,6 +431,10 @@ Alpine.data('fileUpload', (config = {}) => ({
         if (this.tool === 'page-numbers' && this.files.length > 0) {
             setTimeout(() => this.loadPageNumbersPreview(), 60);
         }
+        // If crop-pdf, load preview
+        if (this.tool === 'crop-pdf' && this.files.length > 0) {
+            setTimeout(() => this.loadCropPreview(), 60);
+        }
     },
 
     removeFile(id) {
@@ -480,6 +500,12 @@ Alpine.data('fileUpload', (config = {}) => ({
                 setTimeout(() => this.loadPageNumbersPreview(), 60);
             }
         }
+        if (this.tool === 'crop-pdf') {
+            this.clearCropState();
+            if (this.files.length > 0) {
+                setTimeout(() => this.loadCropPreview(), 60);
+            }
+        }
     },
 
     clearAll() {
@@ -510,6 +536,7 @@ Alpine.data('fileUpload', (config = {}) => ({
         this.clearWordState();
         this.clearPdfToImagesState();
         this.clearPageNumbersState();
+        this.clearCropState();
         this.protectPassword = '';
         this.protectPasswordConfirm = '';
         this.showProtectPassword = false;
@@ -712,6 +739,21 @@ Alpine.data('fileUpload', (config = {}) => ({
             formData.append('page_numbers_color', this.pnColor);
             formData.append('config[color]', this.pnColor);
         }
+        if (activeTool === 'crop-pdf') {
+            formData.append('crop_mode', this.cropMode);
+            formData.append('config[crop_mode]', this.cropMode);
+            formData.append('crop_top', this.cropTop.toString());
+            formData.append('config[crop_top]', this.cropTop.toString());
+            formData.append('crop_bottom', this.cropBottom.toString());
+            formData.append('config[crop_bottom]', this.cropBottom.toString());
+            formData.append('crop_left', this.cropLeft.toString());
+            formData.append('config[crop_left]', this.cropLeft.toString());
+            formData.append('crop_right', this.cropRight.toString());
+            formData.append('config[crop_right]', this.cropRight.toString());
+            const pagesVal = this.cropPages === 'custom' && this.cropCustomPages.trim() ? this.cropCustomPages.trim() : 'all';
+            formData.append('crop_pages', pagesVal);
+            formData.append('config[crop_pages]', pagesVal);
+        }
         const tokenMeta = document.querySelector('meta[name="csrf-token"]');
         if (tokenMeta) {
             formData.append('_token', tokenMeta.content);
@@ -812,6 +854,7 @@ Alpine.data('fileUpload', (config = {}) => ({
             'excel-to-pdf': 'กำลังแปลงเอกสาร Excel เป็นเอกสาร PDF...',
             'image-to-pdf': 'กำลังแปลงรูปภาพเป็นเอกสาร PDF...',
             'page-numbers': 'กำลังใส่เลขหน้าลงในเอกสาร PDF...',
+            'crop-pdf': 'กำลังครอบตัดและปรับขอบเอกสาร PDF...',
         };
         const detail = toolLabels[toolName] || 'เซิร์ฟเวอร์กำลังประมวลผลไฟล์...';
         this.processingDetail = detail;
@@ -1579,6 +1622,16 @@ Alpine.data('fileUpload', (config = {}) => ({
         if (this.tool === 'page-numbers' && this.hasFiles) {
             const pageCount = this.pnTotalPages || 1;
             return `ใส่เลขหน้าเอกสาร (${pageCount} หน้า)`;
+        }
+        if (this.tool === 'crop-pdf' && this.hasFiles) {
+            const pageCount = this.cropTotalPages || 1;
+            if (this.cropMode === 'auto-margins') {
+                return `ตัดขอบขาวอัตโนมัติ (${pageCount} หน้า)`;
+            }
+            if (this.cropMode === 'trim-scanner') {
+                return `ตัดขอบดำสแกน (${pageCount} หน้า)`;
+            }
+            return `ครอบตัดเอกสาร (${pageCount} หน้า)`;
         }
         return null;
     },
@@ -2523,6 +2576,99 @@ Alpine.data('fileUpload', (config = {}) => ({
             default:
                 return 'bottom-4 left-1/2 -translate-x-1/2 text-center';
         }
+    },
+
+    // =====================================================
+    // Crop PDF Methods & Live Preview
+    // =====================================================
+    clearCropState() {
+        this.cropMode = 'custom';
+        this.cropTop = 8;
+        this.cropBottom = 8;
+        this.cropLeft = 8;
+        this.cropRight = 8;
+        this.cropPages = 'all';
+        this.cropCustomPages = '';
+        this.cropPreviewUrl = null;
+        this.cropTotalPages = 0;
+        this.cropCurrentPage = 1;
+        this.isRenderingCropPreview = false;
+    },
+
+    setCropPreset(preset) {
+        this.cropMode = preset;
+        if (preset === 'trim-scanner') {
+            this.cropTop = 4;
+            this.cropBottom = 4;
+            this.cropLeft = 4;
+            this.cropRight = 4;
+        } else if (preset === 'auto-margins') {
+            this.cropTop = 0;
+            this.cropBottom = 0;
+            this.cropLeft = 0;
+            this.cropRight = 0;
+        } else if (preset === 'custom') {
+            if (this.cropTop === 0 && this.cropBottom === 0 && this.cropLeft === 0 && this.cropRight === 0) {
+                this.cropTop = 8;
+                this.cropBottom = 8;
+                this.cropLeft = 8;
+                this.cropRight = 8;
+            }
+        }
+    },
+
+    resetCropMargins() {
+        this.cropTop = 0;
+        this.cropBottom = 0;
+        this.cropLeft = 0;
+        this.cropRight = 0;
+        this.cropMode = 'custom';
+    },
+
+    async loadCropPreview() {
+        if (this.tool !== 'crop-pdf' || !this.files.length) return;
+        const targetFile = this.files[0]?.file;
+        if (!targetFile) return;
+
+        this.isRenderingCropPreview = true;
+        try {
+            await this.ensurePdfJs();
+            const arrayBuffer = await targetFile.arrayBuffer();
+            const doc = await window.pdfjsLib.getDocument({ data: arrayBuffer.slice(0) }).promise;
+            this.cropTotalPages = doc.numPages;
+
+            const pNum = Math.max(1, Math.min(this.cropTotalPages, this.cropCurrentPage || 1));
+            const page = await doc.getPage(pNum);
+            const baseViewport = page.getViewport({ scale: 1.0 });
+            const targetDim = 540;
+            const maxDim = Math.max(baseViewport.width, baseViewport.height);
+            const scale = Math.min(1.0, Math.max(0.45, targetDim / maxDim));
+            const viewport = page.getViewport({ scale });
+
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            const ctx = canvas.getContext('2d');
+
+            await page.render({
+                canvasContext: ctx,
+                viewport: viewport
+            }).promise;
+
+            this.cropPreviewUrl = canvas.toDataURL('image/jpeg', 0.88);
+        } catch (err) {
+            console.warn('Crop PDF preview error:', err);
+        } finally {
+            this.isRenderingCropPreview = false;
+        }
+    },
+
+    get cropRemainingWidthPercent() {
+        return Math.max(10, 100 - (this.cropLeft + this.cropRight));
+    },
+
+    get cropRemainingHeightPercent() {
+        return Math.max(10, 100 - (this.cropTop + this.cropBottom));
     },
 
     get hasFiles() { return this.files.length > 0; },

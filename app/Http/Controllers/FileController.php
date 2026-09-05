@@ -145,6 +145,11 @@ class FileController extends Controller
                 $config[$pnParam] = $request->input($pnParam);
             }
         }
+        foreach (['crop_mode', 'crop_top', 'crop_bottom', 'crop_left', 'crop_right', 'crop_pages'] as $cropParam) {
+            if ($request->has($cropParam)) {
+                $config[$cropParam] = $request->input($cropParam);
+            }
+        }
 
         // Create the processing job record
         $pdfJob = PdfJob::create([

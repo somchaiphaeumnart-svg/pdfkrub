@@ -47,6 +47,7 @@ class PdfProcessingService
             'delete-pages' => $this->deletePages($job),
             'watermark-pdf' => $this->watermarkPdf($job),
             'page-numbers' => $this->addPageNumbers($job),
+            'crop-pdf' => $this->cropPdf($job),
             'protect-pdf' => $this->protectPdf($job),
             'unlock-pdf' => $this->unlockPdf($job),
             'ocr-pdf' => $this->ocr->process($job),
@@ -785,6 +786,70 @@ class PdfProcessingService
 
             $basename = pathinfo($inputFile->original_name, PATHINFO_FILENAME);
             return $this->storeOutput($job, $outputPath, "{$basename}_numbered.pdf", 'application/pdf');
+        } finally {
+            $this->cleanTmpDir($tmpDir);
+        }
+    }
+
+    // =========================================================
+    // Crop and Trim PDF Margins
+    // =========================================================
+
+    private function cropPdf(PdfJob $job): UploadedFile
+    {
+        $inputFile = $this->getInputFile($job);
+        $inputPath = Storage::disk($inputFile->storage_disk)->path($inputFile->storage_key);
+        $tmpDir = $this->makeTmpDir();
+        $outputPath = $tmpDir.DIRECTORY_SEPARATOR.'cropped.pdf';
+
+        $config = $job->tool_config ?? [];
+        $mode = in_array((string)($config['crop_mode'] ?? ''), [
+            'custom', 'auto-margins', 'trim-scanner'
+        ]) ? $config['crop_mode'] : 'custom';
+
+        $top = max(0.0, min(45.0, (float)($config['crop_top'] ?? 0)));
+        $bottom = max(0.0, min(45.0, (float)($config['crop_bottom'] ?? 0)));
+        $left = max(0.0, min(45.0, (float)($config['crop_left'] ?? 0)));
+        $right = max(0.0, min(45.0, (float)($config['crop_right'] ?? 0)));
+        $pages = !empty($config['crop_pages']) ? (string)$config['crop_pages'] : 'all';
+
+        try {
+            $applied = false;
+            $scriptPath = base_path('scripts/crop_pdf.py');
+            $pythonCmd = file_exists('/opt/pdf2docx-env/bin/python3') ? '/opt/pdf2docx-env/bin/python3' : 'python3';
+
+            if (file_exists($scriptPath)) {
+                $cmd = [
+                    $pythonCmd,
+                    $scriptPath,
+                    $inputPath,
+                    $outputPath,
+                    '--mode', $mode,
+                    '--top', (string)$top,
+                    '--bottom', (string)$bottom,
+                    '--left', (string)$left,
+                    '--right', (string)$right,
+                    '--pages', $pages,
+                ];
+
+                $pyResult = Process::timeout(60)->run($cmd);
+                if ($pyResult->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                    $applied = true;
+                } elseif ($pythonCmd !== 'python3') {
+                    $cmd[0] = 'python3';
+                    $sysResult = Process::timeout(60)->run($cmd);
+                    if ($sysResult->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                        $applied = true;
+                    }
+                }
+            }
+
+            if (!$applied || !file_exists($outputPath) || filesize($outputPath) === 0) {
+                throw new RuntimeException('ไม่สามารถครอบตัดเอกสาร PDF ได้ กรุณาลองใหม่อีกครั้ง');
+            }
+
+            $basename = pathinfo($inputFile->original_name, PATHINFO_FILENAME);
+            return $this->storeOutput($job, $outputPath, "{$basename}_cropped.pdf", 'application/pdf');
         } finally {
             $this->cleanTmpDir($tmpDir);
         }

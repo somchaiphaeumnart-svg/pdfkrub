@@ -2043,6 +2043,266 @@
                         </div>
                     </div>
                     @endif
+
+                    @if($tool['slug'] === 'crop-pdf')
+                    {{-- Interactive Crop PDF Visual Editor & Live Preview --}}
+                    <div class="mt-5 pt-5 border-t border-gray-100" @click.stop>
+                        {{-- Header / Quick Info --}}
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-3 border-b border-gray-100">
+                            <div>
+                                <h3 class="text-base font-bold text-gray-800 flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.864 4.243A7.5 7.5 0 0 1 19.5 10.5c0 2.92-.556 5.709-1.568 8.268M5.742 6.364A7.465 7.465 0 0 0 4.5 10.5a7.5 7.5 0 1 0 15 0c0-.52-.053-1.028-.154-1.518M6.75 9.75v.008M17.25 9.75v.008M9 13.5h6m-3-3v6" />
+                                    </svg>
+                                    ครอบตัดและปรับแต่งขอบกระดาษ PDF
+                                </h3>
+                                <p class="text-xs text-gray-500 mt-0.5">ตัดขอบขาว ลบเงาดำของเครื่องสแกน หรือกำหนดระยะตัดขอบด้วยตนเองพร้อมดูตัวอย่างสด</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-700 text-xs font-semibold border border-sky-200">
+                                    <svg class="w-3.5 h-3.5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9z"/></svg>
+                                    <span x-text="`ทั้งหมด ${cropTotalPages || 1} หน้า`"></span>
+                                </span>
+                            </div>
+                        </div>
+
+                        {{-- 2-Column Responsive Layout --}}
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                            {{-- LEFT COLUMN: Controls & Margin Sliders (7 Cols) --}}
+                            <div class="lg:col-span-7 space-y-5">
+                                {{-- 1. Preset Selection Cards --}}
+                                <div class="bg-slate-50/80 border border-slate-200/90 rounded-2xl p-4">
+                                    <span class="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5 mb-3">
+                                        <svg class="w-4 h-4 text-sky-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
+                                        </svg>
+                                        1. รูปแบบการครอบตัด
+                                    </span>
+
+                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        {{-- Preset 1: Custom --}}
+                                        <button type="button" @click="setCropPreset('custom')"
+                                                class="flex flex-col items-center p-3.5 rounded-xl border text-center transition-all cursor-pointer"
+                                                :class="cropMode === 'custom' ? 'bg-sky-50 border-sky-500 text-sky-900 shadow-xs ring-2 ring-sky-500/20' : 'bg-white border-gray-200 text-gray-700 hover:border-sky-300'">
+                                            <div class="w-8 h-8 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center mb-2">
+                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"/></svg>
+                                            </div>
+                                            <span class="font-bold text-xs">กำหนดขอบเอง</span>
+                                            <span class="text-[10px] text-gray-500 mt-0.5">ปรับระยะ 4 ด้านอิสระ</span>
+                                        </button>
+
+                                        {{-- Preset 2: Trim Scanner Shadows --}}
+                                        <button type="button" @click="setCropPreset('trim-scanner')"
+                                                class="flex flex-col items-center p-3.5 rounded-xl border text-center transition-all cursor-pointer relative"
+                                                :class="cropMode === 'trim-scanner' ? 'bg-sky-50 border-sky-500 text-sky-900 shadow-xs ring-2 ring-sky-500/20' : 'bg-white border-gray-200 text-gray-700 hover:border-sky-300'">
+                                            <span class="absolute -top-2 right-2 text-[9px] bg-emerald-500 text-white font-bold px-1.5 py-0.2 rounded-full shadow-2xs">ยอดนิยม</span>
+                                            <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center mb-2">
+                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9.75v6.75m0 0-3-3m3 3 3-3m-8.25 6h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Z"/></svg>
+                                            </div>
+                                            <span class="font-bold text-xs">ลบเงาดำสแกน</span>
+                                            <span class="text-[10px] text-gray-500 mt-0.5">ตัดขอบ 4% ลบเงาสแกน</span>
+                                        </button>
+
+                                        {{-- Preset 3: Auto-Trim Margins --}}
+                                        <button type="button" @click="setCropPreset('auto-margins')"
+                                                class="flex flex-col items-center p-3.5 rounded-xl border text-center transition-all cursor-pointer"
+                                                :class="cropMode === 'auto-margins' ? 'bg-sky-50 border-sky-500 text-sky-900 shadow-xs ring-2 ring-sky-500/20' : 'bg-white border-gray-200 text-gray-700 hover:border-sky-300'">
+                                            <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center mb-2">
+                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"/></svg>
+                                            </div>
+                                            <span class="font-bold text-xs">ตัดขอบขาวออโต้</span>
+                                            <span class="text-[10px] text-gray-500 mt-0.5">ตรวจจับชิดข้อความจริง</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {{-- 2. Four-Way Margin Sliders (Custom & Trim-Scanner) --}}
+                                <div x-show="cropMode !== 'auto-margins'" class="bg-slate-50/80 border border-slate-200/90 rounded-2xl p-4 space-y-4">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                                            <svg class="w-4 h-4 text-sky-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
+                                            </svg>
+                                            2. ปรับระยะขอบ 4 ทิศทาง (%)
+                                        </span>
+                                        <div class="flex items-center gap-1">
+                                            <button type="button" @click="cropTop = 4; cropBottom = 4; cropLeft = 4; cropRight = 4;"
+                                                    class="text-[11px] px-2 py-0.5 rounded bg-white border border-gray-200 hover:border-sky-300 text-gray-600 font-medium">4%</button>
+                                            <button type="button" @click="cropTop = 8; cropBottom = 8; cropLeft = 8; cropRight = 8;"
+                                                    class="text-[11px] px-2 py-0.5 rounded bg-white border border-gray-200 hover:border-sky-300 text-gray-600 font-medium">8%</button>
+                                            <button type="button" @click="cropTop = 15; cropBottom = 15; cropLeft = 15; cropRight = 15;"
+                                                    class="text-[11px] px-2 py-0.5 rounded bg-white border border-gray-200 hover:border-sky-300 text-gray-600 font-medium">15%</button>
+                                            <button type="button" @click="resetCropMargins()"
+                                                    class="text-[11px] px-2 py-0.5 rounded bg-white border border-gray-200 hover:text-red-600 text-gray-400">รีเซ็ต</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {{-- Top Margin --}}
+                                        <div class="bg-white p-3 rounded-xl border border-gray-200">
+                                            <div class="flex items-center justify-between text-xs font-bold text-gray-700 mb-1.5">
+                                                <span>ขอบบน (Top)</span>
+                                                <span class="text-sky-600 font-mono" x-text="`${cropTop}%`"></span>
+                                            </div>
+                                            <input type="range" min="0" max="40" step="1" x-model.number="cropTop"
+                                                   class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-sky-600">
+                                        </div>
+
+                                        {{-- Bottom Margin --}}
+                                        <div class="bg-white p-3 rounded-xl border border-gray-200">
+                                            <div class="flex items-center justify-between text-xs font-bold text-gray-700 mb-1.5">
+                                                <span>ขอบล่าง (Bottom)</span>
+                                                <span class="text-sky-600 font-mono" x-text="`${cropBottom}%`"></span>
+                                            </div>
+                                            <input type="range" min="0" max="40" step="1" x-model.number="cropBottom"
+                                                   class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-sky-600">
+                                        </div>
+
+                                        {{-- Left Margin --}}
+                                        <div class="bg-white p-3 rounded-xl border border-gray-200">
+                                            <div class="flex items-center justify-between text-xs font-bold text-gray-700 mb-1.5">
+                                                <span>ขอบซ้าย (Left)</span>
+                                                <span class="text-sky-600 font-mono" x-text="`${cropLeft}%`"></span>
+                                            </div>
+                                            <input type="range" min="0" max="40" step="1" x-model.number="cropLeft"
+                                                   class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-sky-600">
+                                        </div>
+
+                                        {{-- Right Margin --}}
+                                        <div class="bg-white p-3 rounded-xl border border-gray-200">
+                                            <div class="flex items-center justify-between text-xs font-bold text-gray-700 mb-1.5">
+                                                <span>ขอบขวา (Right)</span>
+                                                <span class="text-sky-600 font-mono" x-text="`${cropRight}%`"></span>
+                                            </div>
+                                            <input type="range" min="0" max="40" step="1" x-model.number="cropRight"
+                                                   class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-sky-600">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Auto Margin notice --}}
+                                <div x-show="cropMode === 'auto-margins'" class="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 text-xs text-indigo-800 leading-relaxed">
+                                    <div class="font-bold mb-1 flex items-center gap-1.5">
+                                        <svg class="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"/></svg>
+                                        ระบบตรวจจับเนื้อหาอัตโนมัติ (Smart Bounding Box)
+                                    </div>
+                                    ระบบจะวิเคราะห์ตำแหน่งข้อความ เส้นวาด และรูปภาพจริงบนแต่ละหน้า แล้วครอบตัดขอบขาวส่วนเกินออกโดยคงระยะปลอดภัยไว้ 6 มม. รอบเนื้อหา
+                                </div>
+
+                                {{-- 3. Target Pages Options --}}
+                                <div class="bg-slate-50/80 border border-slate-200/90 rounded-2xl p-4">
+                                    <span class="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5 mb-3">
+                                        <svg class="w-4 h-4 text-sky-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
+                                        </svg>
+                                        3. นำไปใช้กับหน้า
+                                    </span>
+
+                                    <div class="space-y-2.5">
+                                        <label class="flex items-center gap-2.5 p-2.5 rounded-xl bg-white border border-gray-200 cursor-pointer hover:border-sky-300">
+                                            <input type="radio" name="crop_pages_mode" value="all" x-model="cropPages" class="w-4 h-4 text-sky-600 focus:ring-sky-500 border-gray-300">
+                                            <span class="text-xs font-semibold text-gray-800">ทุกหน้าในเอกสาร (<span x-text="cropTotalPages || 1"></span> หน้า)</span>
+                                        </label>
+
+                                        <label class="flex items-center gap-2.5 p-2.5 rounded-xl bg-white border border-gray-200 cursor-pointer hover:border-sky-300">
+                                            <input type="radio" name="crop_pages_mode" value="custom" x-model="cropPages" class="w-4 h-4 text-sky-600 focus:ring-sky-500 border-gray-300">
+                                            <span class="text-xs font-semibold text-gray-800">เฉพาะหน้าที่ระบุ</span>
+                                        </label>
+
+                                        <div x-show="cropPages === 'custom'" class="pt-1">
+                                            <input type="text" x-model="cropCustomPages" placeholder="เช่น 1, 3-5, 8"
+                                                   class="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+                                            <p class="text-[11px] text-gray-400 mt-1">คั่นด้วยเครื่องหมายจุลภาค เช่น 1, 2, 4-6</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- RIGHT COLUMN: Live Screen Preview with Illuminated Crop Window (5 Cols) --}}
+                            <div class="lg:col-span-5">
+                                <div class="bg-slate-100/80 border border-slate-200/90 rounded-2xl p-4 flex flex-col items-center">
+                                    <div class="w-full flex items-center justify-between mb-3 text-xs">
+                                        <span class="font-bold text-gray-700 flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                            ตัวอย่างหน้ากระดาษจำลอง
+                                        </span>
+                                        {{-- Pagination Buttons --}}
+                                        <div class="flex items-center gap-1.5">
+                                            <button type="button" @click="if (cropCurrentPage > 1) { cropCurrentPage--; loadCropPreview(); }"
+                                                    :disabled="cropCurrentPage <= 1"
+                                                    class="p-1 rounded bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">
+                                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+                                            </button>
+                                            <span class="text-[11px] text-gray-600 font-semibold" x-text="`หน้า ${cropCurrentPage || 1} / ${cropTotalPages || 1}`"></span>
+                                            <button type="button" @click="if (cropCurrentPage < cropTotalPages) { cropCurrentPage++; loadCropPreview(); }"
+                                                    :disabled="cropCurrentPage >= cropTotalPages"
+                                                    class="p-1 rounded bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">
+                                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {{-- Paper Sheet Container with Interactive Crop Overlay --}}
+                                    <div class="w-full max-w-[280px] aspect-[1/1.414] bg-white rounded-lg shadow-md border border-gray-300 relative overflow-hidden select-none flex items-center justify-center">
+                                        {{-- Rendered PDF background --}}
+                                        <template x-if="cropPreviewUrl">
+                                            <img :src="cropPreviewUrl" class="w-full h-full object-contain pointer-events-none" />
+                                        </template>
+
+                                        {{-- Loading Skeleton --}}
+                                        <template x-if="!cropPreviewUrl">
+                                            <div class="flex flex-col items-center justify-center text-slate-300 p-4 text-center">
+                                                <svg class="w-8 h-8 animate-spin text-sky-500 mb-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                                <span class="text-xs text-gray-400">กำลังโหลดตัวอย่างหน้า...</span>
+                                            </div>
+                                        </template>
+
+                                        {{-- Crop Overlay Darkening Mask (Visible when not in auto-margins mode) --}}
+                                        <div x-show="cropMode !== 'auto-margins'" class="absolute inset-0 pointer-events-none">
+                                            {{-- Top Mask --}}
+                                            <div class="absolute top-0 left-0 right-0 bg-slate-900/60 backdrop-blur-[1px] transition-all"
+                                                 :style="{ height: cropTop + '%' }"></div>
+                                            {{-- Bottom Mask --}}
+                                            <div class="absolute bottom-0 left-0 right-0 bg-slate-900/60 backdrop-blur-[1px] transition-all"
+                                                 :style="{ height: cropBottom + '%' }"></div>
+                                            {{-- Left Mask --}}
+                                            <div class="absolute left-0 bg-slate-900/60 backdrop-blur-[1px] transition-all"
+                                                 :style="{ top: cropTop + '%', bottom: cropBottom + '%', width: cropLeft + '%' }"></div>
+                                            {{-- Right Mask --}}
+                                            <div class="absolute right-0 bg-slate-900/60 backdrop-blur-[1px] transition-all"
+                                                 :style="{ top: cropTop + '%', bottom: cropBottom + '%', width: cropRight + '%' }"></div>
+
+                                            {{-- Illuminated Preserved Crop Box --}}
+                                            <div class="absolute border-2 border-dashed border-sky-400 shadow-xs transition-all flex items-center justify-center"
+                                                 :style="{ top: cropTop + '%', bottom: cropBottom + '%', left: cropLeft + '%', right: cropRight + '%' }">
+                                                {{-- Corner Handles --}}
+                                                <div class="absolute -top-1 -left-1 w-2.5 h-2.5 bg-sky-500 rounded-xs border border-white"></div>
+                                                <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-sky-500 rounded-xs border border-white"></div>
+                                                <div class="absolute -bottom-1 -left-1 w-2.5 h-2.5 bg-sky-500 rounded-xs border border-white"></div>
+                                                <div class="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-sky-500 rounded-xs border border-white"></div>
+
+                                                <span class="text-[10px] font-bold bg-sky-600/90 text-white px-2 py-0.5 rounded shadow-xs"
+                                                      x-text="`${cropRemainingWidthPercent}% × ${cropRemainingHeightPercent}%`"></span>
+                                            </div>
+                                        </div>
+
+                                        {{-- Auto Mode Badge Indicator --}}
+                                        <div x-show="cropMode === 'auto-margins'" class="absolute inset-0 bg-indigo-950/20 flex items-center justify-center p-4 text-center">
+                                            <div class="bg-white/95 backdrop-blur-md rounded-xl p-3 border border-indigo-200 shadow-md">
+                                                <span class="text-xs font-bold text-indigo-700 block">⚡ ระบบคำนวณขอบอัจฉริยะ</span>
+                                                <span class="text-[10px] text-gray-500 block mt-0.5">ครอบตัดตามกรอบเนื้อหาจริงบนแต่ละหน้า</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="text-[11px] text-gray-500 text-center mt-3">
+                                        พื้นที่สว่างคือส่วนที่จะถูก <strong class="text-gray-700">คงไว้</strong> ในเอกสารใหม่
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
                 </div>
             </template>
 
@@ -2185,7 +2445,7 @@
 </div>
 @endsection
 
-@if(in_array($tool['slug'], ['rotate-pdf', 'delete-pages', 'watermark-pdf', 'unlock-pdf', 'merge-pdf', 'compress-pdf', 'split-pdf', 'pdf-to-word', 'pdf-to-jpg', 'pdf-to-png', 'page-numbers']))
+@if(in_array($tool['slug'], ['rotate-pdf', 'delete-pages', 'watermark-pdf', 'unlock-pdf', 'merge-pdf', 'compress-pdf', 'split-pdf', 'pdf-to-word', 'pdf-to-jpg', 'pdf-to-png', 'page-numbers', 'crop-pdf']))
 @push('scripts')
 <script src="{{ asset('vendor/pdfjs/pdf.min.js') }}"></script>
 <script>

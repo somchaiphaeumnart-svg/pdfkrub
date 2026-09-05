@@ -222,6 +222,18 @@ class ToolController extends Controller
                 'output_format' => 'pdf',
             ],
             [
+                'slug' => 'crop-pdf',
+                'name' => 'Crop PDF',
+                'name_th' => 'ครอบตัด PDF',
+                'description_th' => 'ครอบตัดพื้นที่เอกสาร PDF ตัดขอบขาว หรือขอบดำสแกนที่ไม่ต้องการออก',
+                'icon' => '📐',
+                'category' => 'organize',
+                'color' => 'from-sky-600 to-cyan-500',
+                'accepts' => '.pdf',
+                'premium' => false,
+                'output_format' => 'pdf',
+            ],
+            [
                 'slug' => 'protect-pdf',
                 'name' => 'Protect PDF',
                 'name_th' => 'ใส่รหัสผ่าน PDF',
