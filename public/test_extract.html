@@ -10,7 +10,7 @@
         pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.js';
         async function test() {
             try {
-                const res = await fetch('/storage/test.pdf');
+                const res = await fetch('/test.pdf');
                 const buf = await res.arrayBuffer();
                 const doc = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
                 const page = await doc.getPage(1);
