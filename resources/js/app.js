@@ -4077,9 +4077,10 @@ Alpine.data('pdfEditor', () => ({
 
     // Ribbon tab state: 'edit-content' (default pro ribbon) | 'document' | 'organize' | 'security' | 'form'
     activeRibbonTab: 'edit-content',
-    textGroupMode: 'all', // 'all' (ข้อความทั้งหมดทั้งแผ่นตามตัวอย่าง) | 'block' (กลุ่มย่อหน้า) | 'line' (ทีละบรรทัด)
+    textGroupMode: 'line', // 'line' (คงรูปแบบต้นฉบับ 100% สแกนฟอนต์/ขนาด/การจัดวาง) | 'block' (กลุ่มย่อหน้า)
+    pageContentBox: null,
 
-    // Text tool & edit-text settings (default TH Niramit AS, 13pt matching user's document)
+    // Text tool & edit-text settings (default TH Niramit AS, 14pt matching user's document)
     textFontFamily: 'TH Niramit AS',
     textColor: '#111827',
     textSize: 13,
@@ -4577,59 +4578,82 @@ Alpine.data('pdfEditor', () => ({
 
                 const trimmed = lineText.trim();
                 if (trimmed) {
+                    // 1. Detect Alignment (Center, Right, Left)
+                    const lineCenter = (lineMinX + lineMaxX) / 2;
+                    const pageCenter = viewport.width / 2;
+                    let align = 'left';
+                    if (Math.abs(lineCenter - pageCenter) <= (viewport.width * 0.07) && (lineMaxX - lineMinX) < (viewport.width * 0.85)) {
+                        align = 'center';
+                    } else if (lineMinX > (viewport.width * 0.42) && lineMaxX > (viewport.width * 0.68)) {
+                        align = 'right';
+                    }
+
+                    // 2. Detect Font Name, Bold, Italic from PDF metadata
+                    let isBold = false;
+                    let isItalic = false;
+                    let fontFam = 'TH Niramit AS';
+                    for (const it of lc.items) {
+                        const fn = (it.fontName || '').toLowerCase();
+                        const sf = ((textContent.styles[it.fontName]?.fontFamily) || '').toLowerCase();
+                        if (fn.includes('bold') || fn.includes('-b') || fn.includes('black') || fn.includes('heavy') || sf.includes('bold') || sf.includes('700') || sf.includes('800')) {
+                            isBold = true;
+                        }
+                        if (fn.includes('italic') || fn.includes('oblique') || sf.includes('italic')) {
+                            isItalic = true;
+                        }
+                        if (sf.includes('niramit') || fn.includes('niramit')) fontFam = 'TH Niramit AS';
+                        else if (sf.includes('sarabun') || fn.includes('sarabun')) fontFam = 'TH Sarabun PSK';
+                        else if (sf.includes('krub') || fn.includes('krub')) fontFam = 'Krub';
+                        else if (sf.includes('charm') || fn.includes('charm')) fontFam = 'Charm';
+                        else if (sf.includes('mitr') || fn.includes('mitr')) fontFam = 'Mitr';
+                        else if (sf.includes('kanit') || fn.includes('kanit')) fontFam = 'Kanit';
+                        else if (sf.includes('prompt') || fn.includes('prompt')) fontFam = 'Prompt';
+                    }
+                    if (lc.fontSize >= 16) {
+                        isBold = true;
+                    }
+
                     processedLines.push({
                         text: lineText,
                         minX: lineMinX,
                         maxX: lineMaxX,
                         baselineY: lc.avgBaselineY,
-                        fontSize: lc.fontSize
+                        fontSize: lc.fontSize,
+                        align: align,
+                        bold: isBold,
+                        italic: isItalic,
+                        fontFamily: fontFam
                     });
                 }
             }
 
-            if (this.textGroupMode === 'all' && processedLines.length > 0) {
-                // ═══ MODE 'all': Select entire text block across the whole document page ═══
-                let minX = Infinity;
-                let maxX = -Infinity;
-                let minY = Infinity;
-                let maxY = -Infinity;
-                let totalFontSize = 0;
-
-                for (const line of processedLines) {
-                    if (line.minX < minX) minX = line.minX;
-                    if (line.maxX > maxX) maxX = line.maxX;
-                    const topY = Math.max(0, line.baselineY - line.fontSize * 0.95);
-                    const botY = line.baselineY + line.fontSize * 0.45;
-                    if (topY < minY) minY = topY;
-                    if (botY > maxY) maxY = botY;
-                    totalFontSize += line.fontSize;
+            // Calculate overall master bounding box for entire document text area
+            if (processedLines.length > 0) {
+                let mMinX = Infinity;
+                let mMaxX = -Infinity;
+                let mMinY = Infinity;
+                let mMaxY = -Infinity;
+                for (const pl of processedLines) {
+                    if (pl.minX < mMinX) mMinX = pl.minX;
+                    if (pl.maxX > mMaxX) mMaxX = pl.maxX;
+                    const topY = Math.max(0, pl.baselineY - pl.fontSize * 0.95);
+                    const botY = pl.baselineY + pl.fontSize * 0.45;
+                    if (topY < mMinY) mMinY = topY;
+                    if (botY > mMaxY) mMaxY = botY;
                 }
+                const pad = 10;
+                this.pageContentBox = {
+                    pctX: Math.max(0, ((mMinX - pad) / viewport.width) * 100),
+                    pctY: Math.max(0, ((mMinY - pad) / viewport.height) * 100),
+                    pctW: Math.min(100, ((mMaxX - mMinX + pad * 2) / viewport.width) * 100),
+                    pctH: Math.min(100, ((mMaxY - mMinY + pad * 2) / viewport.height) * 100)
+                };
+            } else {
+                this.pageContentBox = null;
+            }
 
-                const avgFontSize = Math.round(totalFontSize / processedLines.length) || 13;
-                const fullText = processedLines.map(l => l.text).join('\n');
-
-                const padX = 12;
-                const padY = 10;
-                const boundedMinX = Math.max(0, minX - padX);
-                const boundedMaxX = Math.min(viewport.width, maxX + padX);
-                const boundedMinY = Math.max(0, minY - padY);
-                const boundedMaxY = Math.min(viewport.height, maxY + padY);
-
-                const totalW = boundedMaxX - boundedMinX;
-                const totalH = boundedMaxY - boundedMinY;
-
-                this.currentOriginalTextBlocks = [{
-                    id: `orig_all_${this.currentPage}`,
-                    text: fullText,
-                    pctX: Math.max(0, Math.min(96, (boundedMinX / viewport.width) * 100)),
-                    pctY: Math.max(0, Math.min(96, (boundedMinY / viewport.height) * 100)),
-                    pctW: Math.min(100 - (boundedMinX / viewport.width) * 100, (totalW / viewport.width) * 100),
-                    pctH: Math.min(100 - (boundedMinY / viewport.height) * 100, (totalH / viewport.height) * 100),
-                    fontSize: avgFontSize,
-                    isAllPage: true
-                }];
-            } else if (this.textGroupMode === 'block' && processedLines.length > 0) {
-                // ═══ MODE 'block': Group into larger cohesive paragraph/section blocks ═══
+            if (this.textGroupMode === 'block' && processedLines.length > 0) {
+                // Group contiguous lines with same alignment and reasonable distance into paragraph blocks
                 const blocks = [];
                 let currentBlock = null;
 
@@ -4642,13 +4666,19 @@ Alpine.data('pdfEditor', () => ({
                             topY: Math.max(0, line.baselineY - line.fontSize * 0.95),
                             bottomY: line.baselineY + line.fontSize * 0.45,
                             fontSize: line.fontSize,
-                            lastBaselineY: line.baselineY
+                            lastBaselineY: line.baselineY,
+                            align: line.align,
+                            bold: line.bold,
+                            italic: line.italic,
+                            fontFamily: line.fontFamily
                         };
                     } else {
                         const yGap = line.baselineY - currentBlock.lastBaselineY;
-                        const maxAllowedGap = Math.max(55, currentBlock.fontSize * 3.5);
+                        const maxAllowedGap = Math.max(40, currentBlock.fontSize * 2.8);
+                        const sameAlign = currentBlock.align === line.align;
+                        const fontClose = Math.abs(currentBlock.fontSize - line.fontSize) <= 2;
 
-                        if (yGap > 0 && yGap <= maxAllowedGap) {
+                        if (yGap > 0 && yGap <= maxAllowedGap && sameAlign && fontClose) {
                             currentBlock.text += '\n' + line.text;
                             currentBlock.minX = Math.min(currentBlock.minX, line.minX);
                             currentBlock.maxX = Math.max(currentBlock.maxX, line.maxX);
@@ -4663,7 +4693,11 @@ Alpine.data('pdfEditor', () => ({
                                 topY: Math.max(0, line.baselineY - line.fontSize * 0.95),
                                 bottomY: line.baselineY + line.fontSize * 0.45,
                                 fontSize: line.fontSize,
-                                lastBaselineY: line.baselineY
+                                lastBaselineY: line.baselineY,
+                                align: line.align,
+                                bold: line.bold,
+                                italic: line.italic,
+                                fontFamily: line.fontFamily
                             };
                         }
                     }
@@ -4672,7 +4706,7 @@ Alpine.data('pdfEditor', () => ({
 
                 this.currentOriginalTextBlocks = blocks.map((blk, idx) => {
                     const padX = 6;
-                    const padY = 4;
+                    const padY = 2;
                     const bMinX = Math.max(0, blk.minX - padX);
                     const bMaxX = Math.min(viewport.width, blk.maxX + padX);
                     const bMinY = Math.max(0, blk.topY - padY);
@@ -4685,37 +4719,61 @@ Alpine.data('pdfEditor', () => ({
                         pctY: Math.max(0, Math.min(96, (bMinY / viewport.height) * 100)),
                         pctW: Math.min(100 - (bMinX / viewport.width) * 100, ((bMaxX - bMinX) / viewport.width) * 100),
                         pctH: Math.min(100 - (bMinY / viewport.height) * 100, ((bMaxY - bMinY) / viewport.height) * 100),
-                        fontSize: blk.fontSize
+                        fontSize: blk.fontSize,
+                        align: blk.align,
+                        bold: blk.bold,
+                        italic: blk.italic,
+                        fontFamily: blk.fontFamily,
+                        color: '#111827'
                     };
                 });
             } else {
-                // ═══ MODE 'line': Line-by-line mode ═══
+                // Default: Line-by-line mode (Scans 100% original font, size, weight, alignment per line)
                 this.currentOriginalTextBlocks = processedLines.map((line, idx) => {
                     const fontH = line.fontSize;
                     const topY = Math.max(0, line.baselineY - fontH * 0.95);
-                    const totalH = fontH * 1.4;
-                    const totalW = Math.max(line.maxX - line.minX, 20);
+                    const totalH = fontH * 1.35;
+                    const padX = 4;
+                    const bMinX = Math.max(0, line.minX - padX);
+                    const bMaxX = Math.min(viewport.width, line.maxX + padX);
+                    const totalW = Math.max(bMaxX - bMinX, 20);
 
                     return {
                         id: `orig_line_${this.currentPage}_${idx}`,
                         text: line.text,
-                        pctX: Math.max(0, Math.min(96, (line.minX / viewport.width) * 100)),
+                        pctX: Math.max(0, Math.min(96, (bMinX / viewport.width) * 100)),
                         pctY: Math.max(0, Math.min(96, (topY / viewport.height) * 100)),
-                        pctW: Math.min(100 - (line.minX / viewport.width) * 100, ((totalW + 8) / viewport.width) * 100),
-                        pctH: Math.min(100 - (topY / viewport.height) * 100, ((totalH + 4) / viewport.height) * 100),
-                        fontSize: line.fontSize
+                        pctW: Math.min(100 - (bMinX / viewport.width) * 100, (totalW / viewport.width) * 100),
+                        pctH: Math.min(100 - (topY / viewport.height) * 100, ((totalH + 2) / viewport.height) * 100),
+                        fontSize: line.fontSize,
+                        align: line.align,
+                        bold: line.bold,
+                        italic: line.italic,
+                        fontFamily: line.fontFamily,
+                        color: '#111827'
                     };
                 });
             }
         } catch (err) {
             console.warn('Error extracting page text blocks:', err);
             this.currentOriginalTextBlocks = [];
+            this.pageContentBox = null;
         } finally {
             this.isExtractingText = false;
         }
     },
 
     startEditingOriginalText(block) {
+        // ═══ SCAN & PRESERVE ORIGINAL ATTRIBUTES 100% ═══
+        if (block.fontFamily) this.textFontFamily = block.fontFamily;
+        if (block.fontSize) this.textSize = block.fontSize;
+        this.textBold = !!block.bold;
+        this.textItalic = !!block.italic;
+        if (block.align) this.textAlign = block.align;
+        this.textColor = block.color || '#111827';
+        this.textLineHeight = 1.45;
+
+        // Check if there's already an annotation covering this block closely
         const existing = this.annotations.find(a => 
             a.page === this.currentPage &&
             a.type === 'text' &&
@@ -4738,39 +4796,54 @@ Alpine.data('pdfEditor', () => ({
             page: this.currentPage,
             pctX: Math.max(0, block.pctX),
             pctY: Math.max(0, block.pctY),
-            pctW: Math.min(100 - block.pctX, Math.max(block.pctW, 20)),
-            pctH: Math.min(100 - block.pctY, Math.max(block.pctH, block.isAllPage ? 40 : 5)),
+            pctW: Math.min(100 - block.pctX, Math.max(block.pctW, 15)),
+            pctH: Math.min(100 - block.pctY, Math.max(block.pctH, 3.5)),
             text: block.text,
-            fontSize: block.fontSize || this.textSize || 13,
-            fontFamily: this.textFontFamily || 'TH Niramit AS',
-            color: this.textColor || '#111827',
-            bgColor: '#ffffff', // Opaque white to cover original PDF text!
-            bold: this.textBold || false,
-            italic: this.textItalic || false,
-            underline: this.textUnderline || false,
-            align: this.textAlign || 'left',
-            lineHeight: this.textLineHeight || 1.55
+            fontSize: block.fontSize || 14,
+            fontFamily: block.fontFamily || this.textFontFamily || 'TH Niramit AS',
+            color: block.color || '#111827',
+            bgColor: '#ffffff', // Cleanly covers only this original line's text!
+            bold: !!block.bold,
+            italic: !!block.italic,
+            underline: false,
+            align: block.align || 'left',
+            lineHeight: 1.45
         };
 
         this.annotations.push(newAnn);
         this.selectedAnnotationId = newId;
-        this.textSize = newAnn.fontSize;
-        this.textFontFamily = newAnn.fontFamily;
 
-        if (block.isAllPage) {
-            this.currentOriginalTextBlocks = [];
-        } else {
-            this.currentOriginalTextBlocks = this.currentOriginalTextBlocks.filter(b => b.id !== block.id);
-        }
+        // Remove only this block from detected blocks
+        this.currentOriginalTextBlocks = this.currentOriginalTextBlocks.filter(b => b.id !== block.id);
         this.pushHistory('แก้ไขข้อความในเอกสาร');
 
-        // Auto-focus the newly created textarea immediately
         setTimeout(() => {
             const ta = document.querySelector(`textarea[data-ann-id="${newId}"]`);
             if (ta) {
                 ta.focus();
             }
         }, 60);
+    },
+
+    handleMasterBoxClick(e) {
+        if (!this.currentOriginalTextBlocks || this.currentOriginalTextBlocks.length === 0) return;
+        const overlay = document.getElementById('pdfEditorOverlay');
+        if (!overlay) return;
+        const rect = overlay.getBoundingClientRect();
+        const clickedY = ((e.clientY - rect.top) / rect.height) * 100;
+        let closest = null;
+        let minDiff = Infinity;
+        for (const b of this.currentOriginalTextBlocks) {
+            const centerY = b.pctY + (b.pctH / 2);
+            const diff = Math.abs(centerY - clickedY);
+            if (diff < minDiff) {
+                minDiff = diff;
+                closest = b;
+            }
+        }
+        if (closest && minDiff < 8) {
+            this.startEditingOriginalText(closest);
+        }
     },
 
     // ─── RIBBON TABS & TOOLS ───
