@@ -256,6 +256,17 @@ Alpine.data('fileUpload', (config = {}) => ({
     excelDetectedTableType: 'checking', // 'checking', 'lattice', 'stream'
     excelDetectedCorruptedThai: false,
 
+    // PDF to PowerPoint State
+    pptxMode: 'editable', // 'editable', 'image', 'ocr'
+    pptxRatio: '16:9', // '16:9', '4:3'
+    pptxPagesMode: 'all', // 'all', 'custom'
+    pptxCustomPages: '',
+    pptxPreviewUrl: null,
+    pptxTotalPages: 0,
+    pptxCurrentPage: 1,
+    isAnalyzingPptxPdf: false,
+    pptxDetectedOrientation: 'landscape', // 'landscape', 'portrait'
+
     // Processing state
     isUploading: false,
     uploadProgress: 0,
@@ -324,6 +335,9 @@ Alpine.data('fileUpload', (config = {}) => ({
         }
         if (this.tool === 'pdf-to-excel' && this.files.length > 0) {
             this.loadExcelPdfPreview();
+        }
+        if (this.tool === 'pdf-to-pptx' && this.files.length > 0) {
+            this.loadPptxPdfPreview();
         }
     },
 
@@ -468,6 +482,10 @@ Alpine.data('fileUpload', (config = {}) => ({
         if (this.tool === 'pdf-to-excel' && this.files.length > 0) {
             setTimeout(() => this.loadExcelPdfPreview(), 60);
         }
+        // If pdf-to-pptx, load preview
+        if (this.tool === 'pdf-to-pptx' && this.files.length > 0) {
+            setTimeout(() => this.loadPptxPdfPreview(), 60);
+        }
     },
 
     removeFile(id) {
@@ -549,6 +567,12 @@ Alpine.data('fileUpload', (config = {}) => ({
             this.clearExcelState();
             if (this.files.length > 0) {
                 setTimeout(() => this.loadExcelPdfPreview(), 60);
+            }
+        }
+        if (this.tool === 'pdf-to-pptx') {
+            this.clearPptxState();
+            if (this.files.length > 0) {
+                setTimeout(() => this.loadPptxPdfPreview(), 60);
             }
         }
     },
@@ -829,6 +853,17 @@ Alpine.data('fileUpload', (config = {}) => ({
             const pVal = this.excelPagesMode === 'custom' && this.excelCustomPages.trim() ? this.excelCustomPages.trim() : 'all';
             formData.append('excel_custom_pages', pVal);
             formData.append('config[excel_custom_pages]', pVal);
+        }
+        if (activeTool === 'pdf-to-pptx') {
+            formData.append('pptx_mode', this.pptxMode);
+            formData.append('config[pptx_mode]', this.pptxMode);
+            formData.append('pptx_ratio', this.pptxRatio);
+            formData.append('config[pptx_ratio]', this.pptxRatio);
+            formData.append('pptx_pages_mode', this.pptxPagesMode);
+            formData.append('config[pptx_pages_mode]', this.pptxPagesMode);
+            const pVal = this.pptxPagesMode === 'custom' && this.pptxCustomPages.trim() ? this.pptxCustomPages.trim() : 'all';
+            formData.append('pptx_custom_pages', pVal);
+            formData.append('config[pptx_custom_pages]', pVal);
         }
         const tokenMeta = document.querySelector('meta[name="csrf-token"]');
         if (tokenMeta) {
@@ -1724,6 +1759,17 @@ Alpine.data('fileUpload', (config = {}) => ({
             const sheetLabel = this.excelSheetMode === 'single' ? 'รวมชีตเดียว' : 'แยกหน้าละชีต';
             const pCount = this.excelPagesMode === 'custom' && this.excelCustomPages ? ` (หน้า ${this.excelCustomPages})` : (this.excelTotalPages ? ` (${this.excelTotalPages} หน้า)` : '');
             return `แปลงเป็น Excel .xlsx [${modeLabel} · ${sheetLabel}]${pCount}`;
+        }
+        if (this.tool === 'pdf-to-pptx' && this.hasFiles) {
+            const modeMap = {
+                'editable': 'แก้ไขได้เต็มรูปแบบ',
+                'image': 'สไลด์ภาพคมชัดสูง',
+                'ocr': 'OCR ภาษาไทย'
+            };
+            const modeLabel = modeMap[this.pptxMode] || 'แก้ไขได้';
+            const ratioLabel = this.pptxRatio === '16:9' ? '16:9 จอกว้าง' : '4:3 มาตรฐาน';
+            const pCount = this.pptxPagesMode === 'custom' && this.pptxCustomPages ? ` (หน้า ${this.pptxCustomPages})` : (this.pptxTotalPages ? ` (${this.pptxTotalPages} สไลด์)` : '');
+            return `แปลงเป็น PowerPoint .pptx [${modeLabel} · ${ratioLabel}]${pCount}`;
         }
         return null;
     },
@@ -2981,6 +3027,60 @@ Alpine.data('fileUpload', (config = {}) => ({
             console.warn('PDF to Excel preview error:', err);
         } finally {
             this.isAnalyzingExcelPdf = false;
+        }
+    },
+
+    clearPptxState() {
+        this.pptxPreviewUrl = null;
+        this.pptxTotalPages = 0;
+        this.pptxCurrentPage = 1;
+        this.isAnalyzingPptxPdf = false;
+        this.pptxDetectedOrientation = 'landscape';
+    },
+
+    async loadPptxPdfPreview() {
+        if (this.tool !== 'pdf-to-pptx' || !this.files.length) return;
+        const targetFile = this.files[0]?.file;
+        if (!targetFile) return;
+
+        this.isAnalyzingPptxPdf = true;
+
+        try {
+            await this.ensurePdfJs();
+            const arrayBuffer = await targetFile.arrayBuffer();
+            const doc = await window.pdfjsLib.getDocument({ data: arrayBuffer.slice(0) }).promise;
+            this.pptxTotalPages = doc.numPages;
+
+            const pNum = Math.max(1, Math.min(this.pptxTotalPages, this.pptxCurrentPage || 1));
+            const page = await doc.getPage(pNum);
+
+            const baseViewport = page.getViewport({ scale: 1.0 });
+            if (baseViewport.width >= baseViewport.height) {
+                this.pptxDetectedOrientation = 'landscape';
+            } else {
+                this.pptxDetectedOrientation = 'portrait';
+            }
+
+            const targetDim = 600;
+            const maxDim = Math.max(baseViewport.width, baseViewport.height);
+            const scale = Math.min(1.6, Math.max(0.45, targetDim / maxDim));
+            const viewport = page.getViewport({ scale });
+
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            const ctx = canvas.getContext('2d');
+
+            await page.render({
+                canvasContext: ctx,
+                viewport: viewport
+            }).promise;
+
+            this.pptxPreviewUrl = canvas.toDataURL('image/jpeg', 0.90);
+        } catch (err) {
+            console.warn('PDF to PowerPoint preview error:', err);
+        } finally {
+            this.isAnalyzingPptxPdf = false;
         }
     },
 

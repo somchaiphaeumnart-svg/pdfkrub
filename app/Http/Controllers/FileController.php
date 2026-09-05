@@ -158,6 +158,11 @@ class FileController extends Controller
                 $config[$exParam] = (string) $request->input($exParam);
             }
         }
+        foreach (['pptx_mode', 'pptx_ratio', 'pptx_pages_mode', 'pptx_custom_pages'] as $pptxParam) {
+            if ($request->has($pptxParam)) {
+                $config[$pptxParam] = (string) $request->input($pptxParam);
+            }
+        }
 
         // Create the processing job record
         $pdfJob = PdfJob::create([

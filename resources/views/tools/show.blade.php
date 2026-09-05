@@ -754,6 +754,217 @@
                         </div>
                     </div>
                     @endif
+                    @if($tool['slug'] === 'pdf-to-pptx')
+                    {{-- Visual Presentation Studio & Settings for PDF to PowerPoint --}}
+                    <div class="mt-5 pt-5 border-t border-gray-100" @click.stop>
+                        {{-- Header Bar --}}
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-gray-800 font-bold text-base">ตัวเลือกการแปลงเป็น PowerPoint (.pptx)</span>
+                                    <template x-if="isAnalyzingPptxPdf">
+                                        <span class="inline-flex items-center gap-1.5 bg-slate-100 text-slate-600 text-xs px-2.5 py-0.5 rounded-full font-medium animate-pulse">
+                                            <svg class="w-3 h-3 animate-spin text-orange-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                            กำลังวิเคราะห์สไลด์...
+                                        </span>
+                                    </template>
+                                    <template x-if="!isAnalyzingPptxPdf && pptxDetectedOrientation === 'landscape'">
+                                        <span class="inline-flex items-center gap-1 bg-orange-50 text-orange-700 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-orange-200">
+                                            <svg class="w-3.5 h-3.5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                                            สัดส่วนแนวนอน (เหมาะกับ 16:9 จอกว้าง)
+                                        </span>
+                                    </template>
+                                    <template x-if="!isAnalyzingPptxPdf && pptxDetectedOrientation === 'portrait'">
+                                        <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-amber-200">
+                                            <svg class="w-3.5 h-3.5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"/></svg>
+                                            สัดส่วนแนวตั้ง (จัดกึ่งกลางสไลด์)
+                                        </span>
+                                    </template>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-0.5">เลือกโหมดการสร้างสไลด์ สัดส่วนจอภาพ และระบุหน้าที่ต้องการแปลง</p>
+                            </div>
+                            <div class="text-xs text-slate-500 font-mono bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200 self-start sm:self-center" x-show="pptxTotalPages > 0">
+                                ทั้งหมด <strong class="text-slate-800" x-text="pptxTotalPages"></strong> หน้า
+                            </div>
+                        </div>
+
+                        {{-- Main Grid: Left Settings (7 cols), Right Live Slide Preview (5 cols) --}}
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+                            {{-- Left Column: Settings & Controls --}}
+                            <div class="lg:col-span-7 space-y-4">
+                                {{-- 1. Conversion Engine Mode --}}
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">1. รูปแบบสไลด์ PowerPoint (Slide Presentation Mode)</label>
+                                    <div class="space-y-2">
+                                        {{-- Mode: Editable Vector Presentation --}}
+                                        <div @click="pptxMode = 'editable'"
+                                             class="p-3.5 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-3.5"
+                                             :class="pptxMode === 'editable' ? 'border-orange-600 bg-orange-50/50 shadow-2xs ring-2 ring-orange-500/20' : 'border-gray-200 bg-white hover:border-orange-300'">
+                                            <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                                                 :class="pptxMode === 'editable' ? 'bg-orange-600 text-white' : 'bg-orange-50 text-orange-600'">
+                                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="flex items-center justify-between mb-1">
+                                                    <span class="text-xs font-bold text-gray-900">แก้ไขได้เต็มรูปแบบ (Editable Presentation)</span>
+                                                    <span class="text-[9px] font-bold px-2 py-0.5 rounded-md bg-orange-100 text-orange-800">แนะนำ</span>
+                                                </div>
+                                                <p class="text-[11px] text-gray-500 leading-relaxed">แยกกล่องข้อความ ตาราง รูปทรงเวกเตอร์ และรูปภาพ สามารถคลิกแก้ไข เปลี่ยนฟอนต์ และจัดวางใหม่ใน PowerPoint ได้อย่างอิสระ</p>
+                                            </div>
+                                        </div>
+
+                                        {{-- Mode: High-Res Visual Slides --}}
+                                        <div @click="pptxMode = 'image'"
+                                             class="p-3.5 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-3.5"
+                                             :class="pptxMode === 'image' ? 'border-orange-600 bg-orange-50/50 shadow-2xs ring-2 ring-orange-500/20' : 'border-gray-200 bg-white hover:border-orange-300'">
+                                            <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                                                 :class="pptxMode === 'image' ? 'bg-orange-600 text-white' : 'bg-orange-50 text-orange-600'">
+                                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/></svg>
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="flex items-center justify-between mb-1">
+                                                    <span class="text-xs font-bold text-gray-900">สไลด์รูปภาพคมชัดสูง (High-Res Visual Slides)</span>
+                                                    <span class="text-[9px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">ตรงต้นฉบับ 100%</span>
+                                                </div>
+                                                <p class="text-[11px] text-gray-500 leading-relaxed">วางภาพหน้ากระดาษแบบความละเอียดสูงเต็มสไลด์ รักษาความคมชัดและการจัดหน้าเดิมแบบสมบูรณ์ เหมาะสำหรับฉายพรีเซนต์ทันที</p>
+                                            </div>
+                                        </div>
+
+                                        {{-- Mode: Thai OCR Mode --}}
+                                        <div @click="pptxMode = 'ocr'"
+                                             class="p-3.5 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-3.5"
+                                             :class="pptxMode === 'ocr' ? 'border-orange-600 bg-orange-50/50 shadow-2xs ring-2 ring-orange-500/20' : 'border-gray-200 bg-white hover:border-orange-300'">
+                                            <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                                                 :class="pptxMode === 'ocr' ? 'bg-orange-600 text-white' : 'bg-orange-50 text-orange-600'">
+                                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" /></svg>
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="flex items-center justify-between mb-1">
+                                                    <span class="text-xs font-bold text-gray-900">สแกน OCR ภาษาไทย (Thai OCR Slides)</span>
+                                                    <span class="text-[9px] font-medium text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md">สำหรับไฟล์สแกน</span>
+                                                </div>
+                                                <p class="text-[11px] text-gray-500 leading-relaxed">สแกนข้อความภาษาไทยและอังกฤษจากภาพถ่ายหรือไฟล์สแกน แล้วแปลงเป็นกล่องข้อความที่แก้ไขและค้นหาได้</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- 2. Slide Aspect Ratio --}}
+                                <div class="bg-slate-50/80 border border-slate-200/90 rounded-2xl p-3.5 sm:p-4">
+                                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2.5">2. สัดส่วนหน้าจอพรีเซนต์ (Slide Aspect Ratio)</label>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                        <label @click="pptxRatio = '16:9'"
+                                               class="flex items-start gap-2.5 p-3 rounded-xl bg-white border cursor-pointer transition-all"
+                                               :class="pptxRatio === '16:9' ? 'border-orange-600 ring-1 ring-orange-500 bg-orange-50/20' : 'border-gray-200 hover:border-gray-300'">
+                                            <input type="radio" name="pptx_ratio" value="16:9" x-model="pptxRatio" class="mt-0.5 text-orange-600 focus:ring-orange-500">
+                                            <div>
+                                                <div class="flex items-center gap-1.5">
+                                                    <span class="text-xs font-bold text-gray-900">จอกว้าง 16:9 (Widescreen)</span>
+                                                    <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-orange-100 text-orange-800">มาตรฐาน</span>
+                                                </div>
+                                                <span class="text-[11px] text-gray-500 leading-relaxed block mt-0.5">เหมาะสำหรับจอคอมพิวเตอร์ จอทีวี และโปรเจกเตอร์ยุคใหม่</span>
+                                            </div>
+                                        </label>
+
+                                        <label @click="pptxRatio = '4:3'"
+                                               class="flex items-start gap-2.5 p-3 rounded-xl bg-white border cursor-pointer transition-all"
+                                               :class="pptxRatio === '4:3' ? 'border-orange-600 ring-1 ring-orange-500 bg-orange-50/20' : 'border-gray-200 hover:border-gray-300'">
+                                            <input type="radio" name="pptx_ratio" value="4:3" x-model="pptxRatio" class="mt-0.5 text-orange-600 focus:ring-orange-500">
+                                            <div>
+                                                <span class="text-xs font-bold text-gray-900 block">จอมาตรฐาน 4:3 (Standard)</span>
+                                                <span class="text-[11px] text-gray-500 leading-relaxed block mt-0.5">เหมาะสำหรับเอกสารหน้ากระดาษ A4 หรือจอโปรเจกเตอร์ทั่วไป</span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {{-- 3. Page Selection --}}
+                                <div class="bg-slate-50/80 border border-slate-200/90 rounded-2xl p-3.5 sm:p-4">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider">3. หน้าที่ต้องการแปลงเป็นสไลด์</label>
+                                        <div class="flex items-center gap-1.5">
+                                            <button type="button" @click="pptxPagesMode = 'all'"
+                                                    :class="pptxPagesMode === 'all' ? 'bg-orange-600 text-white font-semibold shadow-xs' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'"
+                                                    class="px-2.5 py-1 rounded-lg text-xs transition-all cursor-pointer">
+                                                ทุกหน้า
+                                            </button>
+                                            <button type="button" @click="pptxPagesMode = 'custom'"
+                                                    :class="pptxPagesMode === 'custom' ? 'bg-orange-600 text-white font-semibold shadow-xs' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'"
+                                                    class="px-2.5 py-1 rounded-lg text-xs transition-all cursor-pointer">
+                                                กำหนดหน้า
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div x-show="pptxPagesMode === 'custom'" class="pt-1.5">
+                                        <input type="text"
+                                               x-model="pptxCustomPages"
+                                               placeholder="ระบุเลขหน้า เช่น 1-3, 5, 8"
+                                               class="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-orange-500 text-slate-700 bg-white font-mono">
+                                        <p class="text-[11px] text-gray-400 mt-1">คั่นด้วยเครื่องหมายจุลภาค เช่น 1, 3-5, 8</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Right Column: Live Slide Presentation Screen Mockup (5 cols) --}}
+                            <div class="lg:col-span-5 flex flex-col items-center justify-center">
+                                <div class="w-full bg-slate-900 text-white rounded-2xl border border-slate-800 p-4 sm:p-5 flex flex-col items-center justify-center min-h-[360px] shadow-lg">
+                                    <div class="w-full flex items-center justify-between mb-3 px-1 text-slate-300">
+                                        <span class="text-xs font-bold flex items-center gap-1.5">
+                                            <svg class="w-4 h-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3m8.5-3 1 3m0 0 .5 1.5m-.5-1.5h-9.5m0 0-.5 1.5m.75-9 3-3 2.148 2.148A12.061 12.061 0 0 1 16.5 7.605"/></svg>
+                                            ตัวอย่างสไลด์นำเสนอจริง
+                                        </span>
+                                        {{-- Pagination --}}
+                                        <div class="flex items-center gap-1.5" x-show="pptxTotalPages > 1">
+                                            <button type="button"
+                                                    @click="if (pptxCurrentPage > 1) { pptxCurrentPage--; loadPptxPdfPreview(); }"
+                                                    :disabled="pptxCurrentPage <= 1"
+                                                    class="p-1 rounded bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
+                                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+                                            </button>
+                                            <span class="text-[11px] text-slate-300 font-semibold" x-text="`สไลด์ ${pptxCurrentPage || 1} / ${pptxTotalPages || 1}`"></span>
+                                            <button type="button"
+                                                    @click="if (pptxCurrentPage < pptxTotalPages) { pptxCurrentPage++; loadPptxPdfPreview(); }"
+                                                    :disabled="pptxCurrentPage >= pptxTotalPages"
+                                                    class="p-1 rounded bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
+                                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {{-- Presentation Screen Mockup with Dynamic Aspect Ratio --}}
+                                    <div class="relative w-full max-w-[320px] bg-black rounded-xl shadow-2xl border-2 border-slate-700 overflow-hidden flex items-center justify-center transition-all duration-300"
+                                         :style="pptxRatio === '16:9' ? 'aspect-ratio: 16/9;' : 'aspect-ratio: 4/3;'">
+                                        <template x-if="pptxPreviewUrl">
+                                            <img :src="pptxPreviewUrl" class="w-full h-full object-contain pointer-events-none select-none bg-white">
+                                        </template>
+                                        <template x-if="!pptxPreviewUrl">
+                                            <div class="flex flex-col items-center justify-center text-slate-500 p-4 text-center">
+                                                <svg class="w-10 h-10 text-orange-400 animate-pulse mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3m8.5-3 1 3m0 0 .5 1.5m-.5-1.5h-9.5m0 0-.5 1.5m.75-9 3-3 2.148 2.148A12.061 12.061 0 0 1 16.5 7.605"/>
+                                                </svg>
+                                                <span class="text-xs text-slate-400 font-medium">กำลังโหลดตัวอย่างสไลด์...</span>
+                                            </div>
+                                        </template>
+
+                                        {{-- Simulated Slide Footer Overlay --}}
+                                        <div class="absolute bottom-0 inset-x-0 bg-slate-900/90 border-t border-slate-700 px-2 py-0.5 flex items-center justify-between text-[9px] text-slate-400 font-mono backdrop-blur-xs">
+                                            <span class="flex items-center gap-1">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
+                                                <span x-text="pptxRatio === '16:9' ? '16:9 Widescreen' : '4:3 Standard'"></span>
+                                            </span>
+                                            <span class="text-orange-400 font-semibold" x-text="pptxMode === 'editable' ? 'Editable Text' : (pptxMode === 'image' ? 'HD Picture' : 'OCR Text')"></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-3 text-center">
+                                        <span class="text-[11px] text-slate-400">ผลลัพธ์: สไลด์ <strong>Microsoft PowerPoint (.pptx)</strong></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
                     @if(in_array($tool['slug'], ['pdf-to-jpg', 'pdf-to-png']))
                     {{-- Visual Page Selector & Quality Settings for PDF to Images --}}
                     <div class="mt-5 pt-5 border-t border-gray-100" @click.stop>
@@ -2840,7 +3051,7 @@
 </div>
 @endsection
 
-@if(in_array($tool['slug'], ['rotate-pdf', 'delete-pages', 'watermark-pdf', 'unlock-pdf', 'merge-pdf', 'compress-pdf', 'split-pdf', 'pdf-to-word', 'pdf-to-excel', 'pdf-to-jpg', 'pdf-to-png', 'page-numbers', 'crop-pdf', 'organize-pdf']))
+@if(in_array($tool['slug'], ['rotate-pdf', 'delete-pages', 'watermark-pdf', 'unlock-pdf', 'merge-pdf', 'compress-pdf', 'split-pdf', 'pdf-to-word', 'pdf-to-excel', 'pdf-to-pptx', 'pdf-to-jpg', 'pdf-to-png', 'page-numbers', 'crop-pdf', 'organize-pdf']))
 @push('scripts')
 <script src="{{ asset('vendor/pdfjs/pdf.min.js') }}"></script>
 <script>

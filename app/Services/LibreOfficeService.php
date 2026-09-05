@@ -113,7 +113,7 @@ class LibreOfficeService
 
         // For PowerPoint (pptx), use high-fidelity slide conversion with LibreOffice fallback
         if ($targetFormat === 'pptx') {
-            return $this->convertPdfToPptx($inputPdf, $outputDir);
+            return $this->convertPdfToPptx($inputPdf, $outputDir, $options);
         }
 
         // For Text (txt), use specialized unicode text extraction
@@ -232,7 +232,7 @@ class LibreOfficeService
     /**
      * Convert PDF to PowerPoint (.pptx) using python slide extraction or LibreOffice fallback.
      */
-    public function convertPdfToPptx(string $inputPdf, string $outputDir): string
+    public function convertPdfToPptx(string $inputPdf, string $outputDir, array $options = []): string
     {
         $basename = pathinfo($inputPdf, PATHINFO_FILENAME);
         $outputPath = rtrim($outputDir, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.$basename.'.pptx';
@@ -243,13 +243,21 @@ class LibreOfficeService
 
         $scriptPath = base_path('scripts/pdf_to_pptx.py');
 
+        $mode = $options['pptx_mode'] ?? 'editable';
+        $ratio = $options['pptx_ratio'] ?? '16:9';
+        $pages = ($options['pptx_pages_mode'] ?? '') === 'custom' && !empty($options['pptx_custom_pages'])
+            ? (string)$options['pptx_custom_pages']
+            : 'all';
+
+        $cliArgs = [
+            '--mode', $mode,
+            '--ratio', $ratio,
+            '--pages', $pages,
+        ];
+
         if (file_exists($scriptPath)) {
-            $result = Process::timeout($this->timeoutSeconds)->run([
-                $pythonCmd,
-                $scriptPath,
-                $inputPdf,
-                $outputPath,
-            ]);
+            $cmd = array_merge([$pythonCmd, $scriptPath, $inputPdf, $outputPath], $cliArgs);
+            $result = Process::timeout($this->timeoutSeconds)->run($cmd);
 
             if ($result->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
                 return $outputPath;
@@ -263,12 +271,8 @@ class LibreOfficeService
             ]);
 
             if ($pythonCmd !== 'python3') {
-                $sysResult = Process::timeout($this->timeoutSeconds)->run([
-                    'python3',
-                    $scriptPath,
-                    $inputPdf,
-                    $outputPath,
-                ]);
+                $sysCmd = array_merge(['python3', $scriptPath, $inputPdf, $outputPath], $cliArgs);
+                $sysResult = Process::timeout($this->timeoutSeconds)->run($sysCmd);
 
                 if ($sysResult->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
                     return $outputPath;
