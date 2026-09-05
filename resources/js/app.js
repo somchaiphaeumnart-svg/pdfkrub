@@ -1729,8 +1729,9 @@ Alpine.data('signPdf', () => ({
             const buffer = await file.arrayBuffer();
             this.pdfBytes = buffer;
 
+            // Clone buffer for PDF.js to avoid worker detaching this.pdfBytes
             const loadingTask = window.pdfjsLib.getDocument({
-                data: buffer,
+                data: buffer.slice(0),
                 cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
                 cMapPacked: true,
                 standardFontDataUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/standard_fonts/',
@@ -2316,7 +2317,19 @@ Alpine.data('signPdf', () => ({
         try {
             await this.ensurePdfLib();
             const { PDFDocument, degrees } = window.PDFLib;
-            const pdfDoc = await PDFDocument.load(this.pdfBytes);
+
+            // Always acquire a fresh, non-detached ArrayBuffer from the original File object
+            let sourceBuffer = null;
+            if (this.pdfFile && typeof this.pdfFile.arrayBuffer === 'function') {
+                sourceBuffer = await this.pdfFile.arrayBuffer();
+            } else if (this.pdfBytes && this.pdfBytes.byteLength > 0) {
+                sourceBuffer = this.pdfBytes.slice(0);
+            }
+            if (!sourceBuffer || sourceBuffer.byteLength === 0) {
+                throw new Error('ไม่พบข้อมูลเอกสาร PDF กรุณาเลือกไฟล์อีกครั้ง');
+            }
+
+            const pdfDoc = await PDFDocument.load(sourceBuffer);
             const pages = pdfDoc.getPages();
 
             for (const sig of this.placedSignatures) {
