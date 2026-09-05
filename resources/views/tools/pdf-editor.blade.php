@@ -768,6 +768,8 @@
                     {{-- Interactive Overlay for Annotations (Text, Note, Stamp, Markup, Whiteout) --}}
                     <div id="pdfEditorOverlay"
                          class="absolute inset-0 w-full h-full"
+                         :class="['pointer', 'edit-text', 'text'].includes(activeTool) ? 'cursor-text' : ''"
+                         @click="handleOverlayClick($event)"
                          @mousedown="handleOverlayMouseDown($event)"
                          @mousemove="handleOverlayMouseMove($event)"
                          @mouseup="handleOverlayMouseUp($event)"
@@ -776,13 +778,14 @@
                         {{-- Layer 0: Detected Original Text Block (Single unified container preserving 100% typography) --}}
                         <div x-show="['pointer', 'edit-text', 'text'].includes(activeTool) && currentOriginalTextBlocks.length > 0 && !pageAnnotations.some(a => a.type === 'text_document')" class="absolute inset-0 pointer-events-none z-10" x-cloak>
                             <template x-for="block in currentOriginalTextBlocks" :key="block.id">
-                                <div class="absolute pointer-events-auto cursor-pointer border-2 border-dashed border-sky-400 bg-sky-50/10 hover:bg-sky-50/25 hover:border-brand-500 rounded-sm transition-all group"
-                                     :style="`left: ${block.pctX}%; top: ${block.pctY}%; width: ${block.pctW}%; height: ${block.pctH}%;`"
+                                <div class="absolute pointer-events-auto cursor-text border border-dashed border-sky-400/80 bg-sky-50/5 hover:bg-sky-50/20 hover:border-brand-500 rounded-xs transition-all group"
+                                     :style="`left: ${block.pctX || 0}%; top: ${block.pctY || 0}%; width: ${block.pctW || 100}%; height: ${block.pctH || 100}%;`"
                                      @click.stop="startEditingOriginalText(block, $event)"
+                                     @mousedown.stop="startEditingOriginalText(block, $event)"
                                      title="คลิกเพื่อแก้ไขข้อความทั้งหมดในเอกสารนี้ (คงรูปแบบ ฟอนต์ ขนาด ตัวหนา และการจัดวางเดิม 100%)">
                                     <span class="absolute -top-6 right-1 text-[11px] font-bold text-sky-700 bg-white/95 px-2 py-0.5 rounded shadow-xs border border-sky-200 flex items-center gap-1.5 pointer-events-none">
                                         <svg class="w-3.5 h-3.5 text-brand-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/></svg>
-                                        <span>ข้อความทั้งชุด (คงรูปแบบเดิม 100%) • คลิกเพื่อแก้ไข</span>
+                                        <span>คลิกข้อความเพื่อแก้ไข (คงรูปแบบเดิม 100%)</span>
                                     </span>
                                 </div>
                             </template>
@@ -796,12 +799,12 @@
                         {{-- Loop over current page annotations --}}
                         <template x-for="ann in pageAnnotations" :key="ann.id">
                             <div class="absolute group"
-                                 :style="`left: ${ann.pctX}%; top: ${ann.pctY}%; width: ${ann.pctW || 'auto'}%; height: ${ann.pctH || 'auto'}%;`"
-                                 @mousedown.stop="startDragAnnotation($event, ann.id)"
-                                 @click.stop="selectAnnotation(ann.id, $event)">
+                                 :style="`left: ${ann.pctX}%; top: ${ann.pctY}%; width: ${ann.pctW != null ? ann.pctW + '%' : '100%'}; height: ${ann.pctH != null ? ann.pctH + '%' : '100%'};`"
+                                 @mousedown="ann.type !== 'text_document' ? startDragAnnotation($event, ann.id) : null"
+                                 @click="ann.type !== 'text_document' ? selectAnnotation(ann.id, $event) : null">
 
-                                {{-- Selection Box Border & 8 Directional Square Handles (matching Foxit / Acrobat style in user screenshot) --}}
-                                <div x-show="selectedAnnotationId === ann.id"
+                                {{-- Selection Box Border & 8 Directional Square Handles (only for movable non-document annotations) --}}
+                                <div x-show="selectedAnnotationId === ann.id && ann.type !== 'text_document'"
                                      class="absolute -inset-1 border-2 border-[#0078d4] pointer-events-none z-30">
                                     {{-- nw --}}
                                     <div class="absolute -top-1.5 -left-1.5 w-2.5 h-2.5 bg-white border-2 border-[#0078d4] cursor-nwse-resize pointer-events-auto shadow-2xs"
@@ -851,26 +854,25 @@
                                 </template>
 
                                 {{-- ── TYPE 1.5: UNIFIED DOCUMENT TEXT CONTAINER (Single unified block preserving 100% typography) ── --}}
-                                <template x-if="ann.type === 'text_document'">
-                                    <div class="w-full h-full relative select-text cursor-default overflow-hidden"
-                                         :style="`background-color: ${ann.bgColor || '#ffffff'};`"
-                                         @click="handleDocContainerClick($event, ann)">
-                                        <template x-for="(line, lIdx) in (ann.lines || [])" :key="lIdx">
-                                            <div class="absolute group/line"
-                                                 :style="`left: ${line.relPctX}%; top: ${line.relPctY}%; width: ${line.relPctW}%; height: ${line.relPctH}%;`">
-                                                <input type="text"
-                                                       x-model="line.text"
-                                                       :data-doc-ann="ann.id"
-                                                       :data-line-idx="lIdx"
-                                                       @focus="activeDocLineIdx = lIdx; syncToolbarToLine(line)"
-                                                       @click.stop
-                                                       @mousedown.stop
-                                                       class="w-full h-full bg-transparent border-none outline-none font-inherit p-0 m-0 cursor-text leading-none shadow-none"
-                                                       :style="`text-align: ${line.align || 'left'}; font-size: ${(line.fontSize || 14) * (zoom / 100)}px; font-weight: ${line.bold ? 'bold' : 'normal'}; font-style: ${line.italic ? 'italic' : 'normal'}; font-family: '${line.fontFamily || 'TH Niramit AS'}', 'TH Sarabun PSK', sans-serif; color: ${line.color || '#111827'}; letter-spacing: ${line.letterSpacing || 'normal'};`">
-                                            </div>
-                                        </template>
-                                    </div>
-                                </template>
+                                <div x-show="ann.type === 'text_document'"
+                                     class="w-full h-full relative select-text cursor-text overflow-hidden"
+                                     :style="`background-color: ${ann.bgColor || '#ffffff'};`"
+                                     @click="handleDocContainerClick($event, ann)">
+                                    <template x-for="(line, lIdx) in (ann.lines || [])" :key="lIdx">
+                                        <div class="absolute group/line"
+                                             :style="`left: ${line.relPctX}%; top: ${line.relPctY}%; width: ${line.relPctW}%; height: ${line.relPctH}%;`">
+                                            <input type="text"
+                                                   x-model="line.text"
+                                                   :data-doc-ann="ann.id"
+                                                   :data-line-idx="lIdx"
+                                                   @focus="activeDocLineIdx = lIdx; syncToolbarToLine(line)"
+                                                   @click.stop
+                                                   @mousedown.stop
+                                                   class="w-full h-full bg-transparent border-none outline-none font-inherit p-0 m-0 cursor-text leading-none shadow-none focus:bg-sky-50/50 focus:ring-1 focus:ring-brand-400 rounded-2xs transition-all"
+                                                   :style="`text-align: ${line.align || 'left'}; font-size: ${(line.fontSize || 14) * (zoom / 100)}px; font-weight: ${line.bold ? 'bold' : 'normal'}; font-style: ${line.italic ? 'italic' : 'normal'}; font-family: '${line.fontFamily || 'TH Niramit AS'}', 'TH Sarabun PSK', sans-serif; color: ${line.color || '#111827'}; letter-spacing: ${line.letterSpacing || 'normal'};`">
+                                        </div>
+                                    </template>
+                                </div>
 
                                 {{-- ── TYPE 2: STICKY NOTE BADGE ── --}}
                                 <template x-if="ann.type === 'note'">

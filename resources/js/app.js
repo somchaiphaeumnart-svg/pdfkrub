@@ -4864,16 +4864,9 @@ Alpine.data('pdfEditor', () => ({
                 const transY = item.transform[5];
                 const fontSize = Math.max(9, Math.round(Math.abs(item.transform[3]) || item.height || 14));
 
-                // Convert PDF point to Viewport point
-                let vx = transX;
-                let vy = transY;
-                if (viewport && typeof viewport.convertToViewportPoint === 'function') {
-                    const pt = viewport.convertToViewportPoint(transX, transY);
-                    vx = pt[0];
-                    vy = pt[1];
-                } else {
-                    vy = vpHeight - transY;
-                }
+                // Convert PDF point to Viewport point (Direct calculation: 100% reliable, never NaN)
+                const vx = Number(transX) || 0;
+                const vy = Math.max(0, (Number(vpHeight) || 841.89) - (Number(transY) || 0));
                 const itemWidth = Math.max(item.width || 0, fontSize * 0.45 * str.length);
 
                 let itemColor = '#111827';
@@ -5129,16 +5122,34 @@ Alpine.data('pdfEditor', () => ({
 
     focusDocLine(annId, lineIdx) {
         this.activeDocLineIdx = lineIdx;
-        this.$nextTick(() => {
+        const doFocus = () => {
             const inputs = document.querySelectorAll(`input[data-doc-ann="${annId}"]`);
-            if (inputs[lineIdx]) {
-                inputs[lineIdx].focus();
-                const ann = this.annotations.find(a => a.id === annId);
-                if (ann && ann.lines && ann.lines[lineIdx]) {
-                    this.syncToolbarToLine(ann.lines[lineIdx]);
+            if (inputs && inputs.length > 0) {
+                const target = inputs[lineIdx] || inputs[0];
+                if (target) {
+                    target.focus();
+                    try {
+                        const len = target.value.length;
+                        target.setSelectionRange(len, len);
+                    } catch {}
+                    const ann = this.annotations.find(a => a.id === annId);
+                    if (ann && ann.lines && ann.lines[lineIdx]) {
+                        this.syncToolbarToLine(ann.lines[lineIdx]);
+                    }
+                    return true;
                 }
             }
-        });
+            return false;
+        };
+        if (!doFocus()) {
+            this.$nextTick(() => {
+                if (!doFocus()) {
+                    setTimeout(doFocus, 30);
+                    setTimeout(doFocus, 100);
+                    setTimeout(doFocus, 250);
+                }
+            });
+        }
     },
 
     handleDocContainerClick(e, ann) {
@@ -5151,7 +5162,7 @@ Alpine.data('pdfEditor', () => ({
             const oRect = overlay.getBoundingClientRect();
             const clickClientY = e.clientY - oRect.top;
             const clickPctYInOverlay = (clickClientY / oRect.height) * 100;
-            clickRelPctY = ((clickPctYInOverlay - ann.pctY) / ann.pctH) * 100;
+            clickRelPctY = ((clickPctYInOverlay - ann.pctY) / Math.max(1, ann.pctH)) * 100;
         }
 
         let closestIdx = 0;
@@ -5204,7 +5215,7 @@ Alpine.data('pdfEditor', () => ({
                 const oRect = overlay.getBoundingClientRect();
                 const clickClientY = e.clientY - oRect.top;
                 const clickPctYInOverlay = (clickClientY / oRect.height) * 100;
-                const clickRelPctY = ((clickPctYInOverlay - block.pctY) / block.pctH) * 100;
+                const clickRelPctY = ((clickPctYInOverlay - block.pctY) / Math.max(1, block.pctH)) * 100;
                 let closestDist = Infinity;
                 lines.forEach((l, idx) => {
                     const dist = Math.abs(l.relPctY - clickRelPctY);
@@ -5224,6 +5235,30 @@ Alpine.data('pdfEditor', () => ({
         this.pushHistory('แก้ไขข้อความเอกสาร (ตรงตามต้นฉบับ 100%)');
 
         this.focusDocLine(newId, targetIdx);
+    },
+
+    handleOverlayClick(e) {
+        if (e.button !== 0) return;
+        if (!['pointer', 'edit-text', 'text'].includes(this.activeTool)) return;
+
+        // Check if an existing text_document is on this page
+        const existingDoc = this.pageAnnotations.find(a => a.type === 'text_document');
+        if (existingDoc) {
+            this.handleDocContainerClick(e, existingDoc);
+            return;
+        }
+
+        // Trigger in-place editing immediately on text click
+        if (this.currentOriginalTextBlocks && this.currentOriginalTextBlocks.length > 0) {
+            this.startEditingOriginalText(this.currentOriginalTextBlocks[0], e);
+            return;
+        } else {
+            this.extractPageTextBlocks().then(() => {
+                if (this.currentOriginalTextBlocks && this.currentOriginalTextBlocks.length > 0) {
+                    this.startEditingOriginalText(this.currentOriginalTextBlocks[0], e);
+                }
+            });
+        }
     },
 
     syncToolbarToLine(line) {
