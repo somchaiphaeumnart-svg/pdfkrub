@@ -165,6 +165,10 @@ Alpine.data('fileUpload', (config = {}) => ({
     unlockPreviewUrl: null,
     isPdfEncrypted: null,
 
+    // Merge PDF Reorder State
+    mergeThumbnailsCache: {},
+    draggedFileIndex: null,
+
     // Processing state
     isUploading: false,
     uploadProgress: 0,
@@ -203,6 +207,9 @@ Alpine.data('fileUpload', (config = {}) => ({
         }
         if (this.tool === 'unlock-pdf' && this.files.length > 0) {
             this.detectPdfEncryption();
+        }
+        if (this.tool === 'merge-pdf' && this.files.length > 0) {
+            this.loadMergeThumbnails();
         }
     },
 
@@ -307,6 +314,10 @@ Alpine.data('fileUpload', (config = {}) => ({
         if (this.tool === 'unlock-pdf' && this.files.length > 0) {
             setTimeout(() => this.detectPdfEncryption(), 60);
         }
+        // If merge-pdf, load thumbnails
+        if (this.tool === 'merge-pdf' && this.files.length > 0) {
+            setTimeout(() => this.loadMergeThumbnails(), 60);
+        }
     },
 
     removeFile(id) {
@@ -376,6 +387,8 @@ Alpine.data('fileUpload', (config = {}) => ({
         this.clearDeletePagesState();
         this.clearWatermarkState();
         this.clearUnlockState();
+        this.mergeThumbnailsCache = {};
+        this.draggedFileIndex = null;
         this.protectPassword = '';
         this.protectPasswordConfirm = '';
         this.showProtectPassword = false;
@@ -1327,6 +1340,12 @@ Alpine.data('fileUpload', (config = {}) => ({
             }
             return 'ปลดล็อกรหัสผ่านและดาวน์โหลด PDF';
         }
+        if (this.tool === 'merge-pdf' && this.hasFiles) {
+            if (this.files.length < 2) {
+                return `ต้องการอีกอย่างน้อย 1 ไฟล์ (ปัจจุบันมี ${this.files.length} ไฟล์)`;
+            }
+            return `รวม ${this.files.length} ไฟล์ PDF ตามลำดับนี้`;
+        }
         return null;
     },
 
@@ -1617,6 +1636,85 @@ Alpine.data('fileUpload', (config = {}) => ({
     get canSubmitUnlockPdf() {
         if (this.isPdfEncrypted === false) return true;
         return this.unlockPassword.trim().length > 0;
+    },
+
+    get canSubmitMergePdf() {
+        return this.files.length >= 2;
+    },
+
+    // =====================================================
+    // Merge PDF Methods & Reorder Helpers
+    // =====================================================
+    async loadMergeThumbnails() {
+        if (this.tool !== 'merge-pdf' || !this.files.length) return;
+        try {
+            await this.ensurePdfJs();
+            for (const f of this.files) {
+                if (f.file && !this.mergeThumbnailsCache[f.id]) {
+                    try {
+                        const buf = await f.file.arrayBuffer();
+                        const doc = await window.pdfjsLib.getDocument({ data: buf.slice(0) }).promise;
+                        const page = await doc.getPage(1);
+                        const vp = page.getViewport({ scale: 0.28 });
+                        const offCanvas = document.createElement('canvas');
+                        offCanvas.width = vp.width;
+                        offCanvas.height = vp.height;
+                        const ctx = offCanvas.getContext('2d');
+                        await page.render({ canvasContext: ctx, viewport: vp }).promise;
+                        this.mergeThumbnailsCache[f.id] = offCanvas.toDataURL('image/jpeg', 0.85);
+                    } catch (err) {
+                        console.warn('Merge thumb error for', f.name, err);
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('loadMergeThumbnails error:', e);
+        }
+    },
+
+    moveFileUp(index) {
+        if (index > 0) {
+            const item = this.files.splice(index, 1)[0];
+            this.files.splice(index - 1, 0, item);
+        }
+    },
+
+    moveFileDown(index) {
+        if (index < this.files.length - 1) {
+            const item = this.files.splice(index, 1)[0];
+            this.files.splice(index + 1, 0, item);
+        }
+    },
+
+    sortFilesByName() {
+        this.files.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'th', { numeric: true }));
+    },
+
+    reverseFilesOrder() {
+        this.files.reverse();
+    },
+
+    onFileDragStart(e, index) {
+        this.draggedFileIndex = index;
+        e.dataTransfer.effectAllowed = 'move';
+        try {
+            e.dataTransfer.setData('text/plain', index);
+        } catch (err) {}
+    },
+
+    onFileDragOver(e, index) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    },
+
+    onFileDrop(e, targetIndex) {
+        e.preventDefault();
+        if (this.draggedFileIndex === null || this.draggedFileIndex === undefined || this.draggedFileIndex === targetIndex) {
+            return;
+        }
+        const item = this.files.splice(this.draggedFileIndex, 1)[0];
+        this.files.splice(targetIndex, 0, item);
+        this.draggedFileIndex = null;
     },
 
     get hasFiles() { return this.files.length > 0; },

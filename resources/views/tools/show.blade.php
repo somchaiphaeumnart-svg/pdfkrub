@@ -89,6 +89,124 @@
 
             <template x-if="hasFiles">
                 <div class="text-left w-full" @click.stop>
+                    @if($tool['slug'] === 'merge-pdf')
+                    {{-- Visual Reorder Editor for Merge PDF --}}
+                    <div>
+                        <!-- Header Bar with Quick Action Controls -->
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-gray-800 font-bold text-base">จัดลำดับไฟล์ PDF</span>
+                                    <span class="bg-brand-50 text-brand-700 text-xs font-semibold px-2.5 py-0.5 rounded-full" x-text="`${files.length} ไฟล์ (${totalSize})`"></span>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-0.5">ลากสลับตำแหน่ง หรือใช้ปุ่ม ◀ ▶ เพื่อกำหนดลำดับไฟล์ที่จะรวมจากหน้าแรกไปหน้าสุดท้าย</p>
+                            </div>
+
+                            <div class="flex items-center flex-wrap gap-1.5">
+                                <button type="button" @click="sortFilesByName()" class="inline-flex items-center gap-1 text-xs text-gray-600 hover:text-brand-600 bg-gray-50 hover:bg-brand-50/60 border border-gray-200 px-2.5 py-1.5 rounded-lg transition-colors font-medium" title="เรียงตามชื่อไฟล์ ก-ฮ / A-Z">
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 9m0 0L21 12.75M17.25 9v12"/></svg>
+                                    <span>เรียงชื่อ ก-ฮ</span>
+                                </button>
+                                <button type="button" @click="reverseFilesOrder()" class="inline-flex items-center gap-1 text-xs text-gray-600 hover:text-brand-600 bg-gray-50 hover:bg-brand-50/60 border border-gray-200 px-2.5 py-1.5 rounded-lg transition-colors font-medium" title="กลับลำดับไฟล์ทั้งหมด">
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/></svg>
+                                    <span>กลับลำดับ</span>
+                                </button>
+                                <button type="button" @click="$refs.fileInput.click()" class="inline-flex items-center gap-1 text-xs text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200 px-2.5 py-1.5 rounded-lg transition-colors font-semibold">
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                                    <span>เพิ่มไฟล์</span>
+                                </button>
+                                <button type="button" @click="clearAll()" class="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-error-500 hover:bg-error-50 px-2 py-1.5 rounded-lg transition-colors" title="ล้างรายการทั้งหมด">
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Minimum files warning banner -->
+                        <div x-show="files.length < 2" class="bg-amber-50 border border-amber-200/80 rounded-xl p-3 mb-4 flex items-center gap-2.5 text-amber-800 text-xs sm:text-sm shadow-xs">
+                            <svg class="w-5 h-5 text-amber-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg>
+                            <div class="flex-1">
+                                <span class="font-bold">ต้องการอีกอย่างน้อย 1 ไฟล์:</span> การรวม PDF ต้องใช้ไฟล์อย่างน้อย 2 ไฟล์ขึ้นไป (กดปุ่ม "เพิ่มไฟล์" เพื่อเลือกไฟล์เพิ่ม)
+                            </div>
+                        </div>
+
+                        <!-- Visual Grid of PDF Cards -->
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 mb-3">
+                            <template x-for="(f, index) in files" :key="f.id">
+                                <div
+                                    draggable="true"
+                                    @dragstart.stop="onFileDragStart($event, index)"
+                                    @dragover.prevent.stop="onFileDragOver($event, index)"
+                                    @drop.prevent.stop="onFileDrop($event, index)"
+                                    class="relative group bg-white border-2 rounded-2xl p-2.5 sm:p-3 transition-all duration-200 flex flex-col items-center select-none cursor-grab active:cursor-grabbing hover:shadow-md"
+                                    :class="draggedFileIndex === index ? 'border-dashed border-brand-500 bg-brand-50/40 opacity-70 scale-95' : 'border-gray-200 hover:border-brand-300'">
+
+                                    <!-- Top Order Badge & Delete Button -->
+                                    <div class="w-full flex items-center justify-between mb-2">
+                                        <div class="w-6 h-6 rounded-full bg-brand-600 text-white font-bold text-xs flex items-center justify-center shadow-xs" x-text="index + 1" title="ลำดับที่"></div>
+                                        <button type="button" @click.stop="removeFile(f.id)" class="w-6 h-6 rounded-full bg-gray-100 hover:bg-error-50 text-gray-400 hover:text-error-500 flex items-center justify-center transition-colors" title="ลบไฟล์นี้">
+                                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+                                        </button>
+                                    </div>
+
+                                    <!-- Thumbnail Preview Area -->
+                                    <div class="w-full aspect-[3/4] bg-slate-50 rounded-xl overflow-hidden mb-2 relative flex items-center justify-center border border-gray-100 shadow-inner">
+                                        <template x-if="mergeThumbnailsCache[f.id]">
+                                            <img :src="mergeThumbnailsCache[f.id]" class="w-full h-full object-contain pointer-events-none rounded-lg" />
+                                        </template>
+                                        <template x-if="!mergeThumbnailsCache[f.id]">
+                                            <div class="flex flex-col items-center justify-center text-gray-400 p-2 text-center">
+                                                <svg class="w-8 h-8 text-brand-300 animate-pulse mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                                <span class="text-[10px] text-gray-400">โหลดตัวอย่าง...</span>
+                                            </div>
+                                        </template>
+                                    </div>
+
+                                    <!-- File Name & Size -->
+                                    <div class="w-full text-center px-0.5">
+                                        <p class="text-xs font-semibold text-gray-800 truncate" :title="f.name" x-text="f.name"></p>
+                                        <p class="text-[11px] text-gray-400 mt-0.5" x-text="f.sizeFormatted"></p>
+                                    </div>
+
+                                    <!-- Move Left / Right Controls -->
+                                    <div class="flex items-center justify-between w-full mt-2 pt-2 border-t border-gray-100" @click.stop>
+                                        <button
+                                            type="button"
+                                            @click="moveFileUp(index)"
+                                            :disabled="index === 0"
+                                            :class="index === 0 ? 'opacity-25 cursor-not-allowed text-gray-300' : 'text-gray-500 hover:text-brand-600 hover:bg-brand-50'"
+                                            class="p-1 rounded-lg transition-colors"
+                                            title="เลื่อนไปข้างหน้า (ก่อนหน้า)">
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+                                        </button>
+
+                                        <div class="text-[10px] text-gray-400 flex items-center gap-0.5 font-mono cursor-grab" title="ลากเพื่อสลับตำแหน่ง">
+                                            <svg class="w-3.5 h-3.5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-12a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z"/></svg>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            @click="moveFileDown(index)"
+                                            :disabled="index === files.length - 1"
+                                            :class="index === files.length - 1 ? 'opacity-25 cursor-not-allowed text-gray-300' : 'text-gray-500 hover:text-brand-600 hover:bg-brand-50'"
+                                            class="p-1 rounded-lg transition-colors"
+                                            title="เลื่อนไปข้างหลัง (ถัดไป)">
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Add More Files Card -->
+                            <div @click="$refs.fileInput.click()" class="border-2 border-dashed border-gray-200 hover:border-brand-500 hover:bg-brand-50/20 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200 min-h-[220px] group">
+                                <div class="w-10 h-10 rounded-full bg-brand-50 group-hover:bg-brand-100 text-brand-600 flex items-center justify-center mb-2 transition-colors shadow-xs">
+                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                                </div>
+                                <span class="text-xs font-semibold text-gray-700 group-hover:text-brand-600">เพิ่มไฟล์ PDF</span>
+                                <span class="text-[10px] text-gray-400 mt-1">คลิกเพื่อเลือกไฟล์เพิ่ม</span>
+                            </div>
+                        </div>
+                    </div>
+                    @else
                     <div class="flex items-center justify-between mb-4">
                         <span class="text-gray-800 font-semibold" x-text="`${files.length} ไฟล์ (${totalSize})`"></span>
                         <button @click="clearAll()" class="text-xs text-gray-500 hover:text-error-500 transition-colors px-3 py-1 rounded-lg hover:bg-error-500/10">ล้างทั้งหมด</button>
@@ -122,6 +240,7 @@
                         </button>
                         @endif
                     </div>
+                    @endif
 
                     @if($tool['slug'] === 'rotate-pdf')
                     {{-- Rotate Controls & Live Preview Editor --}}
@@ -930,8 +1049,8 @@
                 <button
                     @click="hasFiles ? startConversion('{{ $tool['slug'] }}') : $refs.fileInput.click()"
                     class="btn-primary px-10 py-4 rounded-2xl text-base flex items-center gap-2"
-                    :class="{ 'opacity-50 cursor-not-allowed': !hasFiles || (tool === 'delete-pages' && hasFiles && !canSubmitDeletePages) || (tool === 'watermark-pdf' && hasFiles && !canSubmitWatermark) || (tool === 'protect-pdf' && hasFiles && !canSubmitProtectPdf) || (tool === 'unlock-pdf' && hasFiles && !canSubmitUnlockPdf) }"
-                    :disabled="!hasFiles || (tool === 'delete-pages' && hasFiles && !canSubmitDeletePages) || (tool === 'watermark-pdf' && hasFiles && !canSubmitWatermark) || (tool === 'protect-pdf' && hasFiles && !canSubmitProtectPdf) || (tool === 'unlock-pdf' && hasFiles && !canSubmitUnlockPdf)"
+                    :class="{ 'opacity-50 cursor-not-allowed': !hasFiles || (tool === 'delete-pages' && hasFiles && !canSubmitDeletePages) || (tool === 'watermark-pdf' && hasFiles && !canSubmitWatermark) || (tool === 'protect-pdf' && hasFiles && !canSubmitProtectPdf) || (tool === 'unlock-pdf' && hasFiles && !canSubmitUnlockPdf) || (tool === 'merge-pdf' && hasFiles && !canSubmitMergePdf) }"
+                    :disabled="!hasFiles || (tool === 'delete-pages' && hasFiles && !canSubmitDeletePages) || (tool === 'watermark-pdf' && hasFiles && !canSubmitWatermark) || (tool === 'protect-pdf' && hasFiles && !canSubmitProtectPdf) || (tool === 'unlock-pdf' && hasFiles && !canSubmitUnlockPdf) || (tool === 'merge-pdf' && hasFiles && !canSubmitMergePdf)"
                     @if($tool['premium'] && !(auth()->check() && auth()->user()->getActivePlan()->has_ocr)) disabled @endif>
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>
