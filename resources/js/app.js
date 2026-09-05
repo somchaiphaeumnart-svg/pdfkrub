@@ -90,6 +90,8 @@ let rotatePdfDoc = null;
 let rotateRenderTask = null;
 let pageImageCache = {};
 let blankPageCache = {};
+let deletePdfDoc = null;
+let deleteThumbnailsCache = {};
 
 // =====================================================
 // Alpine Component: fileUpload
@@ -113,6 +115,14 @@ Alpine.data('fileUpload', (config = {}) => ({
     pdfCurrentPage: 1,
     pdfRenderError: null,
     previewImageUrl: null,
+
+    // Delete Pages state
+    isRenderingDeletePages: false,
+    deleteTotalPages: 0,
+    selectedPagesToDelete: [],
+    deletePagesList: [],
+    deleteManualInput: '',
+    deletePagesError: null,
 
     // Processing state
     isUploading: false,
@@ -143,6 +153,9 @@ Alpine.data('fileUpload', (config = {}) => ({
         }
         if (this.tool === 'rotate-pdf' && this.files.length > 0) {
             this.loadPdfPreview();
+        }
+        if (this.tool === 'delete-pages' && this.files.length > 0) {
+            this.loadDeletePagesPreview();
         }
     },
 
@@ -235,6 +248,10 @@ Alpine.data('fileUpload', (config = {}) => ({
             this.rotationAngle = 90;
             setTimeout(() => this.loadPdfPreview(), 60);
         }
+        // If delete-pages, load thumbnails editor
+        if (this.tool === 'delete-pages' && this.files.length > 0) {
+            setTimeout(() => this.loadDeletePagesPreview(), 60);
+        }
     },
 
     removeFile(id) {
@@ -264,6 +281,12 @@ Alpine.data('fileUpload', (config = {}) => ({
                 this.pdfCurrentPage = 1;
             }
         }
+        if (this.tool === 'delete-pages') {
+            this.clearDeletePagesState();
+            if (this.files.length > 0) {
+                setTimeout(() => this.loadDeletePagesPreview(), 60);
+            }
+        }
     },
 
     clearAll() {
@@ -283,6 +306,7 @@ Alpine.data('fileUpload', (config = {}) => ({
         this.pdfCurrentPage = 1;
         this.rotationAngle = 90;
         this.pdfRenderError = null;
+        this.clearDeletePagesState();
         clearStagedFiles();
     },
 
@@ -337,6 +361,18 @@ Alpine.data('fileUpload', (config = {}) => ({
             const deg = this.rotationAngle !== undefined ? this.rotationAngle : 90;
             formData.append('degrees', deg);
             formData.append('config[degrees]', deg);
+        }
+        if (activeTool === 'delete-pages') {
+            if (!this.canSubmitDeletePages) {
+                this.error = this.selectedPagesToDelete.length === 0
+                    ? 'กรุณาเลือกอย่างน้อย 1 หน้าที่ต้องการลบ'
+                    : 'ไม่สามารถลบทุกหน้าได้ ต้องเหลือเอกสารอย่างน้อย 1 หน้า';
+                this.isUploading = false;
+                return;
+            }
+            const pagesStr = this.selectedPagesToDelete.join(',');
+            formData.append('pages_to_delete', pagesStr);
+            formData.append('config[pages_to_delete]', pagesStr);
         }
         const tokenMeta = document.querySelector('meta[name="csrf-token"]');
         if (tokenMeta) {
@@ -427,6 +463,7 @@ Alpine.data('fileUpload', (config = {}) => ({
             'pdf-to-jpg': 'กำลังแปลงหน้าเอกสารเป็นภาพ JPG...',
             'pdf-to-png': 'กำลังแปลงหน้าเอกสารเป็นภาพ PNG...',
             'rotate-pdf': `กำลังหมุนหน้าเอกสาร PDF (${rotateDeg}°)...`,
+            'delete-pages': 'กำลังลบหน้าที่เลือกออกจากเอกสาร PDF...',
             'watermark-pdf': 'กำลังใส่ลายน้ำเอกสาร PDF...',
             'protect-pdf': 'กำลังตั้งรหัสผ่านป้องกัน PDF...',
             'unlock-pdf': 'กำลังปลดล็อครหัสผ่าน PDF...',
@@ -826,6 +863,306 @@ Alpine.data('fileUpload', (config = {}) => ({
                 this.isRenderingPdf = false;
             }
         }
+    },
+
+    // =====================================================
+    // Delete Pages Methods & Visual Editor
+    // =====================================================
+    clearDeletePagesState() {
+        deletePdfDoc = null;
+        deleteThumbnailsCache = {};
+        this.deletePagesList = [];
+        this.selectedPagesToDelete = [];
+        this.deleteTotalPages = 0;
+        this.deleteManualInput = '';
+        this.deletePagesError = null;
+        this.isRenderingDeletePages = false;
+    },
+
+    async loadDeletePagesPreview() {
+        if (!this.files.length || !this.files[0].file) {
+            this.clearDeletePagesState();
+            return;
+        }
+        const file = this.files[0].file;
+        if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+            return;
+        }
+
+        this.clearDeletePagesState();
+        this.isRenderingDeletePages = true;
+
+        try {
+            await this.ensurePdfJs();
+            const arrayBuffer = await file.arrayBuffer();
+            const loadingTask = window.pdfjsLib.getDocument({
+                data: arrayBuffer,
+                cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+                cMapPacked: true,
+                standardFontDataUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/standard_fonts/',
+            });
+            deletePdfDoc = await loadingTask.promise;
+            this.deleteTotalPages = deletePdfDoc.numPages || 1;
+
+            // Pre-populate page placeholders for instant UI feedback
+            this.deletePagesList = Array.from({ length: this.deleteTotalPages }, (_, i) => ({
+                pageNum: i + 1,
+                dataUrl: null,
+                isBlank: false
+            }));
+
+            // Render all thumbnails with lightweight resolution
+            for (let p = 1; p <= this.deleteTotalPages; p++) {
+                if (!deletePdfDoc || this.files.length === 0) break;
+                await this.renderDeleteThumbnail(p);
+            }
+        } catch (e) {
+            console.error('loadDeletePagesPreview error:', e);
+            this.deletePagesError = 'ไม่สามารถอ่านไฟล์ PDF ได้: ' + (e.message || '');
+        } finally {
+            this.isRenderingDeletePages = false;
+        }
+    },
+
+    async renderDeleteThumbnail(pageNum) {
+        if (!deletePdfDoc) return;
+        try {
+            if (deleteThumbnailsCache[pageNum]) {
+                const item = this.deletePagesList.find(x => x.pageNum === pageNum);
+                if (item) {
+                    item.dataUrl = deleteThumbnailsCache[pageNum].dataUrl;
+                    item.isBlank = deleteThumbnailsCache[pageNum].isBlank;
+                }
+                return;
+            }
+
+            const page = await deletePdfDoc.getPage(pageNum);
+            const baseViewport = page.getViewport({ scale: 1.0 });
+            const maxDim = Math.max(baseViewport.width, baseViewport.height);
+            // Render thumbnail at crisp resolution suited for cards (~200px)
+            const scale = Math.min(1.2, Math.max(0.2, 220 / maxDim));
+            const viewport = page.getViewport({ scale: scale });
+
+            const offCanvas = document.createElement('canvas');
+            offCanvas.width = Math.floor(viewport.width);
+            offCanvas.height = Math.floor(viewport.height);
+
+            const ctx = offCanvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, offCanvas.width, offCanvas.height);
+
+            await page.render({
+                canvasContext: ctx,
+                viewport: viewport
+            }).promise;
+
+            let hasText = false;
+            try {
+                const textContent = await page.getTextContent();
+                hasText = (textContent.items || []).some(item => item.str && item.str.trim().length > 0);
+            } catch (te) {}
+
+            const imgData = ctx.getImageData(0, 0, offCanvas.width, offCanvas.height).data;
+            let hasNonWhitePixels = false;
+            for (let i = 0; i < imgData.length; i += 16) {
+                const r = imgData[i];
+                const g = imgData[i + 1];
+                const b = imgData[i + 2];
+                if (r < 245 || g < 245 || b < 245) {
+                    hasNonWhitePixels = true;
+                    break;
+                }
+            }
+
+            const isBlank = !hasText && !hasNonWhitePixels;
+            if (isBlank) {
+                ctx.save();
+                ctx.strokeStyle = '#cbd5e1';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([4, 4]);
+                ctx.strokeRect(8, 8, offCanvas.width - 16, offCanvas.height - 16);
+
+                const cx = offCanvas.width / 2;
+                const cy = offCanvas.height / 2;
+                ctx.fillStyle = '#64748b';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Thai", sans-serif';
+                ctx.fillText('📄 หน้าว่าง', cx, cy - 8);
+                ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Thai", sans-serif';
+                ctx.fillText('(ไม่มีเนื้อหา)', cx, cy + 10);
+                ctx.restore();
+            }
+
+            const dataUrl = offCanvas.toDataURL('image/jpeg', 0.85);
+            deleteThumbnailsCache[pageNum] = { dataUrl, isBlank };
+
+            const item = this.deletePagesList.find(x => x.pageNum === pageNum);
+            if (item) {
+                item.dataUrl = dataUrl;
+                item.isBlank = isBlank;
+            }
+        } catch (e) {
+            console.warn('renderDeleteThumbnail error on page ' + pageNum, e);
+        }
+    },
+
+    togglePageDeletion(pageNum) {
+        const idx = this.selectedPagesToDelete.indexOf(pageNum);
+        if (idx > -1) {
+            this.selectedPagesToDelete.splice(idx, 1);
+            this.deletePagesError = null;
+        } else {
+            if (this.selectedPagesToDelete.length + 1 >= this.deleteTotalPages) {
+                this.deletePagesError = 'ไม่สามารถลบทุกหน้าได้ ต้องเหลือเอกสารอย่างน้อย 1 หน้า';
+                setTimeout(() => { if (this.deletePagesError?.includes('อย่างน้อย')) this.deletePagesError = null; }, 4000);
+                return;
+            }
+            this.selectedPagesToDelete.push(pageNum);
+            this.selectedPagesToDelete.sort((a, b) => a - b);
+            this.deletePagesError = null;
+        }
+        this.syncManualInputFromSelection();
+    },
+
+    selectEvenPages() {
+        const evens = [];
+        for (let p = 2; p <= this.deleteTotalPages; p += 2) {
+            evens.push(p);
+        }
+        if (evens.length >= this.deleteTotalPages && this.deleteTotalPages > 0) {
+            this.deletePagesError = 'ไม่สามารถลบทุกหน้าได้';
+            return;
+        }
+        this.selectedPagesToDelete = evens;
+        this.deletePagesError = null;
+        this.syncManualInputFromSelection();
+    },
+
+    selectOddPages() {
+        const odds = [];
+        for (let p = 1; p <= this.deleteTotalPages; p += 2) {
+            odds.push(p);
+        }
+        if (odds.length >= this.deleteTotalPages && this.deleteTotalPages > 0) {
+            this.deletePagesError = 'ไม่สามารถลบทุกหน้าได้';
+            return;
+        }
+        this.selectedPagesToDelete = odds;
+        this.deletePagesError = null;
+        this.syncManualInputFromSelection();
+    },
+
+    selectBlankPages() {
+        const blanks = this.deletePagesList.filter(x => x.isBlank).map(x => x.pageNum);
+        if (blanks.length === 0) {
+            this.deletePagesError = 'ไม่พบหน้าว่างในไฟล์ PDF นี้';
+            setTimeout(() => { if (this.deletePagesError?.includes('ไม่พบหน้าว่าง')) this.deletePagesError = null; }, 3000);
+            return;
+        }
+        if (blanks.length >= this.deleteTotalPages && this.deleteTotalPages > 0) {
+            this.deletePagesError = 'ไม่สามารถลบทุกหน้าได้ (ทุกหน้าในไฟล์เป็นหน้าว่าง)';
+            return;
+        }
+        this.selectedPagesToDelete = blanks;
+        this.deletePagesError = null;
+        this.syncManualInputFromSelection();
+    },
+
+    clearPageSelection() {
+        this.selectedPagesToDelete = [];
+        this.deleteManualInput = '';
+        this.deletePagesError = null;
+    },
+
+    syncManualInputFromSelection() {
+        if (!this.selectedPagesToDelete.length) {
+            this.deleteManualInput = '';
+            return;
+        }
+        const sorted = [...this.selectedPagesToDelete].sort((a, b) => a - b);
+        const ranges = [];
+        let start = sorted[0];
+        let end = sorted[0];
+
+        for (let i = 1; i < sorted.length; i++) {
+            if (sorted[i] === end + 1) {
+                end = sorted[i];
+            } else {
+                ranges.push(start === end ? `${start}` : `${start}-${end}`);
+                start = sorted[i];
+                end = sorted[i];
+            }
+        }
+        ranges.push(start === end ? `${start}` : `${start}-${end}`);
+        this.deleteManualInput = ranges.join(', ');
+    },
+
+    handleManualPageInput(val) {
+        this.deleteManualInput = val;
+        if (!val.trim()) {
+            this.selectedPagesToDelete = [];
+            this.deletePagesError = null;
+            return;
+        }
+        const pages = new Set();
+        const parts = val.split(',');
+        for (const part of parts) {
+            const trimmed = part.trim();
+            if (!trimmed) continue;
+            if (trimmed.includes('-')) {
+                const [startStr, endStr] = trimmed.split('-');
+                const start = parseInt(startStr, 10);
+                const end = parseInt(endStr, 10);
+                if (!isNaN(start) && !isNaN(end)) {
+                    const min = Math.max(1, Math.min(start, end));
+                    const max = Math.min(this.deleteTotalPages, Math.max(start, end));
+                    for (let p = min; p <= max; p++) {
+                        pages.add(p);
+                    }
+                }
+            } else {
+                const p = parseInt(trimmed, 10);
+                if (!isNaN(p) && p >= 1 && p <= this.deleteTotalPages) {
+                    pages.add(p);
+                }
+            }
+        }
+        const arr = Array.from(pages).sort((a, b) => a - b);
+        if (arr.length >= this.deleteTotalPages && this.deleteTotalPages > 0) {
+            this.deletePagesError = 'ไม่สามารถลบทุกหน้าได้ ต้องเหลือเอกสารอย่างน้อย 1 หน้า';
+        } else {
+            this.deletePagesError = null;
+        }
+        this.selectedPagesToDelete = arr;
+    },
+
+    isPageSelectedForDeletion(pageNum) {
+        return this.selectedPagesToDelete.includes(pageNum);
+    },
+
+    get remainingPagesCount() {
+        return Math.max(0, this.deleteTotalPages - this.selectedPagesToDelete.length);
+    },
+
+    get canSubmitDeletePages() {
+        return this.selectedPagesToDelete.length > 0 && this.selectedPagesToDelete.length < this.deleteTotalPages;
+    },
+
+    get toolButtonText() {
+        if (this.tool === 'rotate-pdf' && this.hasFiles) {
+            return `หมุน PDF (${this.rotationAngle}°) และบันทึก`;
+        }
+        if (this.tool === 'delete-pages' && this.hasFiles) {
+            if (this.selectedPagesToDelete.length === 0) {
+                return 'เลือกหน้าที่ต้องการลบ (คลิกที่หน้า)';
+            }
+            if (this.selectedPagesToDelete.length >= this.deleteTotalPages) {
+                return 'ต้องเหลืออย่างน้อย 1 หน้า';
+            }
+            return `ลบ ${this.selectedPagesToDelete.length} หน้า และดาวน์โหลด (เหลือ ${this.remainingPagesCount} หน้า)`;
+        }
+        return null;
     },
 
     get hasFiles() { return this.files.length > 0; },

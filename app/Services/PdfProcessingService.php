@@ -44,6 +44,7 @@ class PdfProcessingService
             'pdf-to-jpg' => $this->pdfToImages($job, 'jpg'),
             'pdf-to-png' => $this->pdfToImages($job, 'png'),
             'rotate-pdf' => $this->rotatePdf($job),
+            'delete-pages' => $this->deletePages($job),
             'watermark-pdf' => $this->watermarkPdf($job),
             'protect-pdf' => $this->protectPdf($job),
             'unlock-pdf' => $this->unlockPdf($job),
@@ -474,6 +475,73 @@ class PdfProcessingService
             $basename = pathinfo($inputFile->original_name, PATHINFO_FILENAME);
 
             return $this->storeOutput($job, $outputPath, "{$basename}_rotated.pdf", 'application/pdf');
+        } finally {
+            $this->cleanTmpDir($tmpDir);
+        }
+    }
+
+    // =========================================================
+    // Delete PDF Pages
+    // =========================================================
+
+    private function deletePages(PdfJob $job): UploadedFile
+    {
+        $inputFile = $this->getInputFile($job);
+        $inputPath = Storage::disk($inputFile->storage_disk)->path($inputFile->storage_key);
+
+        $config = $job->tool_config ?? [];
+        $pagesToDelete = $config['pages_to_delete'] ?? '';
+        if (is_array($pagesToDelete)) {
+            $pagesToDelete = implode(',', $pagesToDelete);
+        }
+        $pagesToDelete = trim((string) $pagesToDelete);
+
+        if (empty($pagesToDelete)) {
+            throw new RuntimeException('กรุณาระบุหน้าที่ต้องการลบ');
+        }
+
+        $tmpDir = $this->makeTmpDir();
+        $outputPath = $tmpDir.DIRECTORY_SEPARATOR.'deleted_pages.pdf';
+
+        try {
+            $deleted = false;
+            $scriptPath = base_path('scripts/delete_pdf_pages.py');
+            $pythonCmd = file_exists('/opt/pdf2docx-env/bin/python3')
+                ? '/opt/pdf2docx-env/bin/python3'
+                : 'python3';
+
+            if (file_exists($scriptPath)) {
+                $pyResult = Process::timeout(60)->run([
+                    $pythonCmd,
+                    $scriptPath,
+                    $inputPath,
+                    $outputPath,
+                    $pagesToDelete,
+                ]);
+
+                if ($pyResult->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                    $deleted = true;
+                } elseif ($pythonCmd !== 'python3') {
+                    $sysResult = Process::timeout(60)->run([
+                        'python3',
+                        $scriptPath,
+                        $inputPath,
+                        $outputPath,
+                        $pagesToDelete,
+                    ]);
+                    if ($sysResult->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                        $deleted = true;
+                    }
+                }
+            }
+
+            if (! $deleted || ! file_exists($outputPath) || filesize($outputPath) === 0) {
+                throw new RuntimeException('ไม่สามารถลบหน้าเอกสาร PDF ได้ กรุณาลองใหม่อีกครั้ง');
+            }
+
+            $basename = pathinfo($inputFile->original_name, PATHINFO_FILENAME);
+
+            return $this->storeOutput($job, $outputPath, "{$basename}_edited.pdf", 'application/pdf');
         } finally {
             $this->cleanTmpDir($tmpDir);
         }

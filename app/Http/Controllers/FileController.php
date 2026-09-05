@@ -94,6 +94,10 @@ class FileController extends Controller
         if ($request->has('degrees')) {
             $config['degrees'] = (int) $request->input('degrees');
         }
+        if ($request->has('pages_to_delete')) {
+            $pagesVal = $request->input('pages_to_delete');
+            $config['pages_to_delete'] = is_array($pagesVal) ? implode(',', $pagesVal) : (string) $pagesVal;
+        }
 
         // Create the processing job record
         $pdfJob = PdfJob::create([
