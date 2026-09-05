@@ -4258,6 +4258,7 @@ Alpine.data('pdfEditor', () => ({
 
             await this.renderCurrentPage();
             this.renderThumbnails();
+            this.scanAllPagesInBackground();
             this.$nextTick(() => {
                 const ws = document.getElementById('pdfEditorWorkspace');
                 if (ws) {
@@ -4808,16 +4809,41 @@ Alpine.data('pdfEditor', () => ({
         return paragraphs;
     },
 
-        async extractPageTextBlocks() {
+        async scanAllPagesInBackground() {
+        if (!editorPdfDoc) return;
+        this.pageTextCache = this.pageTextCache || {};
+        const total = this.totalPages || 1;
+        for (let p = 1; p <= total; p++) {
+            if (this.pageTextCache[p]) continue;
+            try {
+                const page = await editorPdfDoc.getPage(p);
+                const textContent = await page.getTextContent({ normalizeWhitespace: true });
+                const viewport = page.getViewport({ scale: 1.0 });
+                this.pageTextCache[p] = { textContent, viewport };
+            } catch (err) {
+                console.warn(`Background scan page ${p} warning:`, err);
+            }
+        }
+    },
+
+    async extractPageTextBlocks() {
         if (!editorPdfDoc) {
             this.currentOriginalTextBlocks = [];
             return;
         }
         try {
             this.isExtractingText = true;
-            const page = await editorPdfDoc.getPage(this.currentPage);
-            const textContent = await page.getTextContent({ normalizeWhitespace: true });
-            const viewport = page.getViewport({ scale: 1.0 });
+            let textContent, viewport;
+            if (this.pageTextCache && this.pageTextCache[this.currentPage]) {
+                textContent = this.pageTextCache[this.currentPage].textContent;
+                viewport = this.pageTextCache[this.currentPage].viewport;
+            } else {
+                const page = await editorPdfDoc.getPage(this.currentPage);
+                textContent = await page.getTextContent({ normalizeWhitespace: true });
+                viewport = page.getViewport({ scale: 1.0 });
+                this.pageTextCache = this.pageTextCache || {};
+                this.pageTextCache[this.currentPage] = { textContent, viewport };
+            }
 
             const rawItems = [];
             for (const item of textContent.items) {
