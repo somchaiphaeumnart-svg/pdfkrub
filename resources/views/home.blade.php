@@ -108,6 +108,9 @@
                             <button type="button" @click="stageAndGo('{{ route('tools.pdf-to-excel') }}')" class="px-3.5 py-2 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl transition-all shadow-xs hover:border-brand-300 flex items-center gap-1.5">
                                 <span>📊</span> PDF เป็น Excel
                             </button>
+                            <button type="button" @click="stageAndGo('{{ route('tools.ai-summary') }}')" class="px-3.5 py-2 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-xl transition-all shadow-xs flex items-center gap-1.5">
+                                <span>✨</span> AI สรุป PDF
+                            </button>
                             <button type="button" @click="stageAndGo('{{ route('tools') }}')" class="btn-primary text-sm px-5 py-2.5 rounded-xl shadow-sm flex items-center gap-1.5">
                                 <span>เลือกเครื่องมือ</span>
                                 <span>→</span>
