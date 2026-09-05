@@ -169,6 +169,12 @@ Alpine.data('fileUpload', (config = {}) => ({
     mergeThumbnailsCache: {},
     draggedFileIndex: null,
 
+    // Compress PDF State
+    compressQuality: 'ebook', // 'screen', 'ebook', 'printer'
+    compressThumb: null,
+    compressTotalPages: null,
+    compressIsLoadingPreview: false,
+
     // Processing state
     isUploading: false,
     uploadProgress: 0,
@@ -210,6 +216,9 @@ Alpine.data('fileUpload', (config = {}) => ({
         }
         if (this.tool === 'merge-pdf' && this.files.length > 0) {
             this.loadMergeThumbnails();
+        }
+        if (this.tool === 'compress-pdf' && this.files.length > 0) {
+            this.loadCompressPdfPreview();
         }
     },
 
@@ -318,6 +327,10 @@ Alpine.data('fileUpload', (config = {}) => ({
         if (this.tool === 'merge-pdf' && this.files.length > 0) {
             setTimeout(() => this.loadMergeThumbnails(), 60);
         }
+        // If compress-pdf, load preview
+        if (this.tool === 'compress-pdf' && this.files.length > 0) {
+            setTimeout(() => this.loadCompressPdfPreview(), 60);
+        }
     },
 
     removeFile(id) {
@@ -365,6 +378,12 @@ Alpine.data('fileUpload', (config = {}) => ({
                 setTimeout(() => this.detectPdfEncryption(), 60);
             }
         }
+        if (this.tool === 'compress-pdf') {
+            this.clearCompressState();
+            if (this.files.length > 0) {
+                setTimeout(() => this.loadCompressPdfPreview(), 60);
+            }
+        }
     },
 
     clearAll() {
@@ -389,6 +408,7 @@ Alpine.data('fileUpload', (config = {}) => ({
         this.clearUnlockState();
         this.mergeThumbnailsCache = {};
         this.draggedFileIndex = null;
+        this.clearCompressState();
         this.protectPassword = '';
         this.protectPasswordConfirm = '';
         this.showProtectPassword = false;
@@ -526,6 +546,10 @@ Alpine.data('fileUpload', (config = {}) => ({
             }
             formData.append('password', this.unlockPassword);
             formData.append('config[password]', this.unlockPassword);
+        }
+        if (activeTool === 'compress-pdf') {
+            formData.append('quality', this.compressQuality);
+            formData.append('config[quality]', this.compressQuality);
         }
         const tokenMeta = document.querySelector('meta[name="csrf-token"]');
         if (tokenMeta) {
@@ -1346,6 +1370,15 @@ Alpine.data('fileUpload', (config = {}) => ({
             }
             return `รวม ${this.files.length} ไฟล์ PDF ตามลำดับนี้`;
         }
+        if (this.tool === 'compress-pdf' && this.hasFiles) {
+            const labels = {
+                screen: 'บีบอัดสูงสุด ~75%',
+                ebook: 'บีบอัดที่แนะนำ ~55%',
+                printer: 'บีบอัดน้อย/คมชัดสูง ~25%'
+            };
+            const label = labels[this.compressQuality] || 'บีบอัดที่แนะนำ';
+            return `บีบอัด PDF (${label})`;
+        }
         return null;
     },
 
@@ -1715,6 +1748,63 @@ Alpine.data('fileUpload', (config = {}) => ({
         const item = this.files.splice(this.draggedFileIndex, 1)[0];
         this.files.splice(targetIndex, 0, item);
         this.draggedFileIndex = null;
+    },
+
+    // =====================================================
+    // Compress PDF Methods & Preview
+    // =====================================================
+    clearCompressState() {
+        this.compressThumb = null;
+        this.compressTotalPages = null;
+        this.compressIsLoadingPreview = false;
+        this.compressQuality = 'ebook';
+    },
+
+    async loadCompressPdfPreview() {
+        if (this.tool !== 'compress-pdf' || !this.files.length) return;
+        const firstFile = this.files[0];
+        if (!firstFile || !firstFile.file) return;
+        this.compressIsLoadingPreview = true;
+        try {
+            await this.ensurePdfJs();
+            const buf = await firstFile.file.arrayBuffer();
+            const doc = await window.pdfjsLib.getDocument({ data: buf.slice(0) }).promise;
+            this.compressTotalPages = doc.numPages;
+            const page = await doc.getPage(1);
+            const vp = page.getViewport({ scale: 0.35 });
+            const offCanvas = document.createElement('canvas');
+            offCanvas.width = vp.width;
+            offCanvas.height = vp.height;
+            const ctx = offCanvas.getContext('2d');
+            await page.render({ canvasContext: ctx, viewport: vp }).promise;
+            this.compressThumb = offCanvas.toDataURL('image/jpeg', 0.85);
+        } catch (err) {
+            console.warn('Compress PDF preview error:', err);
+        } finally {
+            this.compressIsLoadingPreview = false;
+        }
+    },
+
+    get compressEstimatedRatio() {
+        switch (this.compressQuality) {
+            case 'screen': return 0.25; // ~75% reduction
+            case 'ebook': return 0.45;  // ~55% reduction
+            case 'printer': return 0.75; // ~25% reduction
+            default: return 0.45;
+        }
+    },
+
+    get compressEstimatedBytes() {
+        const originalBytes = this.files[0]?.file?.size || (this.files[0]?.size || 0);
+        return Math.round(originalBytes * this.compressEstimatedRatio);
+    },
+
+    get compressEstimatedSizeFormatted() {
+        return this.formatSize(this.compressEstimatedBytes);
+    },
+
+    get compressSavedPercent() {
+        return Math.round((1 - this.compressEstimatedRatio) * 100);
     },
 
     get hasFiles() { return this.files.length > 0; },

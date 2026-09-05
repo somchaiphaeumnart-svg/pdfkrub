@@ -113,6 +113,9 @@ class FileController extends Controller
         if ($request->filled('password')) {
             $config['password'] = (string) $request->input('password');
         }
+        if ($request->filled('quality')) {
+            $config['quality'] = (string) $request->input('quality');
+        }
 
         // Create the processing job record
         $pdfJob = PdfJob::create([

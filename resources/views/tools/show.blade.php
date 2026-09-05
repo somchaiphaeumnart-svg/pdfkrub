@@ -1036,6 +1036,177 @@
                         </div>
                     </div>
                     @endif
+
+                    @if($tool['slug'] === 'compress-pdf')
+                    {{-- Compress PDF Quality Selection & Live Estimation --}}
+                    <div class="mt-5 pt-5 border-t border-gray-100" @click.stop>
+                        <div class="bg-gradient-to-b from-slate-50 to-gray-50/70 border border-slate-200/80 rounded-3xl p-5 sm:p-6 shadow-xs">
+                            {{-- Header --}}
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5">
+                                <div>
+                                    <h3 class="text-base font-bold text-gray-800 flex items-center gap-2">
+                                        <div class="w-8 h-8 rounded-xl bg-green-100 text-green-700 flex items-center justify-center font-bold">
+                                            <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 9V4.5M9 9H4.5M9 9 3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5 5.25 5.25" />
+                                            </svg>
+                                        </div>
+                                        <span>เลือกระดับการบีบอัด PDF</span>
+                                    </h3>
+                                    <p class="text-xs text-gray-500 mt-1">เลือกระดับความสมดุลระหว่างการลดขนาดไฟล์และความคมชัดของเอกสารตามความต้องการ</p>
+                                </div>
+                                <span class="self-start sm:self-auto bg-green-50 text-green-700 border border-green-200 text-xs font-semibold px-3 py-1 rounded-full">
+                                    Ghostscript Optimization
+                                </span>
+                            </div>
+
+                            {{-- 3 Compression Level Cards Grid --}}
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4 mb-6">
+                                {{-- Card 1: Extreme Compression --}}
+                                <div
+                                    @click="compressQuality = 'screen'"
+                                    class="relative rounded-2xl p-4 sm:p-5 cursor-pointer border-2 transition-all duration-200 flex flex-col justify-between"
+                                    :class="compressQuality === 'screen'
+                                        ? 'bg-amber-50/70 border-amber-500 shadow-sm ring-2 ring-amber-500/20'
+                                        : 'bg-white border-slate-200 hover:border-amber-300 hover:bg-amber-50/20'">
+                                    
+                                    <div>
+                                        <div class="flex items-center justify-between mb-3">
+                                            <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                                                ลดขนาด ~75%
+                                            </span>
+                                            <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors"
+                                                 :class="compressQuality === 'screen' ? 'border-amber-600 bg-amber-600' : 'border-slate-300 bg-white'">
+                                                <div class="w-2 h-2 rounded-full bg-white" x-show="compressQuality === 'screen'"></div>
+                                            </div>
+                                        </div>
+                                        <h4 class="text-sm font-bold text-gray-900 mb-1">บีบอัดสูงสุด (Extreme)</h4>
+                                        <p class="text-xs text-amber-700 font-medium mb-2">72 DPI · ขนาดไฟล์เล็กที่สุด</p>
+                                        <p class="text-xs text-gray-500 leading-relaxed">เหมาะสำหรับส่งอีเมล หรือระบบที่จำกัดขนาดไฟล์ไม่เกิน 1-2 MB ภาพและข้อความยังอ่านได้</p>
+                                    </div>
+                                    <div class="mt-4 pt-3 border-t border-amber-200/50 flex items-center justify-between text-[11px] text-gray-500">
+                                        <span>คุณภาพ: <span class="font-medium text-gray-700">พอใช้</span></span>
+                                        <span>ประหยัดพื้นที่: <span class="font-bold text-amber-600">สูงสุด</span></span>
+                                    </div>
+                                </div>
+
+                                {{-- Card 2: Recommended Compression (Default) --}}
+                                <div
+                                    @click="compressQuality = 'ebook'"
+                                    class="relative rounded-2xl p-4 sm:p-5 cursor-pointer border-2 transition-all duration-200 flex flex-col justify-between"
+                                    :class="compressQuality === 'ebook'
+                                        ? 'bg-brand-50/70 border-brand-600 shadow-sm ring-2 ring-brand-500/20'
+                                        : 'bg-white border-slate-200 hover:border-brand-300 hover:bg-brand-50/20'">
+                                    
+                                    <div>
+                                        <div class="flex items-center justify-between mb-3">
+                                            <div class="flex items-center gap-1.5">
+                                                <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-brand-600 text-white shadow-xs">
+                                                    แนะนำ
+                                                </span>
+                                                <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-brand-100 text-brand-800 border border-brand-200">
+                                                    ลดขนาด ~55%
+                                                </span>
+                                            </div>
+                                            <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors"
+                                                 :class="compressQuality === 'ebook' ? 'border-brand-600 bg-brand-600' : 'border-slate-300 bg-white'">
+                                                <div class="w-2 h-2 rounded-full bg-white" x-show="compressQuality === 'ebook'"></div>
+                                            </div>
+                                        </div>
+                                        <h4 class="text-sm font-bold text-gray-900 mb-1">บีบอัดที่แนะนำ (Recommended)</h4>
+                                        <p class="text-xs text-brand-700 font-medium mb-2">150 DPI · คุณภาพสมดุลดีเยี่ยม</p>
+                                        <p class="text-xs text-gray-500 leading-relaxed">ลดขนาดไฟล์ได้อย่างมีนัยสำคัญ โดยยังคงความคมชัดของข้อความและรูปภาพมาตรฐาน</p>
+                                    </div>
+                                    <div class="mt-4 pt-3 border-t border-brand-200/50 flex items-center justify-between text-[11px] text-gray-500">
+                                        <span>คุณภาพ: <span class="font-medium text-gray-700">ดีมาก</span></span>
+                                        <span>ประหยัดพื้นที่: <span class="font-bold text-brand-600">สมดุล</span></span>
+                                    </div>
+                                </div>
+
+                                {{-- Card 3: Less Compression / High Quality --}}
+                                <div
+                                    @click="compressQuality = 'printer'"
+                                    class="relative rounded-2xl p-4 sm:p-5 cursor-pointer border-2 transition-all duration-200 flex flex-col justify-between"
+                                    :class="compressQuality === 'printer'
+                                        ? 'bg-emerald-50/70 border-emerald-600 shadow-sm ring-2 ring-emerald-500/20'
+                                        : 'bg-white border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/20'">
+                                    
+                                    <div>
+                                        <div class="flex items-center justify-between mb-3">
+                                            <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                                ลดขนาด ~25%
+                                            </span>
+                                            <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors"
+                                                 :class="compressQuality === 'printer' ? 'border-emerald-600 bg-emerald-600' : 'border-slate-300 bg-white'">
+                                                <div class="w-2 h-2 rounded-full bg-white" x-show="compressQuality === 'printer'"></div>
+                                            </div>
+                                        </div>
+                                        <h4 class="text-sm font-bold text-gray-900 mb-1">บีบอัดน้อย (High Quality)</h4>
+                                        <p class="text-xs text-emerald-700 font-medium mb-2">300 DPI · คมชัดสูงสำหรับงานพิมพ์</p>
+                                        <p class="text-xs text-gray-500 leading-relaxed">เหมาะสำหรับเอกสารที่ต้องการนำไปพิมพ์สี กราฟิกรายละเอียดสูง หรือต้องการเก็บคุณภาพสูงสุด</p>
+                                    </div>
+                                    <div class="mt-4 pt-3 border-t border-emerald-200/50 flex items-center justify-between text-[11px] text-gray-500">
+                                        <span>คุณภาพ: <span class="font-medium text-gray-700">สูงสุด</span></span>
+                                        <span>ประหยัดพื้นที่: <span class="font-bold text-emerald-600">ปานกลาง</span></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Bottom Comparison & Live Preview Bar --}}
+                            <div class="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 flex flex-col lg:flex-row items-center justify-between gap-5">
+                                {{-- Left: Size Comparison & Visualizer --}}
+                                <div class="flex-1 w-full">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-xs font-bold text-gray-700">ประมาณการขนาดไฟล์หลังบีบอัด</span>
+                                        <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-green-100 text-green-800" x-text="`ประหยัดพื้นที่ ~${compressSavedPercent}%`"></span>
+                                    </div>
+
+                                    <div class="flex items-center gap-3 sm:gap-4 my-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                        <div>
+                                            <p class="text-[11px] text-gray-400">ขนาดเดิม</p>
+                                            <p class="text-sm sm:text-base font-bold text-gray-700" x-text="files[0]?.sizeFormatted || '-'"></p>
+                                        </div>
+                                        <div class="flex items-center text-brand-500 font-bold text-lg">
+                                            ➔
+                                        </div>
+                                        <div>
+                                            <p class="text-[11px] text-gray-400">ขนาดใหม่ (โดยประมาณ)</p>
+                                            <p class="text-base sm:text-lg font-extrabold text-brand-600" x-text="compressEstimatedSizeFormatted"></p>
+                                        </div>
+                                    </div>
+
+                                    {{-- Visual Progress Ratio Bar --}}
+                                    <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden flex">
+                                        <div class="bg-brand-600 h-2 transition-all duration-300 rounded-l-full" :style="`width: ${compressEstimatedRatio * 100}%`"></div>
+                                        <div class="bg-emerald-400/70 h-2 transition-all duration-300 rounded-r-full" :style="`width: ${(1 - compressEstimatedRatio) * 100}%`"></div>
+                                    </div>
+                                    <div class="flex items-center justify-between text-[11px] text-gray-400 mt-1">
+                                        <span x-text="`ขนาดไฟล์ใหม่ (${Math.round(compressEstimatedRatio * 100)}%)`"></span>
+                                        <span class="text-emerald-600 font-medium" x-text="`พื้นที่ประหยัด (${compressSavedPercent}%)`"></span>
+                                    </div>
+                                </div>
+
+                                {{-- Right: Document Thumbnail & Meta --}}
+                                <div class="flex items-center gap-4 bg-slate-50 border border-slate-200/60 rounded-2xl p-3 sm:px-4 w-full lg:w-auto shrink-0 justify-center">
+                                    <div class="w-14 sm:w-16 aspect-[3/4] bg-white rounded-lg border border-slate-200 overflow-hidden shadow-xs relative flex items-center justify-center shrink-0">
+                                        <template x-if="compressThumb">
+                                            <img :src="compressThumb" class="w-full h-full object-contain pointer-events-none" />
+                                        </template>
+                                        <template x-if="!compressThumb">
+                                            <div class="flex flex-col items-center justify-center p-1 text-slate-300 text-center">
+                                                <svg class="w-6 h-6 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                            </div>
+                                        </template>
+                                    </div>
+                                    <div class="text-left min-w-0">
+                                        <p class="text-xs font-bold text-gray-800 truncate max-w-[180px]" x-text="files[0]?.name"></p>
+                                        <p class="text-[11px] text-gray-500 mt-0.5" x-text="compressTotalPages ? `จำนวน ${compressTotalPages} หน้า` : 'กำลังอ่านเอกสาร...'"></p>
+                                        <span class="inline-block mt-1 text-[10px] bg-slate-200/70 text-slate-600 px-2 py-0.5 rounded font-mono" x-text="`DPI: ${compressQuality === 'screen' ? '72' : (compressQuality === 'ebook' ? '150' : '300')}`"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
                 </div>
             </template>
 
@@ -1178,7 +1349,7 @@
 </div>
 @endsection
 
-@if($tool['slug'] === 'rotate-pdf')
+@if(in_array($tool['slug'], ['rotate-pdf', 'delete-pages', 'watermark-pdf', 'unlock-pdf', 'merge-pdf', 'compress-pdf']))
 @push('scripts')
 <script src="{{ asset('vendor/pdfjs/pdf.min.js') }}"></script>
 <script>
