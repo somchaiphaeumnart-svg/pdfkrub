@@ -135,6 +135,11 @@ class FileController extends Controller
                 $config[$wparam] = (string) $request->input($wparam);
             }
         }
+        foreach (['image_dpi', 'image_pages_mode', 'image_selected_pages'] as $iparam) {
+            if ($request->has($iparam)) {
+                $config[$iparam] = $request->input($iparam);
+            }
+        }
 
         // Create the processing job record
         $pdfJob = PdfJob::create([

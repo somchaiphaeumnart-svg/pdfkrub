@@ -204,6 +204,15 @@ Alpine.data('fileUpload', (config = {}) => ({
     wordTotalPages: 0,
     isAnalyzingWordPdf: false,
 
+    // PDF to Images State (pdf-to-jpg & pdf-to-png)
+    imgDpi: '150', // '150' or '300'
+    imgPagesMode: 'all', // 'all' or 'custom'
+    imgSelectedPages: [],
+    imgManualInput: '',
+    imgPagesList: [],
+    imgTotalPages: 0,
+    isRenderingImgPages: false,
+
     // Processing state
     isUploading: false,
     uploadProgress: 0,
@@ -257,6 +266,9 @@ Alpine.data('fileUpload', (config = {}) => ({
         }
         if (this.tool === 'pdf-to-word' && this.files.length > 0) {
             this.analyzePdfForWord();
+        }
+        if (['pdf-to-jpg', 'pdf-to-png'].includes(this.tool) && this.files.length > 0) {
+            this.loadPdfToImagesPreview();
         }
     },
 
@@ -381,6 +393,10 @@ Alpine.data('fileUpload', (config = {}) => ({
         if (this.tool === 'pdf-to-word' && this.files.length > 0) {
             setTimeout(() => this.analyzePdfForWord(), 60);
         }
+        // If pdf-to-jpg / pdf-to-png, load preview
+        if (['pdf-to-jpg', 'pdf-to-png'].includes(this.tool) && this.files.length > 0) {
+            setTimeout(() => this.loadPdfToImagesPreview(), 60);
+        }
     },
 
     removeFile(id) {
@@ -468,6 +484,7 @@ Alpine.data('fileUpload', (config = {}) => ({
         this.clearSplitPagesState();
         this.clearImageToPdfState();
         this.clearWordState();
+        this.clearPdfToImagesState();
         this.protectPassword = '';
         this.protectPasswordConfirm = '';
         this.showProtectPassword = false;
@@ -644,6 +661,17 @@ Alpine.data('fileUpload', (config = {}) => ({
             formData.append('config[word_tables]', this.wordDetectTables ? '1' : '0');
             formData.append('word_keep_images', this.wordKeepImages ? '1' : '0');
             formData.append('config[word_keep_images]', this.wordKeepImages ? '1' : '0');
+        }
+        if (['pdf-to-jpg', 'pdf-to-png'].includes(activeTool)) {
+            formData.append('image_dpi', this.imgDpi);
+            formData.append('config[image_dpi]', this.imgDpi);
+            formData.append('image_pages_mode', this.imgPagesMode);
+            formData.append('config[image_pages_mode]', this.imgPagesMode);
+            if (this.imgPagesMode === 'custom') {
+                const pagesStr = this.imgSelectedPages.join(',');
+                formData.append('image_selected_pages', pagesStr);
+                formData.append('config[image_selected_pages]', pagesStr);
+            }
         }
         const tokenMeta = document.querySelector('meta[name="csrf-token"]');
         if (tokenMeta) {
@@ -1494,6 +1522,20 @@ Alpine.data('fileUpload', (config = {}) => ({
             }
             return 'แปลงเป็น Word (รักษา Layout & ฟอนต์)';
         }
+        if (['pdf-to-jpg', 'pdf-to-png'].includes(this.tool) && this.hasFiles) {
+            const ext = this.tool === 'pdf-to-png' ? 'PNG' : 'JPG';
+            const dpiLabel = this.imgDpi === '300' ? ' (300 DPI - HQ)' : ' (150 DPI)';
+            if (this.imgPagesMode === 'all') {
+                return `แปลงทุกหน้าเป็น ${ext}${dpiLabel}`;
+            }
+            if (this.imgSelectedPages.length === 0) {
+                return 'กรุณาเลือกหน้าที่ต้องการแปลง';
+            }
+            if (this.imgSelectedPages.length === 1) {
+                return `แปลงหน้า ${this.imgSelectedPages[0]} เป็น ${ext}${dpiLabel}`;
+            }
+            return `แปลง ${this.imgSelectedPages.length} หน้าเป็น ${ext} (.ZIP)${dpiLabel}`;
+        }
         return null;
     },
 
@@ -2201,6 +2243,153 @@ Alpine.data('fileUpload', (config = {}) => ({
         } finally {
             this.isAnalyzingWordPdf = false;
         }
+    },
+
+    clearPdfToImagesState() {
+        this.imgDpi = '150';
+        this.imgPagesMode = 'all';
+        this.imgSelectedPages = [];
+        this.imgManualInput = '';
+        this.imgPagesList = [];
+        this.imgTotalPages = 0;
+        this.isRenderingImgPages = false;
+    },
+
+    async loadPdfToImagesPreview() {
+        if (!['pdf-to-jpg', 'pdf-to-png'].includes(this.tool) || !this.files.length) return;
+        const fileObj = this.files[0]?.file;
+        if (!fileObj) return;
+
+        this.isRenderingImgPages = true;
+        try {
+            await this.ensurePdfJs();
+            const arrayBuffer = await fileObj.arrayBuffer();
+            const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer.slice(0) }).promise;
+            this.imgTotalPages = pdf.numPages;
+
+            // Default: all pages selected
+            this.imgSelectedPages = Array.from({ length: this.imgTotalPages }, (_, i) => i + 1);
+            this.syncImgManualInput();
+
+            const pages = [];
+            for (let i = 1; i <= this.imgTotalPages; i++) {
+                pages.push({ pageNum: i, dataUrl: null });
+            }
+            this.imgPagesList = pages;
+
+            for (let i = 1; i <= this.imgTotalPages; i++) {
+                try {
+                    const page = await pdf.getPage(i);
+                    const viewport = page.getViewport({ scale: 0.28 });
+                    const canvas = document.createElement('canvas');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    const ctx = canvas.getContext('2d');
+                    await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+                    this.imgPagesList[i - 1].dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                } catch (e) {
+                    console.warn('loadPdfToImagesPreview page render error', e);
+                }
+            }
+        } catch (e) {
+            console.error('loadPdfToImagesPreview error', e);
+        } finally {
+            this.isRenderingImgPages = false;
+        }
+    },
+
+    toggleImgPage(pageNum) {
+        if (this.imgPagesMode !== 'custom') {
+            this.imgPagesMode = 'custom';
+        }
+        const idx = this.imgSelectedPages.indexOf(pageNum);
+        if (idx > -1) {
+            this.imgSelectedPages.splice(idx, 1);
+        } else {
+            this.imgSelectedPages.push(pageNum);
+            this.imgSelectedPages.sort((a, b) => a - b);
+        }
+        this.syncImgManualInput();
+    },
+
+    isImgPageSelected(pageNum) {
+        if (this.imgPagesMode === 'all') return true;
+        return this.imgSelectedPages.includes(pageNum);
+    },
+
+    selectImgPages(type) {
+        this.imgPagesMode = 'custom';
+        if (type === 'all') {
+            this.imgSelectedPages = Array.from({ length: this.imgTotalPages }, (_, i) => i + 1);
+        } else if (type === 'none') {
+            this.imgSelectedPages = [];
+        } else if (type === 'odd') {
+            this.imgSelectedPages = Array.from({ length: this.imgTotalPages }, (_, i) => i + 1).filter(n => n % 2 !== 0);
+        } else if (type === 'even') {
+            this.imgSelectedPages = Array.from({ length: this.imgTotalPages }, (_, i) => i + 1).filter(n => n % 2 === 0);
+        }
+        this.syncImgManualInput();
+    },
+
+    syncImgManualInput() {
+        if (this.imgSelectedPages.length === 0) {
+            this.imgManualInput = '';
+            return;
+        }
+        const nums = [...this.imgSelectedPages].sort((a, b) => a - b);
+        const ranges = [];
+        let start = nums[0];
+        let prev = nums[0];
+
+        for (let i = 1; i < nums.length; i++) {
+            if (nums[i] === prev + 1) {
+                prev = nums[i];
+            } else {
+                ranges.push(start === prev ? `${start}` : `${start}-${prev}`);
+                start = nums[i];
+                prev = nums[i];
+            }
+        }
+        ranges.push(start === prev ? `${start}` : `${start}-${prev}`);
+        this.imgManualInput = ranges.join(', ');
+    },
+
+    onImgManualInputChange() {
+        this.imgPagesMode = 'custom';
+        const raw = this.imgManualInput;
+        if (!raw.trim()) {
+            this.imgSelectedPages = [];
+            return;
+        }
+
+        const selected = new Set();
+        const parts = raw.split(',');
+        for (const p of parts) {
+            const item = p.trim();
+            if (item.includes('-')) {
+                const [sStr, eStr] = item.split('-');
+                const s = parseInt(sStr, 10);
+                const e = parseInt(eStr, 10);
+                if (!isNaN(s) && !isNaN(e)) {
+                    const min = Math.max(1, Math.min(s, e));
+                    const max = Math.min(this.imgTotalPages, Math.max(s, e));
+                    for (let n = min; n <= max; n++) selected.add(n);
+                }
+            } else {
+                const n = parseInt(item, 10);
+                if (!isNaN(n) && n >= 1 && n <= this.imgTotalPages) {
+                    selected.add(n);
+                }
+            }
+        }
+        this.imgSelectedPages = Array.from(selected).sort((a, b) => a - b);
+    },
+
+    get canSubmitPdfToImage() {
+        if (!['pdf-to-jpg', 'pdf-to-png'].includes(this.tool)) return true;
+        if (!this.hasFiles) return false;
+        if (this.imgPagesMode === 'all') return true;
+        return this.imgSelectedPages.length > 0;
     },
 
     get hasFiles() { return this.files.length > 0; },

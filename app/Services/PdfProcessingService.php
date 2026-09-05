@@ -407,33 +407,78 @@ class PdfProcessingService
         $inputFile = $this->getInputFile($job);
         $inputPath = Storage::disk($inputFile->storage_disk)->path($inputFile->storage_key);
         $tmpDir = $this->makeTmpDir();
-        $device = $format === 'png' ? 'pngalpha' : 'jpeg';
-        $outputPattern = $tmpDir.DIRECTORY_SEPARATOR."page_%04d.{$format}";
+        $format = strtolower($format) === 'png' ? 'png' : 'jpg';
+
+        $config = $job->tool_config ?? [];
+        $dpi = in_array((string)($config['image_dpi'] ?? ''), ['150', '300']) ? (int)$config['image_dpi'] : 150;
+        $pagesArg = 'all';
+        if (($config['image_pages_mode'] ?? 'all') === 'custom' && !empty($config['image_selected_pages'])) {
+            $pagesArg = is_array($config['image_selected_pages'])
+                ? implode(',', $config['image_selected_pages'])
+                : (string)$config['image_selected_pages'];
+        }
 
         try {
-            $result = Process::timeout(120)->run([
-                'gs', '-dBATCH', '-dNOPAUSE', '-q',
-                "-sDEVICE={$device}", '-r150',
-                "-sOutputFile={$outputPattern}", $inputPath,
-            ]);
+            $converted = false;
+            $scriptPath = base_path('scripts/pdf_to_images.py');
 
-            if (! $result->successful()) {
-                throw new RuntimeException("PDF to {$format} failed: ".$result->errorOutput());
+            if (file_exists($scriptPath)) {
+                $pythonCmd = file_exists('/opt/pdf2docx-env/bin/python3') ? '/opt/pdf2docx-env/bin/python3' : 'python3';
+                $pyResult = Process::timeout(180)->run([
+                    $pythonCmd,
+                    $scriptPath,
+                    $inputPath,
+                    $tmpDir,
+                    '--format', $format,
+                    '--dpi', (string)$dpi,
+                    '--pages', $pagesArg,
+                ]);
+
+                if ($pyResult->successful()) {
+                    $converted = true;
+                } elseif ($pythonCmd !== 'python3') {
+                    $pyResult = Process::timeout(180)->run([
+                        'python3',
+                        $scriptPath,
+                        $inputPath,
+                        $tmpDir,
+                        '--format', $format,
+                        '--dpi', (string)$dpi,
+                        '--pages', $pagesArg,
+                    ]);
+                    if ($pyResult->successful()) {
+                        $converted = true;
+                    }
+                }
+            }
+
+            if (!$converted) {
+                // Ghostscript direct fallback
+                $device = $format === 'png' ? 'pngalpha' : 'jpeg';
+                $outputPattern = $tmpDir.DIRECTORY_SEPARATOR."page_%04d.{$format}";
+                $result = Process::timeout(180)->run([
+                    'gs', '-dBATCH', '-dNOPAUSE', '-q',
+                    "-sDEVICE={$device}", "-r{$dpi}",
+                    "-sOutputFile={$outputPattern}", $inputPath,
+                ]);
             }
 
             $images = glob($tmpDir.DIRECTORY_SEPARATOR."page_*.{$format}");
             sort($images);
 
             if (count($images) === 0) {
-                throw new RuntimeException('No images generated from PDF');
+                throw new RuntimeException("PDF to {$format} failed: ไม่สามารถแปลงรูปภาพได้");
             }
 
+            $mime = $format === 'png' ? 'image/png' : 'image/jpeg';
+            $basename = pathinfo($inputFile->original_name, PATHINFO_FILENAME);
+
             if (count($images) === 1) {
-                return $this->storeOutput($job, $images[0], "page_1.{$format}", "image/{$format}");
+                return $this->storeOutput($job, $images[0], "{$basename}.{$format}", $mime);
             }
 
             // Multiple pages → zip
-            $zipPath = $tmpDir.DIRECTORY_SEPARATOR."images_{$format}.zip";
+            $zipPath = $tmpDir.DIRECTORY_SEPARATOR."{$basename}_{$format}.zip";
             $zip = new \ZipArchive;
             $zip->open($zipPath, \ZipArchive::CREATE);
             foreach ($images as $idx => $img) {
@@ -441,7 +486,7 @@ class PdfProcessingService
             }
             $zip->close();
 
-            return $this->storeOutput($job, $zipPath, "images_{$format}.zip", 'application/zip');
+            return $this->storeOutput($job, $zipPath, "{$basename}_{$format}.zip", 'application/zip');
         } finally {
             $this->cleanTmpDir($tmpDir);
         }

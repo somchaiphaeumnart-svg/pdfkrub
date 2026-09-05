@@ -500,6 +500,119 @@
                             </div>
                         </div>
                     </div>
+                    @if(in_array($tool['slug'], ['pdf-to-jpg', 'pdf-to-png']))
+                    {{-- Visual Page Selector & Quality Settings for PDF to Images --}}
+                    <div class="mt-5 pt-5 border-t border-gray-100" @click.stop>
+
+                        {{-- Quality & Extraction Toolbar --}}
+                        <div class="bg-slate-50/90 border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs mb-4">
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-200/70">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-sm font-bold text-gray-800 flex items-center gap-2">
+                                            <svg class="w-4 h-4 text-brand-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+                                            </svg>
+                                            การตั้งค่าการแปลง PDF เป็นรูปภาพ
+                                        </span>
+                                        <span class="bg-brand-50 text-brand-700 text-xs font-semibold px-2.5 py-0.5 rounded-full" x-text="`${imgTotalPages} หน้าทั้งหมด`"></span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-0.5">เลือกความละเอียด และคลิกเลือกหน้าที่ต้องการแปลงเป็นรูปภาพ</p>
+                                </div>
+
+                                {{-- DPI Selector --}}
+                                <div class="flex items-center gap-2 bg-white p-1 rounded-xl border border-gray-200 shadow-xs self-start sm:self-center">
+                                    <span class="text-xs text-gray-500 font-medium pl-2 pr-1">ความละเอียด:</span>
+                                    <button type="button" @click="imgDpi = '150'"
+                                        :class="imgDpi === '150' ? 'bg-brand-600 text-white font-bold shadow-xs' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'"
+                                        class="px-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer">
+                                        150 DPI (มาตรฐาน)
+                                    </button>
+                                    <button type="button" @click="imgDpi = '300'"
+                                        :class="imgDpi === '300' ? 'bg-brand-600 text-white font-bold shadow-xs' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'"
+                                        class="px-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1" title="ความละเอียดสูง คมชัด เหมาะกับงานพิมพ์">
+                                        <span>300 DPI (HQ)</span>
+                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {{-- Mode & Selection Controls Bar --}}
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                {{-- Mode Selector: All vs Custom --}}
+                                <div class="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-gray-200 shadow-xs self-start">
+                                    <button type="button" @click="imgPagesMode = 'all'; selectImgPages('all')"
+                                        :class="imgPagesMode === 'all' ? 'bg-brand-600 text-white font-bold shadow-xs' : 'text-gray-600 hover:bg-gray-100'"
+                                        class="px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer">
+                                        แปลงทุกหน้า (<span x-text="imgTotalPages"></span> หน้า)
+                                    </button>
+                                    <button type="button" @click="imgPagesMode = 'custom'"
+                                        :class="imgPagesMode === 'custom' ? 'bg-brand-600 text-white font-bold shadow-xs' : 'text-gray-600 hover:bg-gray-100'"
+                                        class="px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer">
+                                        เลือกเฉพาะบางหน้า
+                                    </button>
+                                </div>
+
+                                {{-- Quick Select buttons --}}
+                                <div class="flex items-center flex-wrap gap-1.5" x-show="imgPagesMode === 'custom'">
+                                    <button type="button" @click="selectImgPages('all')" class="text-xs px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-brand-50 hover:text-brand-600 text-gray-600 transition-colors font-medium">ทั้งหมด</button>
+                                    <button type="button" @click="selectImgPages('none')" class="text-xs px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-error-50 hover:text-error-500 text-gray-600 transition-colors font-medium">ล้าง</button>
+                                    <button type="button" @click="selectImgPages('odd')" class="text-xs px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-brand-50 hover:text-brand-600 text-gray-600 transition-colors font-medium">หน้าคี่</button>
+                                    <button type="button" @click="selectImgPages('even')" class="text-xs px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-brand-50 hover:text-brand-600 text-gray-600 transition-colors font-medium">หน้าคู่</button>
+                                </div>
+
+                                {{-- Range Input & Stats --}}
+                                <div class="flex items-center gap-2" x-show="imgPagesMode === 'custom'">
+                                    <input type="text"
+                                           x-model="imgManualInput"
+                                           @input="onImgManualInputChange()"
+                                           placeholder="เช่น 1-3, 5, 8"
+                                           class="text-xs px-3 py-1.5 rounded-xl border border-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 font-mono w-36 bg-white">
+                                    <span class="text-xs px-2.5 py-1.5 rounded-xl bg-brand-50 text-brand-700 border border-brand-200 font-bold whitespace-nowrap">
+                                        เลือกแล้ว <span x-text="imgSelectedPages.length"></span>/<span x-text="imgTotalPages"></span> หน้า
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Visual Pages Grid --}}
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 max-h-[480px] overflow-y-auto p-1 rounded-2xl">
+                            <template x-for="page in imgPagesList" :key="page.pageNum">
+                                <div
+                                    @click="toggleImgPage(page.pageNum)"
+                                    class="relative group rounded-2xl p-2.5 cursor-pointer border-2 transition-all duration-150 flex flex-col items-center select-none"
+                                    :class="isImgPageSelected(page.pageNum)
+                                        ? 'border-brand-500 bg-brand-50/60 ring-2 ring-brand-500/20 shadow-xs'
+                                        : 'border-slate-200 bg-white opacity-60 hover:opacity-100 hover:border-brand-300 hover:bg-brand-50/10'">
+
+                                    {{-- Top Checkbox Badge --}}
+                                    <div class="w-full flex items-center justify-between mb-1.5 px-0.5">
+                                        <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-md"
+                                              :class="isImgPageSelected(page.pageNum) ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-600'"
+                                              x-text="`หน้า ${page.pageNum}`"></span>
+                                        <div class="w-4 h-4 rounded-full flex items-center justify-center transition-colors"
+                                             :class="isImgPageSelected(page.pageNum) ? 'bg-brand-600 text-white' : 'border border-slate-300 bg-white'">
+                                            <template x-if="isImgPageSelected(page.pageNum)">
+                                                <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                                            </template>
+                                        </div>
+                                    </div>
+
+                                    {{-- Thumbnail Box --}}
+                                    <div class="w-full aspect-[3/4] bg-slate-50 rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-100 shadow-inner">
+                                        <template x-if="page.dataUrl">
+                                            <img :src="page.dataUrl" class="w-full h-full object-contain pointer-events-none rounded-lg" />
+                                        </template>
+                                        <template x-if="!page.dataUrl">
+                                            <div class="flex flex-col items-center justify-center p-1 text-slate-300 text-center">
+                                                <svg class="w-6 h-6 animate-pulse" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
                     @endif
 
                     @if($tool['slug'] === 'rotate-pdf')
@@ -1630,8 +1743,8 @@
                 <button
                     @click="hasFiles ? startConversion('{{ $tool['slug'] }}') : $refs.fileInput.click()"
                     class="btn-primary px-10 py-4 rounded-2xl text-base flex items-center gap-2"
-                    :class="{ 'opacity-50 cursor-not-allowed': !hasFiles || (tool === 'delete-pages' && hasFiles && !canSubmitDeletePages) || (tool === 'watermark-pdf' && hasFiles && !canSubmitWatermark) || (tool === 'protect-pdf' && hasFiles && !canSubmitProtectPdf) || (tool === 'unlock-pdf' && hasFiles && !canSubmitUnlockPdf) || (tool === 'merge-pdf' && hasFiles && !canSubmitMergePdf) || (tool === 'split-pdf' && hasFiles && !canSubmitSplitPdf) }"
-                    :disabled="!hasFiles || (tool === 'delete-pages' && hasFiles && !canSubmitDeletePages) || (tool === 'watermark-pdf' && hasFiles && !canSubmitWatermark) || (tool === 'protect-pdf' && hasFiles && !canSubmitProtectPdf) || (tool === 'unlock-pdf' && hasFiles && !canSubmitUnlockPdf) || (tool === 'merge-pdf' && hasFiles && !canSubmitMergePdf) || (tool === 'split-pdf' && hasFiles && !canSubmitSplitPdf)"
+                    :class="{ 'opacity-50 cursor-not-allowed': !hasFiles || (tool === 'delete-pages' && hasFiles && !canSubmitDeletePages) || (tool === 'watermark-pdf' && hasFiles && !canSubmitWatermark) || (tool === 'protect-pdf' && hasFiles && !canSubmitProtectPdf) || (tool === 'unlock-pdf' && hasFiles && !canSubmitUnlockPdf) || (tool === 'merge-pdf' && hasFiles && !canSubmitMergePdf) || (tool === 'split-pdf' && hasFiles && !canSubmitSplitPdf) || (['pdf-to-jpg', 'pdf-to-png'].includes(tool) && hasFiles && !canSubmitPdfToImage) }"
+                    :disabled="!hasFiles || (tool === 'delete-pages' && hasFiles && !canSubmitDeletePages) || (tool === 'watermark-pdf' && hasFiles && !canSubmitWatermark) || (tool === 'protect-pdf' && hasFiles && !canSubmitProtectPdf) || (tool === 'unlock-pdf' && hasFiles && !canSubmitUnlockPdf) || (tool === 'merge-pdf' && hasFiles && !canSubmitMergePdf) || (tool === 'split-pdf' && hasFiles && !canSubmitSplitPdf) || (['pdf-to-jpg', 'pdf-to-png'].includes(tool) && hasFiles && !canSubmitPdfToImage)"
                     @if($tool['premium'] && !(auth()->check() && auth()->user()->getActivePlan()->has_ocr)) disabled @endif>
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>
