@@ -559,13 +559,7 @@ PS;
     private function cleanTmpDir(string $tmpDir): void
     {
         if (is_dir($tmpDir)) {
-            $files = glob($tmpDir.DIRECTORY_SEPARATOR.'*');
-            foreach ($files as $file) {
-                if (is_file($file)) {
-                    unlink($file);
-                }
-            }
-            rmdir($tmpDir);
+            \Illuminate\Support\Facades\File::deleteDirectory($tmpDir);
         }
     }
 

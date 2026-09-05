@@ -87,11 +87,15 @@ class LibreOfficeService
             return $this->convertPdfToExcel($inputPdf, $outputDir);
         }
 
+        // For PowerPoint (pptx), use high-fidelity slide conversion with LibreOffice fallback
+        if ($targetFormat === 'pptx') {
+            return $this->convertPdfToPptx($inputPdf, $outputDir);
+        }
+
         $this->ensureBinaryExists();
 
         $infilter = match ($targetFormat) {
             'docx' => 'writer_pdf_import',
-            'pptx' => 'impress_pdf_import',
             default => null,
         };
 
@@ -115,44 +119,155 @@ class LibreOfficeService
             }
         }
 
-        $profileDir = rtrim($outputDir, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.'lo_profile';
+        $profileDir = sys_get_temp_dir().DIRECTORY_SEPARATOR.'lo_profile_'.uniqid();
         if (! is_dir($profileDir)) {
             @mkdir($profileDir, 0755, true);
         }
 
-        $cmd = [
-            $this->binaryPath,
-            "-env:UserInstallation=file://{$profileDir}",
-            '--headless',
-            '--norestore',
-        ];
+        try {
+            $cmd = [
+                $this->binaryPath,
+                "-env:UserInstallation=file://{$profileDir}",
+                '--headless',
+                '--norestore',
+            ];
 
-        if ($infilter) {
-            $cmd[] = "--infilter={$infilter}";
+            if ($infilter) {
+                $cmd[] = "--infilter={$infilter}";
+            }
+
+            $cmd[] = '--convert-to';
+            $cmd[] = $targetFormat;
+            $cmd[] = '--outdir';
+            $cmd[] = $outputDir;
+            $cmd[] = $inputPdf;
+
+            $result = Process::timeout($this->timeoutSeconds)->run($cmd);
+
+            if (! $result->successful()) {
+                Log::error('LibreOffice convert-from-pdf failed', [
+                    'input' => $inputPdf,
+                    'target_format' => $targetFormat,
+                    'stderr' => $result->errorOutput(),
+                ]);
+                throw new RuntimeException('LibreOffice failed: '.$result->errorOutput());
+            }
+
+            $basename = pathinfo($inputPdf, PATHINFO_FILENAME);
+            $outputPath = rtrim($outputDir, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.$basename.'.'.$targetFormat;
+
+            if (! file_exists($outputPath)) {
+                throw new RuntimeException("LibreOffice output not found: {$outputPath}");
+            }
+
+            return $outputPath;
+        } finally {
+            if (is_dir($profileDir)) {
+                \Illuminate\Support\Facades\File::deleteDirectory($profileDir);
+            }
         }
+    }
 
-        $cmd[] = '--convert-to';
-        $cmd[] = $targetFormat;
-        $cmd[] = '--outdir';
-        $cmd[] = $outputDir;
-        $cmd[] = $inputPdf;
-
-        $result = Process::timeout($this->timeoutSeconds)->run($cmd);
-
-        if (! $result->successful()) {
-            Log::error('LibreOffice convert-from-pdf failed', [
-                'input' => $inputPdf,
-                'target_format' => $targetFormat,
-                'stderr' => $result->errorOutput(),
-            ]);
-            throw new RuntimeException('LibreOffice failed: '.$result->errorOutput());
-        }
-
+    /**
+     * Convert PDF to PowerPoint (.pptx) using python slide extraction or LibreOffice fallback.
+     */
+    public function convertPdfToPptx(string $inputPdf, string $outputDir): string
+    {
         $basename = pathinfo($inputPdf, PATHINFO_FILENAME);
-        $outputPath = rtrim($outputDir, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.$basename.'.'.$targetFormat;
+        $outputPath = rtrim($outputDir, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.$basename.'.pptx';
 
-        if (! file_exists($outputPath)) {
-            throw new RuntimeException("LibreOffice output not found: {$outputPath}");
+        $pythonCmd = file_exists('/opt/pdf2docx-env/bin/python3')
+            ? '/opt/pdf2docx-env/bin/python3'
+            : 'python3';
+
+        $scriptPath = base_path('scripts/pdf_to_pptx.py');
+
+        if (file_exists($scriptPath)) {
+            $result = Process::timeout($this->timeoutSeconds)->run([
+                $pythonCmd,
+                $scriptPath,
+                $inputPdf,
+                $outputPath,
+            ]);
+
+            if ($result->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                return $outputPath;
+            }
+
+            Log::warning('Python pdf_to_pptx failed, trying system python or LibreOffice fallback', [
+                'input' => $inputPdf,
+                'exit_code' => $result->exitCode(),
+                'stderr' => $result->errorOutput(),
+                'stdout' => $result->output(),
+            ]);
+
+            if ($pythonCmd !== 'python3') {
+                $sysResult = Process::timeout($this->timeoutSeconds)->run([
+                    'python3',
+                    $scriptPath,
+                    $inputPdf,
+                    $outputPath,
+                ]);
+
+                if ($sysResult->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                    return $outputPath;
+                }
+            }
+        }
+
+        // Fallback: Try LibreOffice Impress
+        if ($this->isAvailable()) {
+            $profileDir = sys_get_temp_dir().DIRECTORY_SEPARATOR.'lo_profile_'.uniqid();
+            if (! is_dir($profileDir)) {
+                @mkdir($profileDir, 0755, true);
+            }
+
+            try {
+                $cmd = [
+                    $this->binaryPath,
+                    "-env:UserInstallation=file://{$profileDir}",
+                    '--headless',
+                    '--norestore',
+                    '--infilter=impress_pdf_import',
+                    '--convert-to',
+                    'pptx',
+                    '--outdir',
+                    $outputDir,
+                    $inputPdf,
+                ];
+
+                $result = Process::timeout($this->timeoutSeconds)->run($cmd);
+
+                if ($result->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                    return $outputPath;
+                }
+
+                // Try without infilter
+                $cmd2 = [
+                    $this->binaryPath,
+                    "-env:UserInstallation=file://{$profileDir}",
+                    '--headless',
+                    '--norestore',
+                    '--convert-to',
+                    'pptx',
+                    '--outdir',
+                    $outputDir,
+                    $inputPdf,
+                ];
+                $result2 = Process::timeout($this->timeoutSeconds)->run($cmd2);
+
+                if ($result2->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                    return $outputPath;
+                }
+            } finally {
+                if (is_dir($profileDir)) {
+                    \Illuminate\Support\Facades\File::deleteDirectory($profileDir);
+                }
+            }
+        }
+
+        if (! file_exists($outputPath) || filesize($outputPath) === 0) {
+            throw new RuntimeException('ไม่สามารถแปลงไฟล์เป็น PowerPoint (.pptx) ได้ กรุณาลองใหม่อีกครั้ง');
         }
 
         return $outputPath;

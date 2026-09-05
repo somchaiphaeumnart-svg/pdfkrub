@@ -556,12 +556,7 @@ PROMPT;
     private function cleanTmpDir(string $dir): void
     {
         if (is_dir($dir)) {
-            foreach (glob($dir.'/*') as $f) {
-                if (is_file($f)) {
-                    unlink($f);
-                }
-            }
-            rmdir($dir);
+            \Illuminate\Support\Facades\File::deleteDirectory($dir);
         }
     }
 }
