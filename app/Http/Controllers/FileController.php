@@ -140,6 +140,11 @@ class FileController extends Controller
                 $config[$iparam] = $request->input($iparam);
             }
         }
+        foreach (['page_numbers_position', 'page_numbers_format', 'page_numbers_start', 'page_numbers_skip_first', 'page_numbers_font_size', 'page_numbers_color'] as $pnParam) {
+            if ($request->has($pnParam)) {
+                $config[$pnParam] = $request->input($pnParam);
+            }
+        }
 
         // Create the processing job record
         $pdfJob = PdfJob::create([

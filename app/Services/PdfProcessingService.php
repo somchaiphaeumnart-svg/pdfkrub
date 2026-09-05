@@ -46,6 +46,7 @@ class PdfProcessingService
             'rotate-pdf' => $this->rotatePdf($job),
             'delete-pages' => $this->deletePages($job),
             'watermark-pdf' => $this->watermarkPdf($job),
+            'page-numbers' => $this->addPageNumbers($job),
             'protect-pdf' => $this->protectPdf($job),
             'unlock-pdf' => $this->unlockPdf($job),
             'ocr-pdf' => $this->ocr->process($job),
@@ -717,6 +718,73 @@ class PdfProcessingService
             $basename = pathinfo($inputFile->original_name, PATHINFO_FILENAME);
 
             return $this->storeOutput($job, $outputPath, "{$basename}_watermarked.pdf", 'application/pdf');
+        } finally {
+            $this->cleanTmpDir($tmpDir);
+        }
+    }
+
+    // =========================================================
+    // Add Page Numbers to PDF
+    // =========================================================
+
+    private function addPageNumbers(PdfJob $job): UploadedFile
+    {
+        $inputFile = $this->getInputFile($job);
+        $inputPath = Storage::disk($inputFile->storage_disk)->path($inputFile->storage_key);
+        $tmpDir = $this->makeTmpDir();
+        $outputPath = $tmpDir.DIRECTORY_SEPARATOR.'page_numbered.pdf';
+
+        $config = $job->tool_config ?? [];
+        $position = in_array((string)($config['page_numbers_position'] ?? ''), [
+            'bottom-center', 'bottom-left', 'bottom-right', 'top-center', 'top-left', 'top-right'
+        ]) ? $config['page_numbers_position'] : 'bottom-center';
+
+        $format = in_array((string)($config['page_numbers_format'] ?? ''), [
+            'n', 'n-of-total', 'page-n', 'page-n-of-total'
+        ]) ? $config['page_numbers_format'] : 'n';
+
+        $startNum = max(1, (int)($config['page_numbers_start'] ?? 1));
+        $skipFirst = !empty($config['page_numbers_skip_first']) ? '1' : '0';
+        $fontSize = in_array((int)($config['page_numbers_font_size'] ?? 11), [9, 11, 14]) ? (int)$config['page_numbers_font_size'] : 11;
+        $color = !empty($config['page_numbers_color']) ? (string)$config['page_numbers_color'] : '#333333';
+
+        try {
+            $applied = false;
+            $scriptPath = base_path('scripts/add_page_numbers.py');
+            $pythonCmd = file_exists('/opt/pdf2docx-env/bin/python3') ? '/opt/pdf2docx-env/bin/python3' : 'python3';
+
+            if (file_exists($scriptPath)) {
+                $cmd = [
+                    $pythonCmd,
+                    $scriptPath,
+                    $inputPath,
+                    $outputPath,
+                    '--position', $position,
+                    '--format', $format,
+                    '--start-num', (string)$startNum,
+                    '--skip-first', $skipFirst,
+                    '--font-size', (string)$fontSize,
+                    '--color', $color,
+                ];
+
+                $pyResult = Process::timeout(60)->run($cmd);
+                if ($pyResult->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                    $applied = true;
+                } elseif ($pythonCmd !== 'python3') {
+                    $cmd[0] = 'python3';
+                    $sysResult = Process::timeout(60)->run($cmd);
+                    if ($sysResult->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                        $applied = true;
+                    }
+                }
+            }
+
+            if (!$applied || !file_exists($outputPath) || filesize($outputPath) === 0) {
+                throw new RuntimeException('ไม่สามารถใส่เลขหน้าในเอกสาร PDF ได้ กรุณาลองใหม่อีกครั้ง');
+            }
+
+            $basename = pathinfo($inputFile->original_name, PATHINFO_FILENAME);
+            return $this->storeOutput($job, $outputPath, "{$basename}_numbered.pdf", 'application/pdf');
         } finally {
             $this->cleanTmpDir($tmpDir);
         }

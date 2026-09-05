@@ -213,6 +213,17 @@ Alpine.data('fileUpload', (config = {}) => ({
     imgTotalPages: 0,
     isRenderingImgPages: false,
 
+    // Page Numbers State
+    pnPosition: 'bottom-center', // 'bottom-center', 'bottom-left', 'bottom-right', 'top-center', 'top-left', 'top-right'
+    pnFormat: 'n', // 'n', 'n-of-total', 'page-n', 'page-n-of-total'
+    pnStartNum: 1,
+    pnSkipFirst: false,
+    pnFontSize: 11, // 9, 11, 14
+    pnColor: '#333333',
+    pnPreviewPageUrl: null,
+    pnTotalPages: 0,
+    isRenderingPnPages: false,
+
     // Processing state
     isUploading: false,
     uploadProgress: 0,
@@ -269,6 +280,9 @@ Alpine.data('fileUpload', (config = {}) => ({
         }
         if (['pdf-to-jpg', 'pdf-to-png'].includes(this.tool) && this.files.length > 0) {
             this.loadPdfToImagesPreview();
+        }
+        if (this.tool === 'page-numbers' && this.files.length > 0) {
+            this.loadPageNumbersPreview();
         }
     },
 
@@ -397,6 +411,10 @@ Alpine.data('fileUpload', (config = {}) => ({
         if (['pdf-to-jpg', 'pdf-to-png'].includes(this.tool) && this.files.length > 0) {
             setTimeout(() => this.loadPdfToImagesPreview(), 60);
         }
+        // If page-numbers, load preview
+        if (this.tool === 'page-numbers' && this.files.length > 0) {
+            setTimeout(() => this.loadPageNumbersPreview(), 60);
+        }
     },
 
     removeFile(id) {
@@ -456,6 +474,12 @@ Alpine.data('fileUpload', (config = {}) => ({
                 setTimeout(() => this.loadSplitPagesPreview(), 60);
             }
         }
+        if (this.tool === 'page-numbers') {
+            this.clearPageNumbersState();
+            if (this.files.length > 0) {
+                setTimeout(() => this.loadPageNumbersPreview(), 60);
+            }
+        }
     },
 
     clearAll() {
@@ -485,6 +509,7 @@ Alpine.data('fileUpload', (config = {}) => ({
         this.clearImageToPdfState();
         this.clearWordState();
         this.clearPdfToImagesState();
+        this.clearPageNumbersState();
         this.protectPassword = '';
         this.protectPasswordConfirm = '';
         this.showProtectPassword = false;
@@ -673,6 +698,20 @@ Alpine.data('fileUpload', (config = {}) => ({
                 formData.append('config[image_selected_pages]', pagesStr);
             }
         }
+        if (activeTool === 'page-numbers') {
+            formData.append('page_numbers_position', this.pnPosition);
+            formData.append('config[position]', this.pnPosition);
+            formData.append('page_numbers_format', this.pnFormat);
+            formData.append('config[format]', this.pnFormat);
+            formData.append('page_numbers_start', this.pnStartNum);
+            formData.append('config[start]', this.pnStartNum);
+            formData.append('page_numbers_skip_first', this.pnSkipFirst ? '1' : '0');
+            formData.append('config[skip_first]', this.pnSkipFirst ? '1' : '0');
+            formData.append('page_numbers_font_size', this.pnFontSize);
+            formData.append('config[font_size]', this.pnFontSize);
+            formData.append('page_numbers_color', this.pnColor);
+            formData.append('config[color]', this.pnColor);
+        }
         const tokenMeta = document.querySelector('meta[name="csrf-token"]');
         if (tokenMeta) {
             formData.append('_token', tokenMeta.content);
@@ -772,6 +811,7 @@ Alpine.data('fileUpload', (config = {}) => ({
             'word-to-pdf': 'กำลังแปลงเอกสาร Word เป็นเอกสาร PDF...',
             'excel-to-pdf': 'กำลังแปลงเอกสาร Excel เป็นเอกสาร PDF...',
             'image-to-pdf': 'กำลังแปลงรูปภาพเป็นเอกสาร PDF...',
+            'page-numbers': 'กำลังใส่เลขหน้าลงในเอกสาร PDF...',
         };
         const detail = toolLabels[toolName] || 'เซิร์ฟเวอร์กำลังประมวลผลไฟล์...';
         this.processingDetail = detail;
@@ -1535,6 +1575,10 @@ Alpine.data('fileUpload', (config = {}) => ({
                 return `แปลงหน้า ${this.imgSelectedPages[0]} เป็น ${ext}${dpiLabel}`;
             }
             return `แปลง ${this.imgSelectedPages.length} หน้าเป็น ${ext} (.ZIP)${dpiLabel}`;
+        }
+        if (this.tool === 'page-numbers' && this.hasFiles) {
+            const pageCount = this.pnTotalPages || 1;
+            return `ใส่เลขหน้าเอกสาร (${pageCount} หน้า)`;
         }
         return null;
     },
@@ -2390,6 +2434,95 @@ Alpine.data('fileUpload', (config = {}) => ({
         if (!this.hasFiles) return false;
         if (this.imgPagesMode === 'all') return true;
         return this.imgSelectedPages.length > 0;
+    },
+
+    // =====================================================
+    // Page Numbers PDF Methods & Live Preview
+    // =====================================================
+    clearPageNumbersState() {
+        this.pnPosition = 'bottom-center';
+        this.pnFormat = 'n';
+        this.pnStartNum = 1;
+        this.pnSkipFirst = false;
+        this.pnFontSize = 11;
+        this.pnColor = '#333333';
+        this.pnPreviewPageUrl = null;
+        this.pnTotalPages = 0;
+        this.isRenderingPnPages = false;
+    },
+
+    async loadPageNumbersPreview() {
+        if (this.tool !== 'page-numbers' || !this.files.length) return;
+        const targetFile = this.files[0]?.file;
+        if (!targetFile) return;
+
+        this.isRenderingPnPages = true;
+        try {
+            await this.ensurePdfJs();
+            const arrayBuffer = await targetFile.arrayBuffer();
+            const doc = await window.pdfjsLib.getDocument({ data: arrayBuffer.slice(0) }).promise;
+            this.pnTotalPages = doc.numPages;
+
+            const pageToRender = (this.pnSkipFirst && doc.numPages > 1) ? 2 : 1;
+            const page = await doc.getPage(pageToRender);
+            const baseViewport = page.getViewport({ scale: 1.0 });
+            const targetDim = 520;
+            const maxDim = Math.max(baseViewport.width, baseViewport.height);
+            const scale = Math.min(1.0, Math.max(0.5, targetDim / maxDim));
+            const viewport = page.getViewport({ scale });
+
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            const ctx = canvas.getContext('2d');
+
+            await page.render({
+                canvasContext: ctx,
+                viewport: viewport
+            }).promise;
+
+            this.pnPreviewPageUrl = canvas.toDataURL('image/jpeg', 0.88);
+        } catch (err) {
+            console.warn('Page numbers preview error:', err);
+        } finally {
+            this.isRenderingPnPages = false;
+        }
+    },
+
+    get pnFormattedPreviewText() {
+        const start = parseInt(this.pnStartNum, 10) || 1;
+        const total = this.pnTotalPages || 1;
+        const current = (this.pnSkipFirst && total > 1) ? (start + 1) : start;
+
+        switch (this.pnFormat) {
+            case 'n-of-total':
+                return `${current} / ${total}`;
+            case 'page-n':
+                return `หน้า ${current}`;
+            case 'page-n-of-total':
+                return `หน้า ${current} จาก ${total}`;
+            case 'n':
+            default:
+                return `${current}`;
+        }
+    },
+
+    get pnPositionClasses() {
+        switch (this.pnPosition) {
+            case 'top-left':
+                return 'top-4 left-6 text-left';
+            case 'top-center':
+                return 'top-4 left-1/2 -translate-x-1/2 text-center';
+            case 'top-right':
+                return 'top-4 right-6 text-right';
+            case 'bottom-left':
+                return 'bottom-4 left-6 text-left';
+            case 'bottom-right':
+                return 'bottom-4 right-6 text-right';
+            case 'bottom-center':
+            default:
+                return 'bottom-4 left-1/2 -translate-x-1/2 text-center';
+        }
     },
 
     get hasFiles() { return this.files.length > 0; },

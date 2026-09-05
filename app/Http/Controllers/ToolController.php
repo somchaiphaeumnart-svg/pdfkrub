@@ -210,6 +210,18 @@ class ToolController extends Controller
                 'output_format' => 'pdf',
             ],
             [
+                'slug' => 'page-numbers',
+                'name' => 'Page Numbers',
+                'name_th' => 'ใส่เลขหน้า PDF',
+                'description_th' => 'ใส่เลขหน้าเอกสาร PDF กำหนดตำแหน่ง รูปแบบตัวเลข และฟอนต์ได้อย่างอิสระ',
+                'icon' => '🔢',
+                'category' => 'organize',
+                'color' => 'from-violet-600 to-violet-500',
+                'accepts' => '.pdf',
+                'premium' => false,
+                'output_format' => 'pdf',
+            ],
+            [
                 'slug' => 'protect-pdf',
                 'name' => 'Protect PDF',
                 'name_th' => 'ใส่รหัสผ่าน PDF',
@@ -433,5 +445,10 @@ class ToolController extends Controller
     public function editor(): View
     {
         return view('tools.pdf-editor');
+    }
+
+    public function pageNumbers(): View
+    {
+        return $this->showTool('page-numbers');
     }
 }
