@@ -4725,7 +4725,90 @@ Alpine.data('pdfEditor', () => ({
         return result;
     },
 
-    async extractPageTextBlocks() {
+    groupLinesIntoParagraphs(lines) {
+        if (!lines || lines.length === 0) return [];
+        const paragraphs = [];
+        let cur = null;
+
+        for (const l of lines) {
+            if (!cur) {
+                cur = {
+                    text: l.text,
+                    fontSize: l.fontSize,
+                    align: l.align,
+                    bold: l.bold,
+                    italic: l.italic,
+                    fontFamily: l.fontFamily,
+                    color: l.color || '#111827',
+                    lineHeightRatio: 1.35,
+                    linesCount: 1,
+                    minX: l.minX,
+                    maxX: l.maxX,
+                    minY: l.baselineY - l.fontSize,
+                    maxY: l.baselineY + (l.fontSize * 0.35),
+                    firstBaselineY: l.baselineY,
+                    lastBaselineY: l.baselineY,
+                    textIndent: l.indentPx || 0,
+                    gapAfter: 3
+                };
+                continue;
+            }
+
+            const stepY = l.baselineY - cur.lastBaselineY;
+            const sameAlign = cur.align === l.align;
+            const sameBold = cur.bold === l.bold;
+            const similarSize = Math.abs(cur.fontSize - l.fontSize) <= 2.2;
+            const isNormalGap = stepY > 0 && stepY <= Math.max(34, cur.fontSize * 2.2);
+            const isList = /^\s*(\d+[\.\)]|[①-⑩]|[\-\*•])\s+/.test(l.text);
+            const isCurHeading = cur.align === 'center' || cur.fontSize >= 17;
+            const isLineHeading = l.align === 'center' || l.fontSize >= 17;
+
+            // An indented line indicates the START of a new paragraph!
+            const isNewParagraphStart = l.isIndented && cur.linesCount >= 1;
+
+            const canMerge = sameAlign && sameBold && similarSize && isNormalGap &&
+                             !isList && !isCurHeading && !isLineHeading && !isNewParagraphStart;
+
+            if (canMerge) {
+                const needSpace = /[a-zA-Z0-9]$/.test(cur.text) || /^[a-zA-Z0-9]/.test(l.text);
+                cur.text += (needSpace ? ' ' : '') + l.text;
+                cur.linesCount++;
+                cur.lineStepY = stepY;
+                cur.lineHeightRatio = 1.35;
+                cur.lastBaselineY = l.baselineY;
+                cur.minX = Math.min(cur.minX, l.minX);
+                cur.maxX = Math.max(cur.maxX, l.maxX);
+                cur.maxY = l.baselineY + (l.fontSize * 0.35);
+            } else {
+                const baselineGap = Math.max(0, stepY - (cur.fontSize * 1.35));
+                cur.gapAfter = Math.max(2, Math.min(8, Math.round(baselineGap * 0.25)));
+                paragraphs.push(cur);
+                cur = {
+                    text: l.text,
+                    fontSize: l.fontSize,
+                    align: l.align,
+                    bold: l.bold,
+                    italic: l.italic,
+                    fontFamily: l.fontFamily,
+                    color: l.color || '#111827',
+                    lineHeightRatio: 1.35,
+                    linesCount: 1,
+                    minX: l.minX,
+                    maxX: l.maxX,
+                    minY: l.baselineY - l.fontSize,
+                    maxY: l.baselineY + (l.fontSize * 0.35),
+                    firstBaselineY: l.baselineY,
+                    lastBaselineY: l.baselineY,
+                    textIndent: l.indentPx || 0,
+                    gapAfter: 3
+                };
+            }
+        }
+        if (cur) paragraphs.push(cur);
+        return paragraphs;
+    },
+
+        async extractPageTextBlocks() {
         if (!editorPdfDoc) {
             this.currentOriginalTextBlocks = [];
             return;
@@ -4992,6 +5075,7 @@ Alpine.data('pdfEditor', () => ({
             // Build ONE SINGLE UNIFIED DOCUMENT TEXT preserving 100% original layout
             const unifiedText = this.buildUnifiedDocumentText(processedLines);
 
+            const processedParagraphs = this.groupLinesIntoParagraphs(processedLines);
             this.currentOriginalTextBlocks = [{
                 id: `orig_doc_${this.currentPage}`,
                 pctX: Math.max(0, (boundedMinX / viewport.width) * 100),
@@ -5000,11 +5084,8 @@ Alpine.data('pdfEditor', () => ({
                 pctH: Math.min(100, (masterH / viewport.height) * 100),
                 masterW: masterW,
                 masterH: masterH,
-                boundedMinY: boundedMinY,
-                unifiedText: unifiedText,
-                dominantFontSize: dominantFontSize,
-                dominantFontFamily: dominantFontFam,
-                lines: processedLines
+                paragraphs: processedParagraphs,
+                lines: processedParagraphs
             }];
         } catch (err) {
             console.warn('Error extracting page text blocks:', err);
@@ -5023,48 +5104,41 @@ Alpine.data('pdfEditor', () => ({
 
     startEditingOriginalText(block, e) {
         if (!block) return;
-        const newId = 'text_unified_' + Date.now();
-        const unifiedText = block.unifiedText || this.buildUnifiedDocumentText(block.lines || []);
+        const newId = 'doc_unified_' + Date.now();
+        const paragraphs = JSON.parse(JSON.stringify(block.paragraphs || block.lines || []));
 
         const newAnn = {
             id: newId,
-            type: 'text',
+            type: 'text_document',
             page: this.currentPage,
             pctX: block.pctX,
             pctY: block.pctY,
             pctW: block.pctW,
             pctH: block.pctH,
-            text: unifiedText,
-            fontSize: block.dominantFontSize || 14,
-            fontFamily: block.dominantFontFamily || 'TH Niramit AS',
-            color: '#111827',
+            masterW: block.masterW,
+            masterH: block.masterH,
             bgColor: '#ffffff', // Clean white background covering original PDF canvas 100%!
-            bold: false,
-            italic: false,
-            underline: false,
-            align: 'left',
-            lineHeight: 1.4
+            paragraphs: paragraphs,
+            lines: paragraphs
         };
 
         this.annotations.push(newAnn);
         this.selectedAnnotationId = newId;
         this.activeTool = 'pointer';
+        this.activeDocLineIdx = 0;
         this.currentOriginalTextBlocks = [];
         this.pushHistory('แก้ไขข้อความเอกสาร (กลุ่มเดียวกัน 100% ต้นฉบับ)');
 
         this.$nextTick(() => {
-            const ta = document.querySelector(`textarea[data-ann-id="${newId}"]`);
-            if (ta) {
-                ta.focus();
-                this.textFontFamily = newAnn.fontFamily;
-                this.textSize = newAnn.fontSize;
-                this.textLineHeight = newAnn.lineHeight;
-                this.textBgColor = newAnn.bgColor;
+            const textareas = document.querySelectorAll(`textarea[data-doc-ann="${newId}"]`);
+            textareas.forEach(ta => this.autoResizeTextarea(ta));
+            if (textareas[0]) {
+                textareas[0].focus();
             }
         });
     },
 
-    syncToolbarToLine(line) {
+        syncToolbarToLine(line) {
         if (!line) return;
         if (line.fontFamily) this.textFontFamily = line.fontFamily;
         if (line.fontSize) this.textSize = line.fontSize;
