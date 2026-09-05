@@ -604,17 +604,17 @@ Alpine.data('fileUpload', (config = {}) => ({
         }
     },
 
-    prevPage() {
-        if (this.pdfCurrentPage > 1) {
+    async prevPage() {
+        if (this.pdfCurrentPage > 1 && !this.isRenderingPdf) {
             this.pdfCurrentPage--;
-            this.renderCurrentPage();
+            await this.renderCurrentPage();
         }
     },
 
-    nextPage() {
-        if (this.pdfCurrentPage < this.pdfTotalPages) {
+    async nextPage() {
+        if (this.pdfCurrentPage < this.pdfTotalPages && !this.isRenderingPdf) {
             this.pdfCurrentPage++;
-            this.renderCurrentPage();
+            await this.renderCurrentPage();
         }
     },
 
@@ -677,16 +677,24 @@ Alpine.data('fileUpload', (config = {}) => ({
 
     async renderCurrentPage() {
         if (!rotatePdfDoc) return;
+        const pageNum = this.pdfCurrentPage;
         this.isRenderingPdf = true;
+        this.pdfRenderError = null;
+
         try {
+            // Cancel and await any ongoing render task to completely settle
             if (rotateRenderTask) {
                 try {
                     rotateRenderTask.cancel();
+                    await rotateRenderTask.promise.catch(() => {});
                 } catch (err) {}
                 rotateRenderTask = null;
             }
 
-            const page = await rotatePdfDoc.getPage(this.pdfCurrentPage);
+            // Ensure page number hasn't changed during cancellation wait
+            if (this.pdfCurrentPage !== pageNum) return;
+
+            const page = await rotatePdfDoc.getPage(pageNum);
             const canvas = document.getElementById('pdfRotatePreviewCanvas');
             if (!canvas) return;
 
@@ -696,9 +704,10 @@ Alpine.data('fileUpload', (config = {}) => ({
             const baseViewport = page.getViewport({ scale: 1.0 });
             const maxDim = Math.max(baseViewport.width, baseViewport.height);
             // Render at crisp resolution (up to 2x for retina displays)
-            const scale = Math.min(2.0, Math.max(0.6, 480 / maxDim));
+            const scale = Math.min(2.0, Math.max(0.6, 500 / maxDim));
             const viewport = page.getViewport({ scale: scale });
 
+            // Setting width and height resets 2D context transforms and clips
             canvas.width = Math.floor(viewport.width);
             canvas.height = Math.floor(viewport.height);
 
@@ -718,18 +727,23 @@ Alpine.data('fileUpload', (config = {}) => ({
                 viewport: viewport
             };
 
-            rotateRenderTask = page.render(renderContext);
-            await rotateRenderTask.promise;
-            rotateRenderTask = null;
+            const task = page.render(renderContext);
+            rotateRenderTask = task;
+            await task.promise;
+            if (rotateRenderTask === task) {
+                rotateRenderTask = null;
+            }
             this.pdfRenderError = null;
         } catch (e) {
-            if (e && e.name === 'RenderingCancelledException') {
+            if (e && (e.name === 'RenderingCancelledException' || e.message?.includes('cancelled'))) {
                 return;
             }
-            console.warn('renderCurrentPage error:', e);
-            this.pdfRenderError = 'ไม่สามารถวาดหน้าเอกสารได้: ' + (e.message || '');
+            console.error('renderCurrentPage error:', e);
+            this.pdfRenderError = 'ไม่สามารถวาดหน้า ' + pageNum + ' ได้: ' + (e.message || '');
         } finally {
-            this.isRenderingPdf = false;
+            if (this.pdfCurrentPage === pageNum) {
+                this.isRenderingPdf = false;
+            }
         }
     },
 

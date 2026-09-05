@@ -210,11 +210,11 @@
                                     <span class="text-xs font-semibold text-slate-600">กำลังโหลดตัวอย่างเอกสาร PDF...</span>
                                 </div>
 
-                                {{-- Canvas Preview with CSS Rotate Animation (Never display:none) --}}
-                                <div class="relative max-w-[280px] max-h-[300px] flex items-center justify-center">
+                                {{-- Canvas Preview with CSS Rotate Animation on Wrapper --}}
+                                <div class="relative max-w-[280px] max-h-[300px] flex items-center justify-center transition-transform duration-300 ease-out origin-center"
+                                     :style="`transform: rotate(${rotationAngle}deg);`">
                                     <canvas id="pdfRotatePreviewCanvas"
-                                            class="rounded-lg shadow-xl border border-slate-300 bg-white transition-transform duration-300 ease-out origin-center"
-                                            :style="`transform: rotate(${rotationAngle}deg);`"></canvas>
+                                            class="rounded-lg shadow-xl border border-slate-300 bg-white"></canvas>
                                 </div>
                             </div>
 
@@ -225,7 +225,7 @@
                             <div x-show="pdfTotalPages > 1" class="flex items-center justify-center gap-3 mt-4 pt-3 border-t border-slate-200/70 w-full text-xs text-slate-600">
                                 <button type="button"
                                         @click="prevPage()"
-                                        :disabled="pdfCurrentPage <= 1"
+                                        :disabled="pdfCurrentPage <= 1 || isRenderingPdf"
                                         class="px-3 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs font-medium transition-all cursor-pointer">
                                     ‹ หน้าก่อน
                                 </button>
@@ -234,7 +234,7 @@
                                 </span>
                                 <button type="button"
                                         @click="nextPage()"
-                                        :disabled="pdfCurrentPage >= pdfTotalPages"
+                                        :disabled="pdfCurrentPage >= pdfTotalPages || isRenderingPdf"
                                         class="px-3 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs font-medium transition-all cursor-pointer">
                                     หน้าถัดไป ›
                                 </button>
