@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'OCR ภาษาไทย — แปลงรูปภาพเป็นข้อความ')
 @section('description', 'OCR ภาษาไทยแม่นยำสูง ด้วย Google Cloud Vision API รองรับ PDF สแกน รูปภาพ ทั้งภาษาไทยและอังกฤษ')
@@ -280,7 +280,22 @@ function ocrTool() {
             { value: 'pdf', label: 'PDF', icon: '🔴' },
         ],
 
-        init() {},
+        async init() {
+            if (window.getStagedFiles) {
+                try {
+                    const staged = await window.getStagedFiles();
+                    if (staged && staged.length > 0) {
+                        const files = staged.map(s => s.file).filter(Boolean);
+                        if (files.length > 0) {
+                            this.addFiles(files);
+                            if (window.clearStagedFiles) await window.clearStagedFiles();
+                        }
+                    }
+                } catch (e) {
+                    console.warn('OCR load staged files error:', e);
+                }
+            }
+        },
 
         handleDrop(event) {
             this.isDragging = false;
@@ -294,7 +309,7 @@ function ocrTool() {
         addFiles(newFiles) {
             const allowed = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/tiff', 'image/bmp'];
             for (const f of newFiles) {
-                if (allowed.includes(f.type) || f.name.endsWith('.tiff') || f.name.endsWith('.bmp')) {
+                if (allowed.includes(f.type) || f.name.endsWith('.tiff') || f.name.endsWith('.bmp') || f.name.endsWith('.jpg') || f.name.endsWith('.jpeg') || f.name.endsWith('.png')) {
                     this.files.push(f);
                 }
             }
@@ -322,7 +337,7 @@ function ocrTool() {
             const formData = new FormData();
             this.files.forEach(f => formData.append('files[]', f));
             formData.append('tool', 'ocr-pdf');
-            formData.append('config[languages]', JSON.stringify(this.selectedLangs));
+            this.selectedLangs.forEach(lang => formData.append('config[languages][]', lang));
             formData.append('config[format]', this.outputFormat);
             formData.append('config[detect_tables]', this.detectTables ? '1' : '0');
             formData.append('_token', document.querySelector('meta[name="csrf-token"]').content);
@@ -358,11 +373,17 @@ function ocrTool() {
                         clearInterval(this.pollTimer);
                         this.progress = 100;
                         this.isProcessing = false;
-                        if (data.download_url) {
-                            // For txt format, fetch the text content
-                            const textRes = await fetch(data.download_url);
-                            this.extractedText = await textRes.text();
+                        if (data.extracted_text) {
+                            this.extractedText = data.extracted_text;
                             this.confidence = 95;
+                        } else if (data.download_url) {
+                            try {
+                                const textRes = await fetch(data.download_url);
+                                this.extractedText = await textRes.text();
+                                this.confidence = 95;
+                            } catch (e) {
+                                console.error('Fetch text error:', e);
+                            }
                         }
                     } else if (data.status === 'failed') {
                         clearInterval(this.pollTimer);

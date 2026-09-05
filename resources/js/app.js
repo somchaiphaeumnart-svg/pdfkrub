@@ -452,4 +452,6 @@ Alpine.data('toast', () => ({
 // Start Alpine
 // =====================================================
 window.Alpine = Alpine;
+window.getStagedFiles = getStagedFiles;
+window.clearStagedFiles = clearStagedFiles;
 Alpine.start();

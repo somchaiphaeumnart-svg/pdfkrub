@@ -151,6 +151,9 @@ class FileController extends Controller
             $response['download_url'] = $outputFile->getTemporaryUrl();
             $response['file_name'] = $outputFile->original_name;
             $response['file_size'] = $outputFile->getFileSizeForHumans();
+            if (isset($outputFile->metadata['extracted_text'])) {
+                $response['extracted_text'] = $outputFile->metadata['extracted_text'];
+            }
         }
 
         if ($job->isFailed()) {

@@ -30,9 +30,15 @@ class OcrService
         $user = $job->user;
         $plan = $user?->getActivePlan();
 
-        // Choose backend based on plan
+        // Choose backend based on plan and credentials
         if ($plan?->has_ocr && config('services.google_vision.credentials')) {
-            return $this->processWithGoogleVision($job);
+            try {
+                return $this->processWithGoogleVision($job);
+            } catch (\Throwable $e) {
+                Log::warning('Google Vision OCR failed, falling back to Tesseract: '.$e->getMessage(), [
+                    'job_id' => $job->id,
+                ]);
+            }
         }
 
         return $this->processWithTesseract($job);
@@ -46,7 +52,8 @@ class OcrService
     {
         $inputFile = $this->getInputFile($job);
         $config = $job->tool_config ?? [];
-        $languages = $config['languages'] ?? ['th', 'en'];
+        $rawLangs = $this->normalizeLanguages($config['languages'] ?? null, ['th', 'en']);
+        $languages = $this->mapToGoogleVision($rawLangs);
         $tmpDir = $this->makeTmpDir();
 
         try {
@@ -78,7 +85,7 @@ class OcrService
                 'char_count' => strlen($fullText),
             ]);
 
-            return $this->storeTextResult($job, $fullText, $inputFile, ['confidence' => $avgConfidence]);
+            return $this->storeTextResult($job, $fullText, $inputFile, ['engine' => 'google_vision', 'confidence' => $avgConfidence]);
         } finally {
             $this->cleanTmpDir($tmpDir);
         }
@@ -89,7 +96,7 @@ class OcrService
         $imageData = base64_encode(file_get_contents($imagePath));
         $apiKey = config('services.google_vision.credentials');
 
-        $response = Http::timeout(30)
+        $response = Http::timeout(45)
             ->post("https://vision.googleapis.com/v1/images:annotate?key={$apiKey}", [
                 'requests' => [[
                     'image' => ['content' => $imageData],
@@ -112,7 +119,6 @@ class OcrService
         }
 
         $text = $annotation['text'] ?? '';
-        // Calculate average confidence from pages
         $confidence = 0;
         if (isset($annotation['pages'])) {
             $confs = collect($annotation['pages'])
@@ -133,7 +139,16 @@ class OcrService
     {
         $inputFile = $this->getInputFile($job);
         $config = $job->tool_config ?? [];
-        $languages = $config['languages'] ?? ['tha', 'eng'];
+        $rawLangs = $this->normalizeLanguages($config['languages'] ?? null, ['th', 'en']);
+        $tessLangs = $this->mapToTesseract($rawLangs);
+
+        $available = $this->getAvailableTesseractLanguages();
+        $targetLangs = ! empty($available) ? array_values(array_intersect($tessLangs, $available)) : $tessLangs;
+        if (empty($targetLangs)) {
+            $targetLangs = in_array('tha', $available) ? ['tha'] : (in_array('eng', $available) ? ['eng'] : ['eng']);
+        }
+        $langStr = implode('+', $targetLangs);
+
         $tmpDir = $this->makeTmpDir();
 
         try {
@@ -146,41 +161,188 @@ class OcrService
 
             foreach ($imagePaths as $imagePath) {
                 $outputBase = $tmpDir.DIRECTORY_SEPARATOR.'page_'.uniqid();
-                $langStr = implode('+', $languages);
 
-                $result = Process::timeout(120)->run([
+                $result = Process::timeout(180)->run([
                     'tesseract', $imagePath, $outputBase,
                     '-l', $langStr,
-                    '--psm', '3', // Fully automatic page segmentation
+                    '--psm', '3',
                     'txt',
                 ]);
 
-                if ($result->successful() && file_exists($outputBase.'.txt')) {
-                    $fullText .= file_get_contents($outputBase.'.txt')."\n\n";
+                // If combination failed, fallback to single language (tha or eng)
+                if (! $result->successful() && ! file_exists($outputBase.'.txt')) {
+                    Log::warning("Tesseract failed with -l {$langStr}, falling back", [
+                        'stderr' => $result->errorOutput(),
+                    ]);
+                    $fallbackLang = in_array('tha', $available) ? 'tha' : 'eng';
+                    $result = Process::timeout(180)->run([
+                        'tesseract', $imagePath, $outputBase,
+                        '-l', $fallbackLang,
+                        '--psm', '3',
+                        'txt',
+                    ]);
                 }
+
+                if (file_exists($outputBase.'.txt')) {
+                    $pageText = file_get_contents($outputBase.'.txt');
+                    $fullText .= $pageText."\n\n";
+                }
+            }
+
+            $trimmed = trim($fullText);
+            if (empty($trimmed)) {
+                $trimmed = "ไม่พบข้อความที่สามารถตรวจจับได้ในไฟล์นี้ หรือความละเอียดของรูปภาพต่ำเกินไป";
             }
 
             Log::info('OCR (Tesseract) complete', [
                 'job_id' => $job->id,
                 'pages' => count($imagePaths),
-                'char_count' => strlen($fullText),
+                'char_count' => strlen($trimmed),
+                'languages' => $langStr,
             ]);
 
-            return $this->storeTextResult($job, trim($fullText), $inputFile, ['engine' => 'tesseract']);
+            return $this->storeTextResult($job, $trimmed, $inputFile, ['engine' => 'tesseract', 'languages' => $langStr]);
         } finally {
             $this->cleanTmpDir($tmpDir);
         }
     }
 
     // ─────────────────────────────────────────────────────────────
-    // Helpers
+    // Language Helpers
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Normalize languages to array of codes from various formats (array, JSON string, comma-separated string).
+     */
+    private function normalizeLanguages(mixed $languages, array $default = ['th', 'en']): array
+    {
+        if (is_null($languages) || $languages === '') {
+            return $default;
+        }
+
+        if (is_string($languages)) {
+            $decoded = json_decode($languages, true);
+            if (is_array($decoded)) {
+                $languages = $decoded;
+            } else {
+                $languages = array_map('trim', explode(',', $languages));
+            }
+        }
+
+        if (! is_array($languages)) {
+            return $default;
+        }
+
+        $clean = array_values(array_filter($languages, fn ($l) => is_string($l) && trim($l) !== ''));
+
+        return empty($clean) ? $default : $clean;
+    }
+
+    /**
+     * Map language codes to Tesseract 3-letter codes.
+     */
+    private function mapToTesseract(array $languages): array
+    {
+        $map = [
+            'th' => 'tha',
+            'tha' => 'tha',
+            'en' => 'eng',
+            'eng' => 'eng',
+            'zh' => 'chi_sim',
+            'cn' => 'chi_sim',
+            'chi' => 'chi_sim',
+            'chi_sim' => 'chi_sim',
+            'ja' => 'jpn',
+            'jp' => 'jpn',
+            'jpn' => 'jpn',
+            'ko' => 'kor',
+            'kr' => 'kor',
+            'kor' => 'kor',
+            'ar' => 'ara',
+            'sa' => 'ara',
+            'ara' => 'ara',
+        ];
+
+        $result = [];
+        foreach ($languages as $lang) {
+            $lower = strtolower(trim($lang));
+            $result[] = $map[$lower] ?? $lower;
+        }
+
+        return array_values(array_unique($result ?: ['tha', 'eng']));
+    }
+
+    /**
+     * Map language codes to Google Vision language hints (ISO 639-1).
+     */
+    private function mapToGoogleVision(array $languages): array
+    {
+        $map = [
+            'tha' => 'th',
+            'th' => 'th',
+            'eng' => 'en',
+            'en' => 'en',
+            'chi_sim' => 'zh',
+            'chi' => 'zh',
+            'cn' => 'zh',
+            'zh' => 'zh',
+            'jpn' => 'ja',
+            'jp' => 'ja',
+            'ja' => 'ja',
+            'kor' => 'ko',
+            'kr' => 'ko',
+            'ko' => 'ko',
+            'ara' => 'ar',
+            'sa' => 'ar',
+            'ar' => 'ar',
+        ];
+
+        $result = [];
+        foreach ($languages as $lang) {
+            $lower = strtolower(trim($lang));
+            $result[] = $map[$lower] ?? $lower;
+        }
+
+        return array_values(array_unique($result ?: ['th', 'en']));
+    }
+
+    /**
+     * Get installed language codes on the server's Tesseract.
+     */
+    private function getAvailableTesseractLanguages(): array
+    {
+        try {
+            $res = Process::timeout(5)->run(['tesseract', '--list-langs']);
+            if ($res->successful()) {
+                $lines = explode("\n", trim($res->output()));
+                $langs = [];
+                foreach ($lines as $line) {
+                    $l = trim($line);
+                    if ($l && ! str_contains($l, 'List of available') && $l !== 'osd') {
+                        $langs[] = $l;
+                    }
+                }
+                if (! empty($langs)) {
+                    return $langs;
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Unable to list tesseract langs: '.$e->getMessage());
+        }
+
+        return ['tha', 'eng'];
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Conversion & File Output
     // ─────────────────────────────────────────────────────────────
 
     private function pdfToImages(string $pdfPath, string $outputDir): array
     {
-        $result = Process::timeout(120)->run([
+        // Use png16m (RGB without alpha) to ensure clean background for OCR
+        $result = Process::timeout(180)->run([
             'gs', '-dBATCH', '-dNOPAUSE', '-q',
-            '-sDEVICE=pngalpha', '-r200',
+            '-sDEVICE=png16m', '-r200',
             "-sOutputFile={$outputDir}/page_%04d.png",
             $pdfPath,
         ]);
@@ -199,12 +361,57 @@ class OcrService
     {
         $tmpDir = $this->makeTmpDir();
         $basename = pathinfo($inputFile->original_name, PATHINFO_FILENAME);
+        $config = $job->tool_config ?? [];
+        $format = strtolower($config['format'] ?? 'txt');
+
+        // Store extracted text in metadata for direct API retrieval
+        $meta['extracted_text'] = mb_substr($text, 0, 20000);
+
+        $txtFile = $tmpDir.DIRECTORY_SEPARATOR.$basename.'_ocr.txt';
+        file_put_contents($txtFile, $text);
+
+        $outputPath = $txtFile;
         $outputName = $basename.'_ocr.txt';
-        $outputPath = $tmpDir.DIRECTORY_SEPARATOR.$outputName;
+        $mime = 'text/plain';
 
-        file_put_contents($outputPath, $text);
+        if ($format === 'docx') {
+            $docxFile = $tmpDir.DIRECTORY_SEPARATOR.$basename.'_ocr.docx';
+            try {
+                $res = Process::timeout(60)->run([
+                    config('pdf2word.libreoffice_path', 'soffice'),
+                    '--headless', '--norestore',
+                    '--convert-to', 'docx',
+                    '--outdir', $tmpDir,
+                    $txtFile,
+                ]);
+                if ($res->successful() && file_exists($docxFile)) {
+                    $outputPath = $docxFile;
+                    $outputName = $basename.'_ocr.docx';
+                    $mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Converting OCR text to docx failed, falling back to txt: '.$e->getMessage());
+            }
+        } elseif ($format === 'pdf') {
+            $pdfFile = $tmpDir.DIRECTORY_SEPARATOR.$basename.'_ocr.pdf';
+            try {
+                $res = Process::timeout(60)->run([
+                    config('pdf2word.libreoffice_path', 'soffice'),
+                    '--headless', '--norestore',
+                    '--convert-to', 'pdf',
+                    '--outdir', $tmpDir,
+                    $txtFile,
+                ]);
+                if ($res->successful() && file_exists($pdfFile)) {
+                    $outputPath = $pdfFile;
+                    $outputName = $basename.'_ocr.pdf';
+                    $mime = 'application/pdf';
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Converting OCR text to pdf failed, falling back to txt: '.$e->getMessage());
+            }
+        }
 
-        // Re-use PdfProcessingService's storeOutput logic via storage
         $storageKey = 'outputs/'.date('Y/m').'/'.Str::ulid().'/'.$outputName;
         $disk = 'local';
         $retentionHours = $job->user?->getActivePlan()?->file_retention_hours ?? 2;
@@ -224,7 +431,7 @@ class OcrService
             'storage_key' => $storageKey,
             'storage_disk' => $disk,
             'file_size' => $fileSize,
-            'mime_type' => 'text/plain',
+            'mime_type' => $mime,
             'file_hash' => hash('sha256', $text),
             'metadata' => $meta,
             'expires_at' => $expiresAt,
