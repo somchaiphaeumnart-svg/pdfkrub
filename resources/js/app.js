@@ -4521,7 +4521,7 @@ Alpine.data('pdfEditor', () => ({
 
             const lineClusters = [];
             for (const item of rawItems) {
-                const tol = Math.max(8, item.fontSize * 0.7);
+                const tol = Math.min(7, Math.max(4, item.fontSize * 0.35));
                 let matchedLine = null;
                 for (const lc of lineClusters) {
                     if (Math.abs(item.baselineY - lc.avgBaselineY) <= tol) {
@@ -4532,7 +4532,6 @@ Alpine.data('pdfEditor', () => ({
 
                 if (matchedLine) {
                     matchedLine.items.push(item);
-                    matchedLine.avgBaselineY = matchedLine.items.reduce((sum, it) => sum + it.baselineY, 0) / matchedLine.items.length;
                     matchedLine.fontSize = Math.max(matchedLine.fontSize, item.fontSize);
                 } else {
                     lineClusters.push({
@@ -4701,8 +4700,16 @@ Alpine.data('pdfEditor', () => ({
         }
     },
 
-    startEditingOriginalText(block) {
+    handleMasterBoxClick(e) {
+        if (this.currentOriginalTextBlocks && this.currentOriginalTextBlocks.length > 0) {
+            this.startEditingOriginalText(this.currentOriginalTextBlocks[0], e);
+        }
+    },
+
+    startEditingOriginalText(block, e) {
+        if (!block) return;
         const newId = 'edit_doc_' + Date.now();
+        const lines = JSON.parse(JSON.stringify(block.lines || []));
         const newAnn = {
             id: newId,
             type: 'text_document',
@@ -4714,23 +4721,33 @@ Alpine.data('pdfEditor', () => ({
             masterW: block.masterW,
             masterH: block.masterH,
             bgColor: '#ffffff', // Clean white background covering original PDF canvas!
-            lines: JSON.parse(JSON.stringify(block.lines || []))
+            lines: lines
         };
+
+        // Determine which line was clicked
+        let targetLineIdx = 0;
+        if (e && e.currentTarget && lines.length > 0) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const clickPct = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+            targetLineIdx = Math.min(lines.length - 1, Math.max(0, Math.floor(clickPct * lines.length)));
+        }
 
         this.annotations.push(newAnn);
         this.selectedAnnotationId = newId;
-        this.activeDocLineIdx = 0;
+        this.activeDocLineIdx = targetLineIdx;
         this.currentOriginalTextBlocks = [];
         this.pushHistory('แก้ไขข้อความในเอกสาร');
 
-        // Focus first line input
         this.$nextTick(() => {
-            const firstInput = document.querySelector(`input[data-doc-ann="${newId}"]`);
-            if (firstInput) {
-                firstInput.focus();
-                if (newAnn.lines && newAnn.lines[0]) {
-                    this.syncToolbarToLine(newAnn.lines[0]);
+            const inputs = document.querySelectorAll(`input[data-doc-ann="${newId}"]`);
+            if (inputs[targetLineIdx]) {
+                inputs[targetLineIdx].focus();
+                if (lines[targetLineIdx]) {
+                    this.syncToolbarToLine(lines[targetLineIdx]);
                 }
+            } else if (inputs[0]) {
+                inputs[0].focus();
+                if (lines[0]) this.syncToolbarToLine(lines[0]);
             }
         });
     },
