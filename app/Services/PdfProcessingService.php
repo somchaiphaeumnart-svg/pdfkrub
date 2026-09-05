@@ -20,7 +20,8 @@ class PdfProcessingService
 {
     public function __construct(
         private readonly LibreOfficeService $libreOffice,
-        private readonly OcrService $ocr
+        private readonly OcrService $ocr,
+        private readonly AiSummaryService $aiSummary
     ) {}
 
     /**
@@ -47,6 +48,7 @@ class PdfProcessingService
             'protect-pdf' => $this->protectPdf($job),
             'unlock-pdf' => $this->unlockPdf($job),
             'ocr-pdf' => $this->ocr->process($job),
+            'ai-summary' => $this->aiSummary->process($job),
             default => throw new RuntimeException("Unknown tool: {$job->tool_name}"),
         };
     }

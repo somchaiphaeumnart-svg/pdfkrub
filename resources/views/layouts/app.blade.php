@@ -256,7 +256,7 @@
                 <div>
                     <h3 class="text-sm font-semibold text-white mb-4">เครื่องมือสำหรับครู</h3>
                     <ul class="space-y-2">
-                        @foreach([['PDF เป็น Word', 'tools.pdf-to-word'], ['รวมหลักฐาน PA', 'tools.merge-pdf'], ['บีบอัด PDF', 'tools.compress-pdf'], ['OCR ภาษาไทย', 'tools.ocr-pdf'], ['ลงลายเซ็น', 'tools.sign-pdf']] as [$label, $route])
+                        @foreach([['PDF เป็น Word', 'tools.pdf-to-word'], ['รวมหลักฐาน PA', 'tools.merge-pdf'], ['บีบอัด PDF', 'tools.compress-pdf'], ['OCR ภาษาไทย', 'tools.ocr-pdf'], ['AI สรุป PDF', 'tools.ai-summary'], ['ลงลายเซ็น', 'tools.sign-pdf']] as [$label, $route])
                         <li><a href="{{ route($route) }}" class="text-sm transition-colors" style="color:rgba(255,255,255,0.6)" onmouseover="this.style.color='#f47c84'" onmouseout="this.style.color='rgba(255,255,255,0.6)'">{{ $label }}</a></li>
                         @endforeach
                     </ul>

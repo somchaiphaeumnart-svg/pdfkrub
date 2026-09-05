@@ -257,6 +257,18 @@ class ToolController extends Controller
                 'premium' => true,
                 'output_format' => 'pdf',
             ],
+            [
+                'slug' => 'ai-summary',
+                'name' => 'AI Summarize PDF',
+                'name_th' => 'AI สรุป PDF',
+                'description_th' => 'ให้ AI สรุปสาระสำคัญ จับประเด็นสำคัญ และทำ Action Items จากเอกสารของคุณ',
+                'icon' => '✨',
+                'category' => 'ai',
+                'color' => 'from-purple-600 to-pink-500',
+                'accepts' => '.pdf,.docx,.doc,.txt',
+                'premium' => true,
+                'output_format' => 'txt',
+            ],
         ];
     }
 
@@ -274,6 +286,7 @@ class ToolController extends Controller
             'security' => 'ความปลอดภัย',
             'sign' => 'ลงนามเอกสาร',
             'ocr' => 'OCR',
+            'ai' => 'ปัญญาประดิษฐ์ (AI)',
         ];
 
         $grouped = collect($tools)->groupBy('category');
@@ -398,5 +411,10 @@ class ToolController extends Controller
     public function ocrPdf(): View
     {
         return view('tools.ocr-pdf');
+    }
+
+    public function aiSummary(): View
+    {
+        return view('tools.ai-summary');
     }
 }

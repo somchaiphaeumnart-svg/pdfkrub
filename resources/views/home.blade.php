@@ -218,7 +218,7 @@
                     'emoji' => '✨',
                     'title' => 'AI สรุป PDF',
                     'desc' => 'ให้ AI สรุปสาระสำคัญจากเอกสารของคุณ',
-                    'slug' => 'ocr-pdf',
+                    'slug' => 'ai-summary',
                     'color' => 'from-pink-600/20 to-pink-500/10',
                     'border' => 'border-pink-500/30',
                     'text' => 'text-pink-400',
