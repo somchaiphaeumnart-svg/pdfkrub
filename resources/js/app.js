@@ -4697,33 +4697,47 @@ Alpine.data('pdfEditor', () => ({
                     italic: l.italic,
                     fontFamily: l.fontFamily,
                     color: l.color || '#111827',
-                    lineHeight: 1.55,
+                    lineHeightRatio: 1.6,
                     linesCount: 1,
                     minX: l.minX,
                     maxX: l.maxX,
-                    baselineY: l.baselineY,
-                    gapAfter: l.gapAfter || 6
+                    minY: l.baselineY - l.fontSize,
+                    maxY: l.baselineY + (l.fontSize * 0.4),
+                    firstBaselineY: l.baselineY,
+                    lastBaselineY: l.baselineY,
+                    textIndent: l.indentPx || 0,
+                    gapAfter: 8
                 };
                 continue;
             }
 
+            const stepY = l.baselineY - cur.lastBaselineY;
             const sameAlign = cur.align === l.align;
             const sameBold = cur.bold === l.bold;
-            const similarSize = Math.abs(cur.fontSize - l.fontSize) <= 1.5;
-            const lineGap = l.baselineY - cur.baselineY;
-            const isNormalGap = lineGap > 0 && lineGap <= (cur.fontSize * 1.85);
+            const similarSize = Math.abs(cur.fontSize - l.fontSize) <= 2.2;
+            const isNormalGap = stepY > 0 && stepY <= Math.max(38, cur.fontSize * 2.4);
             const isList = /^\s*(\d+[\.\)]|[①-⑩]|[\-\*•])\s+/.test(l.text);
-            const isHeading = cur.align === 'center' || cur.fontSize >= 17;
+            const isCurHeading = cur.align === 'center' || cur.fontSize >= 17;
+            const isLineHeading = l.align === 'center' || l.fontSize >= 17;
 
-            // Merge lines that belong to the same paragraph
-            if (sameAlign && sameBold && similarSize && isNormalGap && !isList && !isHeading) {
+            // An indented line indicates the START of a new paragraph!
+            const isNewParagraphStart = l.isIndented && cur.linesCount >= 1;
+
+            const canMerge = sameAlign && sameBold && similarSize && isNormalGap &&
+                             !isList && !isCurHeading && !isLineHeading && !isNewParagraphStart;
+
+            if (canMerge) {
                 const needSpace = /[a-zA-Z0-9]$/.test(cur.text) || /^[a-zA-Z0-9]/.test(l.text);
                 cur.text += (needSpace ? ' ' : '') + l.text;
                 cur.linesCount++;
-                cur.baselineY = l.baselineY;
+                cur.lineStepY = stepY;
+                cur.lineHeightRatio = Math.max(1.3, Math.min(2.4, +(stepY / cur.fontSize).toFixed(2)));
+                cur.lastBaselineY = l.baselineY;
+                cur.minX = Math.min(cur.minX, l.minX);
                 cur.maxX = Math.max(cur.maxX, l.maxX);
-                cur.gapAfter = l.gapAfter || 6;
+                cur.maxY = l.baselineY + (l.fontSize * 0.4);
             } else {
+                cur.gapAfter = Math.max(6, Math.min(32, Math.round(stepY - (cur.fontSize * 1.2))));
                 paragraphs.push(cur);
                 cur = {
                     text: l.text,
@@ -4733,12 +4747,16 @@ Alpine.data('pdfEditor', () => ({
                     italic: l.italic,
                     fontFamily: l.fontFamily,
                     color: l.color || '#111827',
-                    lineHeight: 1.55,
+                    lineHeightRatio: 1.6,
                     linesCount: 1,
                     minX: l.minX,
                     maxX: l.maxX,
-                    baselineY: l.baselineY,
-                    gapAfter: l.gapAfter || 6
+                    minY: l.baselineY - l.fontSize,
+                    maxY: l.baselineY + (l.fontSize * 0.4),
+                    firstBaselineY: l.baselineY,
+                    lastBaselineY: l.baselineY,
+                    textIndent: l.indentPx || 0,
+                    gapAfter: 8
                 };
             }
         }
@@ -4771,13 +4789,21 @@ Alpine.data('pdfEditor', () => ({
                 const [vx, vy] = viewport.convertToViewportPoint(transX, transY);
                 const itemWidth = Math.max(item.width || 0, fontSize * 0.45 * str.length);
 
+                let itemColor = '#111827';
+                if (item.color && Array.isArray(item.color)) {
+                    const [r, g, b] = item.color;
+                    itemColor = `rgb(${Math.round(r <= 1 ? r * 255 : r)}, ${Math.round(g <= 1 ? g * 255 : g)}, ${Math.round(b <= 1 ? b * 255 : b)})`;
+                }
+
                 rawItems.push({
                     str: str,
                     vx: vx,
                     vy: vy,
                     baselineY: vy,
                     fontSize: fontSize,
-                    width: itemWidth
+                    width: itemWidth,
+                    fontName: item.fontName,
+                    color: itemColor
                 });
             }
 
@@ -4816,7 +4842,7 @@ Alpine.data('pdfEditor', () => ({
             lineClusters.sort((a, b) => a.avgBaselineY - b.avgBaselineY);
 
             // Within each line, sort items left-to-right and assemble text
-            const processedLines = [];
+            const intermediateLines = [];
             for (const lc of lineClusters) {
                 lc.items.sort((a, b) => a.vx - b.vx);
 
@@ -4824,6 +4850,7 @@ Alpine.data('pdfEditor', () => ({
                 let lineMinX = Infinity;
                 let lineMaxX = -Infinity;
                 let prevItem = null;
+                let dominantColor = lc.items[0]?.color || '#111827';
 
                 for (const it of lc.items) {
                     lineMinX = Math.min(lineMinX, it.vx);
@@ -4840,7 +4867,6 @@ Alpine.data('pdfEditor', () => ({
                         if (isThaiCombining || gap <= 2) {
                             lineText += it.str;
                         } else if (isPrevThai && isCurrThai && gap < Math.max(12, lc.fontSize * 0.65)) {
-                            // Thai letters inside the same word or clause
                             lineText += it.str;
                         } else if (gap > 16) {
                             const spaces = Math.min(6, Math.max(1, Math.round(gap / (lc.fontSize * 0.45))));
@@ -4857,17 +4883,7 @@ Alpine.data('pdfEditor', () => ({
                 lineText = this.normalizeThaiText(lineText);
                 const trimmed = lineText.trim();
                 if (trimmed) {
-                    // 1. Detect Alignment (Center, Right, Left)
-                    const lineCenter = (lineMinX + lineMaxX) / 2;
-                    const pageCenter = viewport.width / 2;
-                    let align = 'left';
-                    if (Math.abs(lineCenter - pageCenter) <= (viewport.width * 0.07) && (lineMaxX - lineMinX) < (viewport.width * 0.85)) {
-                        align = 'center';
-                    } else if (lineMinX > (viewport.width * 0.42) && lineMaxX > (viewport.width * 0.68)) {
-                        align = 'right';
-                    }
-
-                    // 2. Detect Font Name, Bold, Italic from PDF metadata
+                    // Font style detection
                     let isBold = false;
                     let isItalic = false;
                     let fontFam = 'TH Niramit AS';
@@ -4888,72 +4904,126 @@ Alpine.data('pdfEditor', () => ({
                         else if (sf.includes('kanit') || fn.includes('kanit')) fontFam = 'Kanit';
                         else if (sf.includes('prompt') || fn.includes('prompt')) fontFam = 'Prompt';
                     }
-                    if (lc.fontSize >= 16) {
+                    if (lc.fontSize >= 18) {
                         isBold = true;
                     }
 
-                    processedLines.push({
+                    intermediateLines.push({
                         text: lineText,
                         minX: lineMinX,
                         maxX: lineMaxX,
                         baselineY: lc.avgBaselineY,
                         fontSize: lc.fontSize,
-                        align: align,
                         bold: isBold,
                         italic: isItalic,
-                        fontFamily: fontFam
+                        fontFamily: fontFam,
+                        color: dominantColor
                     });
                 }
             }
 
-            // Calculate overall master bounding box for entire document text area
-            if (processedLines.length > 0) {
-                let mMinX = Infinity;
-                let mMaxX = -Infinity;
-                let mMinY = Infinity;
-                let mMaxY = -Infinity;
-                for (const pl of processedLines) {
-                    if (pl.minX < mMinX) mMinX = pl.minX;
-                    if (pl.maxX > mMaxX) mMaxX = pl.maxX;
-                    const topY = Math.max(0, pl.baselineY - pl.fontSize * 0.95);
-                    const botY = pl.baselineY + pl.fontSize * 0.45;
-                    if (topY < mMinY) mMinY = topY;
-                    if (botY > mMaxY) mMaxY = botY;
-                }
-                const padX = 12;
-                const padY = 8;
-                const boundedMinX = Math.max(0, mMinX - padX);
-                const boundedMaxX = Math.min(viewport.width, mMaxX + padX);
-                const boundedMinY = Math.max(0, mMinY - padY);
-                const boundedMaxY = Math.min(viewport.height, mMaxY + padY);
-                const masterW = boundedMaxX - boundedMinX;
-                const masterH = boundedMaxY - boundedMinY;
-
-                this.pageContentBox = {
-                    pctX: Math.max(0, (boundedMinX / viewport.width) * 100),
-                    pctY: Math.max(0, (boundedMinY / viewport.height) * 100),
-                    pctW: Math.min(100, (masterW / viewport.width) * 100),
-                    pctH: Math.min(100, (masterH / viewport.height) * 100)
-                };
-
-                // ═══ ONE UNIFIED BLOCK: Grouped by PARAGRAPH (ย่อหน้า) for natural flow editing ═══
-                const processedParagraphs = this.groupLinesIntoParagraphs(processedLines);
-
-                this.currentOriginalTextBlocks = [{
-                    id: `orig_doc_${this.currentPage}`,
-                    pctX: Math.max(0, (boundedMinX / viewport.width) * 100),
-                    pctY: Math.max(0, (boundedMinY / viewport.height) * 100),
-                    pctW: Math.min(100, (masterW / viewport.width) * 100),
-                    pctH: Math.min(100, (masterH / viewport.height) * 100),
-                    masterW: masterW,
-                    masterH: masterH,
-                    paragraphs: processedParagraphs,
-                    lines: processedParagraphs
-                }];
-            } else {
+            if (intermediateLines.length === 0) {
                 this.currentOriginalTextBlocks = [];
-                this.pageContentBox = null;
+                return;
             }
+
+            // Detect document body margins (bodyMinX, bodyMaxX)
+            let bodyMinX = Infinity;
+            let bodyMaxX = -Infinity;
+            for (const l of intermediateLines) {
+                if (l.text.trim().length > 15) {
+                    if (l.minX < bodyMinX) bodyMinX = l.minX;
+                    if (l.maxX > bodyMaxX) bodyMaxX = l.maxX;
+                }
+            }
+            if (bodyMinX === Infinity) {
+                bodyMinX = Math.min(...intermediateLines.map(l => l.minX));
+                bodyMaxX = Math.max(...intermediateLines.map(l => l.maxX));
+            }
+
+            // Accurate Alignment and Indent classification
+            const processedLines = [];
+            for (const l of intermediateLines) {
+                const lineCenter = (l.minX + l.maxX) / 2;
+                const pageCenter = viewport.width / 2;
+
+                const endsAtRightMargin = Math.abs(l.maxX - bodyMaxX) <= 28;
+                const isIndented = l.minX > (bodyMinX + 18) && (endsAtRightMargin || (l.maxX - l.minX) > ((bodyMaxX - bodyMinX) * 0.6));
+                const indentPx = isIndented ? Math.round(l.minX - bodyMinX) : 0;
+
+                let align = 'left';
+                const farFromLeft = l.minX > (bodyMinX + 25);
+                const farFromRight = l.maxX < (bodyMaxX - 25);
+                const isCentered = farFromLeft && farFromRight && Math.abs(lineCenter - pageCenter) <= 35;
+
+                if (isCentered) {
+                    align = 'center';
+                } else if (l.minX > (viewport.width * 0.45) && endsAtRightMargin) {
+                    align = 'right';
+                } else {
+                    align = 'left';
+                }
+
+                processedLines.push({
+                    text: l.text,
+                    minX: l.minX,
+                    maxX: l.maxX,
+                    baselineY: l.baselineY,
+                    fontSize: l.fontSize,
+                    align: align,
+                    bold: l.bold,
+                    italic: l.italic,
+                    fontFamily: l.fontFamily,
+                    color: l.color,
+                    isIndented: isIndented,
+                    indentPx: indentPx
+                });
+            }
+
+            // Overall master bounding box
+            let mMinX = Infinity;
+            let mMaxX = -Infinity;
+            let mMinY = Infinity;
+            let mMaxY = -Infinity;
+            for (const pl of processedLines) {
+                if (pl.minX < mMinX) mMinX = pl.minX;
+                if (pl.maxX > mMaxX) mMaxX = pl.maxX;
+                const topY = Math.max(0, pl.baselineY - pl.fontSize * 0.95);
+                const botY = pl.baselineY + pl.fontSize * 0.45;
+                if (topY < mMinY) mMinY = topY;
+                if (botY > mMaxY) mMaxY = botY;
+            }
+            const padX = 12;
+            const padY = 8;
+            const boundedMinX = Math.max(0, mMinX - padX);
+            const boundedMaxX = Math.min(viewport.width, mMaxX + padX);
+            const boundedMinY = Math.max(0, mMinY - padY);
+            const boundedMaxY = Math.min(viewport.height, mMaxY + padY);
+            const masterW = boundedMaxX - boundedMinX;
+            const masterH = boundedMaxY - boundedMinY;
+
+            this.pageContentBox = {
+                pctX: Math.max(0, (boundedMinX / viewport.width) * 100),
+                pctY: Math.max(0, (boundedMinY / viewport.height) * 100),
+                pctW: Math.min(100, (masterW / viewport.width) * 100),
+                pctH: Math.min(100, (masterH / viewport.height) * 100)
+            };
+
+            // Group lines into Paragraphs (ย่อหน้า)
+            const processedParagraphs = this.groupLinesIntoParagraphs(processedLines);
+
+            this.currentOriginalTextBlocks = [{
+                id: `orig_doc_${this.currentPage}`,
+                pctX: Math.max(0, (boundedMinX / viewport.width) * 100),
+                pctY: Math.max(0, (boundedMinY / viewport.height) * 100),
+                pctW: Math.min(100, (masterW / viewport.width) * 100),
+                pctH: Math.min(100, (masterH / viewport.height) * 100),
+                masterW: masterW,
+                masterH: masterH,
+                boundedMinY: boundedMinY,
+                paragraphs: processedParagraphs,
+                lines: processedParagraphs
+            }];
         } catch (err) {
             console.warn('Error extracting page text blocks:', err);
             this.currentOriginalTextBlocks = [];
@@ -4983,17 +5053,32 @@ Alpine.data('pdfEditor', () => ({
             pctH: block.pctH,
             masterW: block.masterW,
             masterH: block.masterH,
-            bgColor: '#ffffff', // Clean white background covering original PDF canvas!
+            boundedMinY: block.boundedMinY,
+            bgColor: '#ffffff',
             paragraphs: paragraphs,
             lines: paragraphs
         };
 
-        // Determine which paragraph was clicked
+        // Determine which paragraph was clicked using exact Y coordinate
         let targetIdx = 0;
-        if (e && e.currentTarget && paragraphs.length > 0) {
-            const rect = e.currentTarget.getBoundingClientRect();
-            const clickPct = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-            targetIdx = Math.min(paragraphs.length - 1, Math.max(0, Math.floor(clickPct * paragraphs.length)));
+        if (e && paragraphs.length > 0) {
+            const rect = e.currentTarget ? e.currentTarget.getBoundingClientRect() : null;
+            if (rect && rect.height > 0) {
+                const clickY = e.clientY - rect.top;
+                const totalH = rect.height;
+                const scaleRatio = block.masterH ? (totalH / block.masterH) : 1;
+                for (let i = 0; i < paragraphs.length; i++) {
+                    const p = paragraphs[i];
+                    if (p.minY !== undefined && p.maxY !== undefined && block.boundedMinY !== undefined) {
+                        const pTop = (p.minY - block.boundedMinY) * scaleRatio;
+                        const pBottom = (p.maxY - block.boundedMinY) * scaleRatio;
+                        if (clickY >= (pTop - 6) && clickY <= (pBottom + 6)) {
+                            targetIdx = i;
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
         this.annotations.push(newAnn);
@@ -5962,11 +6047,14 @@ Alpine.data('pdfEditor', () => ({
                             }
 
                             const wrappedLines = this.wrapTextLines(ctx, para.text, maxTextW);
-                            const lineH = fSize * (para.lineHeight || 1.55);
+                            const lineH = fSize * (para.lineHeightRatio || para.lineHeight || 1.6);
 
+                            let isFirstLine = true;
                             for (const lineStr of wrappedLines) {
-                                ctx.fillText(lineStr, drawX, curY);
+                                const lineX = (isFirstLine && para.textIndent && para.align === 'left') ? (drawX + (para.textIndent * scaleRatio)) : drawX;
+                                ctx.fillText(lineStr, lineX, curY);
                                 curY += lineH;
+                                isFirstLine = false;
                             }
 
                             const gap = (para.gapAfter !== undefined ? para.gapAfter : 8) * (scaleRatio || 1);
