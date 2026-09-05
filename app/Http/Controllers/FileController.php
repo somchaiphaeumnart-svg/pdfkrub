@@ -98,6 +98,18 @@ class FileController extends Controller
             $pagesVal = $request->input('pages_to_delete');
             $config['pages_to_delete'] = is_array($pagesVal) ? implode(',', $pagesVal) : (string) $pagesVal;
         }
+        if ($request->hasFile('watermark_image')) {
+            $wmFile = $request->file('watermark_image');
+            $wmKey = 'uploads/watermarks/'.\Illuminate\Support\Str::ulid().'.'.$wmFile->getClientOriginalExtension();
+            $wmFile->storeAs('', $wmKey, 'local');
+            $config['watermark_image_path'] = $wmKey;
+        }
+        foreach (['watermark_type', 'watermark_text', 'watermark_opacity', 'watermark_scale', 'watermark_position', 'watermark_rotation', 'watermark_pages', 'watermark_color'] as $wmParam) {
+            if ($request->has($wmParam)) {
+                $short = str_replace('watermark_', '', $wmParam);
+                $config[$short] = $request->input($wmParam);
+            }
+        }
 
         // Create the processing job record
         $pdfJob = PdfJob::create([

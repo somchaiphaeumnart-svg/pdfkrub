@@ -433,6 +433,300 @@
                         </div>
                     </div>
                     @endif
+
+                    {{-- Watermark PDF Visual Editor --}}
+                    @if($tool['slug'] === 'watermark-pdf')
+                    <div class="mt-6 pt-6 border-t border-gray-100" @click.stop>
+                        <div class="bg-slate-50/90 rounded-2xl border border-slate-200/90 p-4 sm:p-6 shadow-2xs">
+                            {{-- Editor Title Header --}}
+                            <div class="flex items-center justify-between pb-4 mb-5 border-b border-slate-200">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-brand-500 animate-pulse"></span>
+                                    <h3 class="text-base font-bold text-gray-800">จัดการลายน้ำเอกสาร PDF (Watermark Editor)</h3>
+                                </div>
+                                <span class="text-xs text-slate-500 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs">
+                                    ตัวอย่างแบบเรียลไทม์
+                                </span>
+                            </div>
+
+                            {{-- Two-Column Layout: Controls (Left) & Live Preview (Right) --}}
+                            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                                {{-- Left Controls Column (7 cols) --}}
+                                <div class="lg:col-span-7 space-y-4">
+                                    {{-- Tab Selector: Image vs Text --}}
+                                    <div class="flex rounded-xl bg-slate-200/70 p-1">
+                                        <button type="button"
+                                                @click="watermarkType = 'image'"
+                                                :class="watermarkType === 'image' ? 'bg-white text-brand-600 font-bold shadow-xs' : 'text-slate-600 hover:text-slate-900 font-medium'"
+                                                class="flex-1 py-2 text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                            รูปลายน้ำ (Logo / Image)
+                                        </button>
+                                        <button type="button"
+                                                @click="watermarkType = 'text'"
+                                                :class="watermarkType === 'text' ? 'bg-white text-brand-600 font-bold shadow-xs' : 'text-slate-600 hover:text-slate-900 font-medium'"
+                                                class="flex-1 py-2 text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                            ข้อความลายน้ำ (Text)
+                                        </button>
+                                    </div>
+
+                                    {{-- If Image Watermark --}}
+                                    <div x-show="watermarkType === 'image'" class="space-y-3 bg-white p-4 rounded-xl border border-slate-200">
+                                        <label class="block text-xs font-semibold text-slate-700">อัปโหลดไฟล์รูปลายน้ำ (PNG, JPG, SVG, WEBP)</label>
+                                        <template x-if="!watermarkImageDataUrl">
+                                            <div @click="$refs.wmFileInput.click()"
+                                                 class="border-2 border-dashed border-slate-300 hover:border-brand-500 rounded-xl p-4 text-center cursor-pointer transition-colors bg-slate-50/60 hover:bg-brand-50/30">
+                                                <input type="file"
+                                                       x-ref="wmFileInput"
+                                                       accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                                                       @change="handleWatermarkImageSelect($event)"
+                                                       class="hidden">
+                                                <svg class="w-8 h-8 text-slate-400 mx-auto mb-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                                <p class="text-xs font-medium text-slate-700">คลิกเพื่อเลือกไฟล์รูปภาพลายน้ำ</p>
+                                                <p class="text-[11px] text-slate-400 mt-0.5">แนะนำไฟล์ PNG พื้นหลังโปร่งใสเพื่อผลลัพธ์ที่ดีที่สุด</p>
+                                            </div>
+                                        </template>
+                                        <template x-if="watermarkImageDataUrl">
+                                            <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                                                <div class="flex items-center gap-3">
+                                                    <img :src="watermarkImageDataUrl" class="w-10 h-10 object-contain bg-white rounded border border-slate-200 p-0.5 shadow-2xs">
+                                                    <div class="min-w-0">
+                                                        <p class="text-xs font-medium text-slate-800 truncate" x-text="watermarkImageName || 'รูปลายน้ำ'"></p>
+                                                        <span class="text-[10px] text-emerald-600 font-medium">✓ โหลดรูปภาพสำเร็จ</span>
+                                                    </div>
+                                                </div>
+                                                <div class="flex items-center gap-1.5">
+                                                    <button type="button"
+                                                            @click="$refs.wmFileInput.click()"
+                                                            class="text-xs px-2.5 py-1 text-slate-600 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg cursor-pointer">
+                                                        เปลี่ยนรูป
+                                                    </button>
+                                                    <button type="button"
+                                                            @click="removeWatermarkImage()"
+                                                            class="p-1 text-slate-400 hover:text-red-600 rounded-lg cursor-pointer">
+                                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                    </button>
+                                                </div>
+                                                <input type="file"
+                                                       x-ref="wmFileInput"
+                                                       accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                                                       @change="handleWatermarkImageSelect($event)"
+                                                       class="hidden">
+                                            </div>
+                                        </template>
+                                    </div>
+
+                                    {{-- If Text Watermark --}}
+                                    <div x-show="watermarkType === 'text'" class="space-y-3 bg-white p-4 rounded-xl border border-slate-200">
+                                        <div>
+                                            <label class="block text-xs font-semibold text-slate-700 mb-1">ข้อความลายน้ำ</label>
+                                            <input type="text"
+                                                   x-model="watermarkText"
+                                                   placeholder="เช่น สำเนาถูกต้อง, DRAFT, CONFIDENTIAL"
+                                                   class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-slate-800">
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xs text-slate-600 font-medium">สีข้อความ:</span>
+                                            <div class="flex items-center gap-1.5">
+                                                <button type="button" @click="watermarkTextColor = '#dc2626'" class="w-5 h-5 rounded-full bg-red-600 border-2" :class="watermarkTextColor === '#dc2626' ? 'border-slate-800 ring-2 ring-red-400' : 'border-white'"></button>
+                                                <button type="button" @click="watermarkTextColor = '#2563eb'" class="w-5 h-5 rounded-full bg-blue-600 border-2" :class="watermarkTextColor === '#2563eb' ? 'border-slate-800 ring-2 ring-blue-400' : 'border-white'"></button>
+                                                <button type="button" @click="watermarkTextColor = '#4b5563'" class="w-5 h-5 rounded-full bg-gray-600 border-2" :class="watermarkTextColor === '#4b5563' ? 'border-slate-800 ring-2 ring-gray-400' : 'border-white'"></button>
+                                                <button type="button" @click="watermarkTextColor = '#000000'" class="w-5 h-5 rounded-full bg-black border-2" :class="watermarkTextColor === '#000000' ? 'border-slate-800 ring-2 ring-black' : 'border-white'"></button>
+                                                <button type="button" @click="watermarkTextColor = '#d97706'" class="w-5 h-5 rounded-full bg-amber-600 border-2" :class="watermarkTextColor === '#d97706' ? 'border-slate-800 ring-2 ring-amber-400' : 'border-white'"></button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- Slider 1: Opacity / Transparency --}}
+                                    <div class="bg-white p-3.5 rounded-xl border border-slate-200">
+                                        <div class="flex items-center justify-between text-xs font-semibold text-slate-700 mb-1.5">
+                                            <span>ระดับความโปร่งใส (ความเข้ม)</span>
+                                            <span class="px-2 py-0.5 rounded-md bg-brand-50 text-brand-700 text-[11px] font-bold" x-text="`${watermarkOpacity}%`"></span>
+                                        </div>
+                                        <input type="range"
+                                               min="10"
+                                               max="100"
+                                               step="5"
+                                               x-model.number="watermarkOpacity"
+                                               class="w-full accent-brand-600 cursor-pointer">
+                                        <div class="flex justify-between text-[10px] text-slate-400 mt-0.5">
+                                            <span>10% (จางมาก)</span>
+                                            <span>50% (ปานกลาง)</span>
+                                            <span>100% (ทึบแสง)</span>
+                                        </div>
+                                    </div>
+
+                                    {{-- Slider 2: Scale / Size --}}
+                                    <div class="bg-white p-3.5 rounded-xl border border-slate-200">
+                                        <div class="flex items-center justify-between text-xs font-semibold text-slate-700 mb-1.5">
+                                            <span>ขนาดลายน้ำ (Size)</span>
+                                            <span class="px-2 py-0.5 rounded-md bg-brand-50 text-brand-700 text-[11px] font-bold" x-text="`${watermarkScale}%`"></span>
+                                        </div>
+                                        <input type="range"
+                                               min="10"
+                                               max="90"
+                                               step="5"
+                                               x-model.number="watermarkScale"
+                                               class="w-full accent-brand-600 cursor-pointer">
+                                        <div class="flex justify-between text-[10px] text-slate-400 mt-0.5">
+                                            <span>เล็ก (10%)</span>
+                                            <span>ปานกลาง (40%)</span>
+                                            <span>ใหญ่ (90%)</span>
+                                        </div>
+                                    </div>
+
+                                    {{-- Rotation & Positioning Controls in Grid --}}
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {{-- Rotation --}}
+                                        <div class="bg-white p-3.5 rounded-xl border border-slate-200">
+                                            <label class="block text-xs font-semibold text-slate-700 mb-2">มุมเอียง (Rotation)</label>
+                                            <div class="grid grid-cols-4 gap-1">
+                                                <button type="button" @click="setWatermarkRotation(0)" :class="watermarkRotation === 0 ? 'bg-brand-600 text-white font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'" class="py-1.5 rounded-lg text-xs transition-all cursor-pointer">0°</button>
+                                                <button type="button" @click="setWatermarkRotation(45)" :class="watermarkRotation === 45 ? 'bg-brand-600 text-white font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'" class="py-1.5 rounded-lg text-xs transition-all cursor-pointer">45°</button>
+                                                <button type="button" @click="setWatermarkRotation(-45)" :class="watermarkRotation === -45 ? 'bg-brand-600 text-white font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'" class="py-1.5 rounded-lg text-xs transition-all cursor-pointer">-45°</button>
+                                                <button type="button" @click="setWatermarkRotation(90)" :class="watermarkRotation === 90 ? 'bg-brand-600 text-white font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'" class="py-1.5 rounded-lg text-xs transition-all cursor-pointer">90°</button>
+                                            </div>
+                                        </div>
+
+                                        {{-- Position Matrix --}}
+                                        <div class="bg-white p-3.5 rounded-xl border border-slate-200">
+                                            <div class="flex items-center justify-between mb-1.5">
+                                                <label class="text-xs font-semibold text-slate-700">ตำแหน่ง (Position)</label>
+                                                <button type="button"
+                                                        @click="setWatermarkPosition('tile')"
+                                                        :class="watermarkPosition === 'tile' ? 'bg-brand-600 text-white font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                                                        class="px-2 py-0.5 rounded text-[10px] transition-all cursor-pointer">
+                                                    ▦ ปูเต็มหน้า
+                                                </button>
+                                            </div>
+                                            <div class="grid grid-cols-3 gap-1 max-w-[130px] mx-auto">
+                                                <button type="button" @click="setWatermarkPosition('top-left')" :class="watermarkPosition === 'top-left' ? 'bg-brand-600 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'" class="w-8 h-7 rounded text-[11px] font-bold cursor-pointer">↖</button>
+                                                <button type="button" @click="setWatermarkPosition('top-center')" :class="watermarkPosition === 'top-center' ? 'bg-brand-600 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'" class="w-8 h-7 rounded text-[11px] font-bold cursor-pointer">↑</button>
+                                                <button type="button" @click="setWatermarkPosition('top-right')" :class="watermarkPosition === 'top-right' ? 'bg-brand-600 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'" class="w-8 h-7 rounded text-[11px] font-bold cursor-pointer">↗</button>
+                                                <button type="button" @click="setWatermarkPosition('center-left')" :class="watermarkPosition === 'center-left' ? 'bg-brand-600 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'" class="w-8 h-7 rounded text-[11px] font-bold cursor-pointer">←</button>
+                                                <button type="button" @click="setWatermarkPosition('center')" :class="watermarkPosition === 'center' ? 'bg-brand-600 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'" class="w-8 h-7 rounded text-[11px] font-bold cursor-pointer">🎯</button>
+                                                <button type="button" @click="setWatermarkPosition('center-right')" :class="watermarkPosition === 'center-right' ? 'bg-brand-600 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'" class="w-8 h-7 rounded text-[11px] font-bold cursor-pointer">→</button>
+                                                <button type="button" @click="setWatermarkPosition('bottom-left')" :class="watermarkPosition === 'bottom-left' ? 'bg-brand-600 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'" class="w-8 h-7 rounded text-[11px] font-bold cursor-pointer">↙</button>
+                                                <button type="button" @click="setWatermarkPosition('bottom-center')" :class="watermarkPosition === 'bottom-center' ? 'bg-brand-600 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'" class="w-8 h-7 rounded text-[11px] font-bold cursor-pointer">↓</button>
+                                                <button type="button" @click="setWatermarkPosition('bottom-right')" :class="watermarkPosition === 'bottom-right' ? 'bg-brand-600 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'" class="w-8 h-7 rounded text-[11px] font-bold cursor-pointer">↘</button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- Target Pages Selection --}}
+                                    <div class="bg-white p-3.5 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                                        <span class="text-xs font-semibold text-slate-700">หน้าที่ประทับลายน้ำ:</span>
+                                        <div class="flex items-center gap-1.5 text-xs">
+                                            <button type="button"
+                                                    @click="watermarkPages = 'all'"
+                                                    :class="watermarkPages === 'all' ? 'bg-brand-600 text-white font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                                                    class="px-2.5 py-1 rounded-lg transition-all cursor-pointer">
+                                                ทุกหน้า
+                                            </button>
+                                            <button type="button"
+                                                    @click="watermarkPages = 'first'"
+                                                    :class="watermarkPages === 'first' ? 'bg-brand-600 text-white font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                                                    class="px-2.5 py-1 rounded-lg transition-all cursor-pointer">
+                                                เฉพาะหน้าแรก
+                                            </button>
+                                            <button type="button"
+                                                    @click="watermarkPages = 'custom'"
+                                                    :class="watermarkPages === 'custom' ? 'bg-brand-600 text-white font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                                                    class="px-2.5 py-1 rounded-lg transition-all cursor-pointer">
+                                                กำหนดเอง
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div x-show="watermarkPages === 'custom'" class="pt-1">
+                                        <input type="text"
+                                               x-model="watermarkCustomPages"
+                                               placeholder="ระบุเลขหน้า เช่น 1, 3-5"
+                                               class="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-brand-500 text-slate-700 bg-white">
+                                    </div>
+                                </div>
+
+                                {{-- Right Preview Column (5 cols) --}}
+                                <div class="lg:col-span-5 flex flex-col items-center justify-center">
+                                    <div class="w-full bg-slate-200/60 rounded-2xl p-4 sm:p-5 border border-slate-200 flex flex-col items-center justify-center min-h-[380px]">
+                                        {{-- Live Preview Canvas with Watermark Overlay --}}
+                                        <div class="relative max-w-[280px] sm:max-w-[300px] w-full aspect-[1/1.414] bg-white rounded-xl shadow-xl border border-slate-300 overflow-hidden flex items-center justify-center">
+                                            {{-- PDF Page Image --}}
+                                            <template x-if="watermarkPdfPageUrl">
+                                                <img :src="watermarkPdfPageUrl" class="w-full h-full object-contain pointer-events-none select-none">
+                                            </template>
+                                            <div x-show="isRenderingWatermarkPdf" class="absolute inset-0 bg-white/80 backdrop-blur-xs flex flex-col items-center justify-center z-30">
+                                                <svg class="w-7 h-7 animate-spin text-brand-600 mb-1.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                                <span class="text-xs text-slate-600 font-medium">กำลังโหลดตัวอย่าง...</span>
+                                            </div>
+
+                                            {{-- Tile Overlay Mode (3x3 grid pattern) --}}
+                                            <template x-if="watermarkPosition === 'tile'">
+                                                <div class="absolute inset-0 pointer-events-none grid grid-cols-3 grid-rows-3 p-2 z-10">
+                                                    <template x-for="i in 9" :key="i">
+                                                        <div class="flex items-center justify-center overflow-hidden">
+                                                            <template x-if="watermarkType === 'image' && watermarkImageDataUrl">
+                                                                <img :src="watermarkImageDataUrl"
+                                                                     :style="`opacity: ${watermarkOpacity / 100}; transform: rotate(${watermarkRotation}deg); width: ${watermarkScale * 0.75}%;`"
+                                                                     class="max-w-full max-h-full object-contain transition-all select-none">
+                                                            </template>
+                                                            <template x-if="watermarkType === 'text' && watermarkText">
+                                                                <span :style="`opacity: ${watermarkOpacity / 100}; transform: rotate(${watermarkRotation}deg); color: ${watermarkTextColor}; font-size: ${Math.max(9, watermarkScale * 0.28)}px;`"
+                                                                      class="font-bold whitespace-nowrap select-none transition-all"
+                                                                      x-text="watermarkText"></span>
+                                                            </template>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </template>
+
+                                            {{-- 9-Grid Position Overlay Mode --}}
+                                            <template x-if="watermarkPosition !== 'tile'">
+                                                <div class="absolute inset-0 pointer-events-none flex z-10" :class="watermarkFlexClasses">
+                                                    <template x-if="watermarkType === 'image' && watermarkImageDataUrl">
+                                                        <img :src="watermarkImageDataUrl"
+                                                             :style="`opacity: ${watermarkOpacity / 100}; transform: rotate(${watermarkRotation}deg); width: ${watermarkScale}%;`"
+                                                             class="max-w-[90%] max-h-[90%] object-contain transition-all select-none">
+                                                    </template>
+                                                    <template x-if="watermarkType === 'text' && watermarkText">
+                                                        <div :style="`opacity: ${watermarkOpacity / 100}; transform: rotate(${watermarkRotation}deg); color: ${watermarkTextColor}; font-size: ${Math.max(11, watermarkScale * 0.4)}px; border-color: ${watermarkTextColor};`"
+                                                             class="font-bold border-2 border-dashed px-2.5 py-1 rounded-lg whitespace-nowrap select-none transition-all shadow-2xs"
+                                                             x-text="watermarkText">
+                                                        </div>
+                                                    </template>
+                                                    <template x-if="watermarkType === 'image' && !watermarkImageDataUrl">
+                                                        <div class="text-[11px] text-slate-400 bg-white/90 border border-dashed border-slate-300 px-3 py-2 rounded-lg text-center">
+                                                            ยังไม่ได้เลือกรูปภาพ
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                        </div>
+
+                                        {{-- Pagination Controls --}}
+                                        <div x-show="watermarkTotalPages > 1" class="flex items-center justify-center gap-3 mt-4 text-xs text-slate-600 w-full">
+                                            <button type="button"
+                                                    @click="prevWatermarkPage()"
+                                                    :disabled="watermarkCurrentPage <= 1 || isRenderingWatermarkPdf"
+                                                    class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs font-medium transition-all cursor-pointer">
+                                                ‹ หน้าก่อน
+                                            </button>
+                                            <span>
+                                                หน้า <strong class="text-slate-800" x-text="watermarkCurrentPage"></strong> จาก <span x-text="watermarkTotalPages"></span>
+                                            </span>
+                                            <button type="button"
+                                                    @click="nextWatermarkPage()"
+                                                    :disabled="watermarkCurrentPage >= watermarkTotalPages || isRenderingWatermarkPdf"
+                                                    class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs font-medium transition-all cursor-pointer">
+                                                หน้าถัดไป ›
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
                 </div>
             </template>
 
@@ -446,8 +740,8 @@
                 <button
                     @click="hasFiles ? startConversion('{{ $tool['slug'] }}') : $refs.fileInput.click()"
                     class="btn-primary px-10 py-4 rounded-2xl text-base flex items-center gap-2"
-                    :class="{ 'opacity-50 cursor-not-allowed': !hasFiles || (tool === 'delete-pages' && hasFiles && !canSubmitDeletePages) }"
-                    :disabled="tool === 'delete-pages' && hasFiles && !canSubmitDeletePages"
+                    :class="{ 'opacity-50 cursor-not-allowed': !hasFiles || (tool === 'delete-pages' && hasFiles && !canSubmitDeletePages) || (tool === 'watermark-pdf' && hasFiles && !canSubmitWatermark) }"
+                    :disabled="(tool === 'delete-pages' && hasFiles && !canSubmitDeletePages) || (tool === 'watermark-pdf' && hasFiles && !canSubmitWatermark)"
                     @if($tool['premium'] && !(auth()->check() && auth()->user()->getActivePlan()->has_ocr)) disabled @endif>
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>

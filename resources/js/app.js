@@ -92,6 +92,9 @@ let pageImageCache = {};
 let blankPageCache = {};
 let deletePdfDoc = null;
 let deleteThumbnailsCache = {};
+let watermarkPdfDoc = null;
+let watermarkRenderTask = null;
+let watermarkPageCache = {};
 
 // =====================================================
 // Alpine Component: fileUpload
@@ -123,6 +126,26 @@ Alpine.data('fileUpload', (config = {}) => ({
     deletePagesList: [],
     deleteManualInput: '',
     deletePagesError: null,
+
+    // Watermark Editor State
+    isRenderingWatermarkPdf: false,
+    watermarkTotalPages: 0,
+    watermarkCurrentPage: 1,
+    watermarkPdfPageUrl: null,
+    watermarkError: null,
+
+    watermarkType: 'image', // 'image' or 'text'
+    watermarkImageFile: null,
+    watermarkImageDataUrl: null,
+    watermarkImageName: null,
+    watermarkText: 'สำเนาถูกต้อง',
+    watermarkTextColor: '#dc2626',
+    watermarkOpacity: 40, // 10 to 100
+    watermarkScale: 40,   // 10 to 100
+    watermarkPosition: 'center', // 'center', 'top-left', 'top-center', 'top-right', 'center-left', 'center-right', 'bottom-left', 'bottom-center', 'bottom-right', 'tile'
+    watermarkRotation: 0, // -180 to 180
+    watermarkPages: 'all', // 'all', 'first', 'custom'
+    watermarkCustomPages: '',
 
     // Processing state
     isUploading: false,
@@ -156,6 +179,9 @@ Alpine.data('fileUpload', (config = {}) => ({
         }
         if (this.tool === 'delete-pages' && this.files.length > 0) {
             this.loadDeletePagesPreview();
+        }
+        if (this.tool === 'watermark-pdf' && this.files.length > 0) {
+            this.loadWatermarkPdfPreview();
         }
     },
 
@@ -252,6 +278,10 @@ Alpine.data('fileUpload', (config = {}) => ({
         if (this.tool === 'delete-pages' && this.files.length > 0) {
             setTimeout(() => this.loadDeletePagesPreview(), 60);
         }
+        // If watermark-pdf, load preview editor
+        if (this.tool === 'watermark-pdf' && this.files.length > 0) {
+            setTimeout(() => this.loadWatermarkPdfPreview(), 60);
+        }
     },
 
     removeFile(id) {
@@ -287,6 +317,12 @@ Alpine.data('fileUpload', (config = {}) => ({
                 setTimeout(() => this.loadDeletePagesPreview(), 60);
             }
         }
+        if (this.tool === 'watermark-pdf') {
+            this.clearWatermarkState();
+            if (this.files.length > 0) {
+                setTimeout(() => this.loadWatermarkPdfPreview(), 60);
+            }
+        }
     },
 
     clearAll() {
@@ -307,6 +343,7 @@ Alpine.data('fileUpload', (config = {}) => ({
         this.rotationAngle = 90;
         this.pdfRenderError = null;
         this.clearDeletePagesState();
+        this.clearWatermarkState();
         clearStagedFiles();
     },
 
@@ -373,6 +410,50 @@ Alpine.data('fileUpload', (config = {}) => ({
             const pagesStr = this.selectedPagesToDelete.join(',');
             formData.append('pages_to_delete', pagesStr);
             formData.append('config[pages_to_delete]', pagesStr);
+        }
+        if (activeTool === 'watermark-pdf') {
+            if (this.watermarkType === 'image' && !this.watermarkImageDataUrl) {
+                this.error = 'กรุณาอัปโหลดรูปภาพที่ต้องการใช้เป็นลายน้ำ';
+                this.isUploading = false;
+                return;
+            }
+            if (this.watermarkType === 'text' && !this.watermarkText.trim()) {
+                this.error = 'กรุณาระบุข้อความลายน้ำ';
+                this.isUploading = false;
+                return;
+            }
+            formData.append('watermark_type', this.watermarkType);
+            formData.append('config[type]', this.watermarkType);
+
+            formData.append('watermark_opacity', (this.watermarkOpacity / 100).toString());
+            formData.append('config[opacity]', (this.watermarkOpacity / 100).toString());
+
+            formData.append('watermark_scale', (this.watermarkScale / 100).toString());
+            formData.append('config[scale]', (this.watermarkScale / 100).toString());
+
+            formData.append('watermark_position', this.watermarkPosition);
+            formData.append('config[position]', this.watermarkPosition);
+
+            formData.append('watermark_rotation', this.watermarkRotation.toString());
+            formData.append('config[rotation]', this.watermarkRotation.toString());
+
+            const pagesVal = this.watermarkPages === 'custom' ? this.watermarkCustomPages : this.watermarkPages;
+            formData.append('watermark_pages', pagesVal);
+            formData.append('config[pages]', pagesVal);
+
+            if (this.watermarkType === 'image') {
+                if (this.watermarkImageFile) {
+                    formData.append('watermark_image', this.watermarkImageFile);
+                }
+                if (this.watermarkImageDataUrl) {
+                    formData.append('config[watermark_image_data]', this.watermarkImageDataUrl);
+                }
+            } else {
+                formData.append('watermark_text', this.watermarkText);
+                formData.append('config[text]', this.watermarkText);
+                formData.append('watermark_color', this.watermarkTextColor);
+                formData.append('config[color]', this.watermarkTextColor);
+            }
         }
         const tokenMeta = document.querySelector('meta[name="csrf-token"]');
         if (tokenMeta) {
@@ -464,6 +545,7 @@ Alpine.data('fileUpload', (config = {}) => ({
             'pdf-to-png': 'กำลังแปลงหน้าเอกสารเป็นภาพ PNG...',
             'rotate-pdf': `กำลังหมุนหน้าเอกสาร PDF (${rotateDeg}°)...`,
             'delete-pages': 'กำลังลบหน้าที่เลือกออกจากเอกสาร PDF...',
+            'watermark-pdf': 'กำลังประทับลายน้ำลงในเอกสาร PDF...',
             'watermark-pdf': 'กำลังใส่ลายน้ำเอกสาร PDF...',
             'protect-pdf': 'กำลังตั้งรหัสผ่านป้องกัน PDF...',
             'unlock-pdf': 'กำลังปลดล็อครหัสผ่าน PDF...',
@@ -1162,7 +1244,198 @@ Alpine.data('fileUpload', (config = {}) => ({
             }
             return `ลบ ${this.selectedPagesToDelete.length} หน้า และดาวน์โหลด (เหลือ ${this.remainingPagesCount} หน้า)`;
         }
+        if (this.tool === 'watermark-pdf' && this.hasFiles) {
+            if (this.watermarkType === 'image' && !this.watermarkImageDataUrl) {
+                return 'กรุณาเลือกรูปลายน้ำ';
+            }
+            if (this.watermarkType === 'text' && !this.watermarkText.trim()) {
+                return 'กรุณาระบุข้อความลายน้ำ';
+            }
+            return 'ใส่ลายน้ำและดาวน์โหลด PDF';
+        }
         return null;
+    },
+
+    // =====================================================
+    // Watermark PDF Methods & Live Editor
+    // =====================================================
+    clearWatermarkState() {
+        watermarkPdfDoc = null;
+        if (watermarkRenderTask) {
+            try { watermarkRenderTask.cancel(); } catch (e) {}
+            watermarkRenderTask = null;
+        }
+        watermarkPageCache = {};
+        this.watermarkTotalPages = 0;
+        this.watermarkCurrentPage = 1;
+        this.watermarkPdfPageUrl = null;
+        this.watermarkError = null;
+        this.isRenderingWatermarkPdf = false;
+    },
+
+    async loadWatermarkPdfPreview() {
+        if (!this.files.length || !this.files[0].file) {
+            this.clearWatermarkState();
+            return;
+        }
+        const file = this.files[0].file;
+        if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+            return;
+        }
+
+        this.clearWatermarkState();
+        this.isRenderingWatermarkPdf = true;
+
+        try {
+            await this.ensurePdfJs();
+            const arrayBuffer = await file.arrayBuffer();
+            const loadingTask = window.pdfjsLib.getDocument({
+                data: arrayBuffer,
+                cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+                cMapPacked: true,
+                standardFontDataUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/standard_fonts/',
+            });
+            watermarkPdfDoc = await loadingTask.promise;
+            this.watermarkTotalPages = watermarkPdfDoc.numPages || 1;
+            this.watermarkCurrentPage = 1;
+            await this.renderWatermarkCurrentPage();
+        } catch (e) {
+            console.error('loadWatermarkPdfPreview error:', e);
+            this.watermarkError = 'ไม่สามารถอ่านไฟล์ PDF ได้: ' + (e.message || '');
+        } finally {
+            this.isRenderingWatermarkPdf = false;
+        }
+    },
+
+    async renderWatermarkCurrentPage() {
+        if (!watermarkPdfDoc) return;
+        const pageNum = this.watermarkCurrentPage;
+
+        if (watermarkPageCache[pageNum]) {
+            this.watermarkPdfPageUrl = watermarkPageCache[pageNum];
+            this.isRenderingWatermarkPdf = false;
+            return;
+        }
+
+        this.isRenderingWatermarkPdf = true;
+        try {
+            if (watermarkRenderTask) {
+                try {
+                    watermarkRenderTask.cancel();
+                    await watermarkRenderTask.promise.catch(() => {});
+                } catch (e) {}
+                watermarkRenderTask = null;
+            }
+
+            if (this.watermarkCurrentPage !== pageNum) return;
+
+            const page = await watermarkPdfDoc.getPage(pageNum);
+            const baseViewport = page.getViewport({ scale: 1.0 });
+            const maxDim = Math.max(baseViewport.width, baseViewport.height);
+            const scale = Math.min(2.0, Math.max(0.6, 600 / maxDim));
+            const viewport = page.getViewport({ scale });
+
+            const offCanvas = document.createElement('canvas');
+            offCanvas.width = Math.floor(viewport.width);
+            offCanvas.height = Math.floor(viewport.height);
+
+            const ctx = offCanvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, offCanvas.width, offCanvas.height);
+
+            const task = page.render({
+                canvasContext: ctx,
+                viewport: viewport
+            });
+            watermarkRenderTask = task;
+            await task.promise;
+            if (watermarkRenderTask === task) {
+                watermarkRenderTask = null;
+            }
+
+            const dataUrl = offCanvas.toDataURL('image/png');
+            watermarkPageCache[pageNum] = dataUrl;
+
+            if (this.watermarkCurrentPage === pageNum) {
+                this.watermarkPdfPageUrl = dataUrl;
+            }
+        } catch (e) {
+            if (e && (e.name === 'RenderingCancelledException' || e.message?.includes('cancelled'))) {
+                return;
+            }
+            console.error('renderWatermarkCurrentPage error on page ' + pageNum, e);
+        } finally {
+            if (this.watermarkCurrentPage === pageNum) {
+                this.isRenderingWatermarkPdf = false;
+            }
+        }
+    },
+
+    async prevWatermarkPage() {
+        if (this.watermarkCurrentPage > 1 && !this.isRenderingWatermarkPdf) {
+            this.watermarkCurrentPage--;
+            await this.renderWatermarkCurrentPage();
+        }
+    },
+
+    async nextWatermarkPage() {
+        if (this.watermarkCurrentPage < this.watermarkTotalPages && !this.isRenderingWatermarkPdf) {
+            this.watermarkCurrentPage++;
+            await this.renderWatermarkCurrentPage();
+        }
+    },
+
+    handleWatermarkImageSelect(event) {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            this.error = 'กรุณาเลือกไฟล์รูปภาพที่ถูกต้อง (PNG, JPG, SVG, WEBP)';
+            return;
+        }
+        this.watermarkImageFile = file;
+        this.watermarkImageName = file.name;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            this.watermarkImageDataUrl = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    },
+
+    removeWatermarkImage() {
+        this.watermarkImageFile = null;
+        this.watermarkImageDataUrl = null;
+        this.watermarkImageName = null;
+    },
+
+    setWatermarkPosition(pos) {
+        this.watermarkPosition = pos;
+    },
+
+    setWatermarkRotation(deg) {
+        this.watermarkRotation = deg;
+    },
+
+    get watermarkFlexClasses() {
+        switch (this.watermarkPosition) {
+            case 'top-left': return 'items-start justify-start p-4 sm:p-6';
+            case 'top-center': return 'items-start justify-center p-4 sm:p-6';
+            case 'top-right': return 'items-start justify-end p-4 sm:p-6';
+            case 'center-left': return 'items-center justify-start p-4 sm:p-6';
+            case 'center': return 'items-center justify-center p-4 sm:p-6';
+            case 'center-right': return 'items-center justify-end p-4 sm:p-6';
+            case 'bottom-left': return 'items-end justify-start p-4 sm:p-6';
+            case 'bottom-center': return 'items-end justify-center p-4 sm:p-6';
+            case 'bottom-right': return 'items-end justify-end p-4 sm:p-6';
+            default: return 'items-center justify-center p-4 sm:p-6';
+        }
+    },
+
+    get canSubmitWatermark() {
+        if (this.watermarkType === 'image') {
+            return !!this.watermarkImageDataUrl;
+        }
+        return !!(this.watermarkText && this.watermarkText.trim().length > 0);
     },
 
     get hasFiles() { return this.files.length > 0; },

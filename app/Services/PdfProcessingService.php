@@ -556,34 +556,74 @@ class PdfProcessingService
         $inputFile = $this->getInputFile($job);
         $inputPath = Storage::disk($inputFile->storage_disk)->path($inputFile->storage_key);
         $config = $job->tool_config ?? [];
-        $text = $config['text'] ?? 'WATERMARK';
         $tmpDir = $this->makeTmpDir();
         $outputPath = $tmpDir.DIRECTORY_SEPARATOR.'watermarked.pdf';
 
-        // Build a watermark PostScript command
-        $psScript = <<<PS
-/WatermarkDict 10 dict def
-WatermarkDict begin
-    /Watermark ({$text}) def
-    /Font /Helvetica def
-    /FontSize 60 def
-    /Angle 45 def
-    /Opacity 0.3 def
-end
-PS;
+        // Prepare image if uploaded as file or sent as base64 dataUrl
+        $imagePath = null;
+        if (! empty($config['watermark_image_path'])) {
+            $imagePath = Storage::disk('local')->path($config['watermark_image_path']);
+        } elseif (! empty($config['image_path'])) {
+            $imagePath = Storage::disk('local')->path($config['image_path']);
+        } elseif (! empty($config['watermark_image_data']) && str_starts_with($config['watermark_image_data'], 'data:image')) {
+            $data = $config['watermark_image_data'];
+            $commaPos = strpos($data, ',');
+            if ($commaPos !== false) {
+                $binary = base64_decode(substr($data, $commaPos + 1));
+                $imagePath = $tmpDir.DIRECTORY_SEPARATOR.'wm_img.png';
+                file_put_contents($imagePath, $binary);
+            }
+        }
 
-        $psPath = $tmpDir.DIRECTORY_SEPARATOR.'watermark.ps';
-        file_put_contents($psPath, $psScript);
+        $wmConfig = [
+            'type' => (! empty($imagePath) && file_exists($imagePath)) ? 'image' : ($config['type'] ?? 'text'),
+            'image_path' => $imagePath,
+            'text' => $config['text'] ?? 'WATERMARK',
+            'opacity' => floatval($config['opacity'] ?? 0.35),
+            'scale' => floatval($config['scale'] ?? 0.4),
+            'position' => $config['position'] ?? 'center',
+            'rotation' => floatval($config['rotation'] ?? 0),
+            'pages' => $config['pages'] ?? 'all',
+            'color' => $config['color'] ?? '#dc2626',
+        ];
+
+        $configPath = $tmpDir.DIRECTORY_SEPARATOR.'wm_config.json';
+        file_put_contents($configPath, json_encode($wmConfig, JSON_UNESCAPED_UNICODE));
 
         try {
-            $result = Process::timeout(60)->run([
-                'gs', '-dBATCH', '-dNOPAUSE', '-q', '-sDEVICE=pdfwrite',
-                "-sOutputFile={$outputPath}", $psPath, $inputPath,
-            ]);
+            $applied = false;
+            $scriptPath = base_path('scripts/watermark_pdf.py');
+            $pythonCmd = file_exists('/opt/pdf2docx-env/bin/python3')
+                ? '/opt/pdf2docx-env/bin/python3'
+                : 'python3';
 
-            if (! $result->successful()) {
-                // Fallback: just copy the file (watermark not critical path)
-                copy($inputPath, $outputPath);
+            if (file_exists($scriptPath)) {
+                $pyResult = Process::timeout(60)->run([
+                    $pythonCmd,
+                    $scriptPath,
+                    $inputPath,
+                    $outputPath,
+                    $configPath,
+                ]);
+
+                if ($pyResult->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                    $applied = true;
+                } elseif ($pythonCmd !== 'python3') {
+                    $sysResult = Process::timeout(60)->run([
+                        'python3',
+                        $scriptPath,
+                        $inputPath,
+                        $outputPath,
+                        $configPath,
+                    ]);
+                    if ($sysResult->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                        $applied = true;
+                    }
+                }
+            }
+
+            if (! $applied || ! file_exists($outputPath) || filesize($outputPath) === 0) {
+                throw new RuntimeException('ไม่สามารถใส่ลายน้ำในเอกสาร PDF ได้ กรุณาลองใหม่อีกครั้ง');
             }
 
             $basename = pathinfo($inputFile->original_name, PATHINFO_FILENAME);
