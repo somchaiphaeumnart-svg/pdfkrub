@@ -95,6 +95,8 @@ let deleteThumbnailsCache = {};
 let watermarkPdfDoc = null;
 let watermarkRenderTask = null;
 let watermarkPageCache = {};
+let signPdfDoc = null;
+let signRenderTask = null;
 
 // =====================================================
 // Alpine Component: fileUpload
@@ -1551,6 +1553,870 @@ Alpine.data('jobPoller', (jobId) => ({
     get isProcessing() { return ['queued', 'processing'].includes(this.status); },
     get isDone() { return this.status === 'done'; },
     get isFailed() { return this.status === 'failed'; },
+}));
+
+// =====================================================
+// Alpine Component: signPdf (Interactive PDF e-Signer)
+// =====================================================
+Alpine.data('signPdf', () => ({
+    // PDF Document state
+    pdfLoaded: false,
+    pdfFile: null,
+    pdfFileName: '',
+    pdfBytes: null,
+    totalPages: 0,
+    currentPage: 1,
+    zoomLevel: 1.0,
+    isRenderingPage: false,
+    pdfRenderError: null,
+    isDraggingFile: false,
+
+    // Dimensions of the rendered page for coordinate mapping
+    canvasDisplayWidth: 600,
+    canvasDisplayHeight: 850,
+
+    // Signature Studio tabs: 'draw', 'type', 'upload', 'date'
+    sigTab: 'draw',
+
+    // 1. Draw Tab state
+    drawColor: '#003399',
+    penWidth: 3,
+    isDrawing: false,
+    hasDrawn: false,
+    drawStrokes: [],
+    currentStroke: [],
+
+    // 2. Type Tab state
+    typedName: '',
+    typeFont: 'Dancing Script',
+    typeColor: '#003399',
+    typeFonts: [
+        { id: 'Dancing Script', name: 'Dancing Script (ลายมือสคริปต์)', family: "'Dancing Script', cursive" },
+        { id: 'Pacifico', name: 'Pacifico (ลายตวัดหนานุ่ม)', family: "'Pacifico', cursive" },
+        { id: 'Great Vibes', name: 'Great Vibes (คลาสสิกหรูหรา)', family: "'Great Vibes', cursive" },
+        { id: 'Alex Brush', name: 'Alex Brush (ลายเส้นบางพริ้ว)', family: "'Alex Brush', cursive" },
+        { id: 'Sarabun', name: 'Sarabun (ทางการราชการไทย)', family: "'Sarabun', sans-serif" },
+    ],
+
+    // 3. Upload Tab state
+    uploadedImageDataUrl: null,
+    autoRemoveWhite: true,
+    whiteThreshold: 225,
+
+    // 4. Date Stamp state
+    dateType: 'th_buddhist',
+    dateColor: '#003399',
+
+    // Active signature ready for placement
+    activeSigDataUrl: null,
+    sigScale: 1.0,
+
+    // Placed Signatures on PDF
+    placedSignatures: [],
+    selectedSigId: null,
+
+    // Dragging & Resizing state on document
+    isDraggingSig: false,
+    isResizingSig: false,
+    dragPointer: {
+        startX: 0,
+        startY: 0,
+        initX: 0,
+        initY: 0,
+        initW: 0,
+        initH: 0,
+        aspect: 1,
+    },
+    justInteractedSig: false,
+
+    // Export state
+    isExporting: false,
+    exportError: null,
+    exportSuccess: false,
+
+    async init() {
+        window.addEventListener('mousemove', (e) => this.onPointerMove(e));
+        window.addEventListener('mouseup', () => this.onPointerUp());
+        window.addEventListener('touchmove', (e) => this.onPointerMove(e), { passive: false });
+        window.addEventListener('touchend', () => this.onPointerUp());
+
+        await this.loadStagedPdf();
+    },
+
+    async ensurePdfJs() {
+        if (window.pdfjsLib) {
+            if (window.pdfjsLib.GlobalWorkerOptions && !window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
+                window.pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.js';
+            }
+            return;
+        }
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = '/vendor/pdfjs/pdf.min.js';
+            script.onload = () => {
+                if (window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions) {
+                    window.pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.js';
+                }
+                resolve();
+            };
+            script.onerror = () => reject(new Error('ไม่สามารถโหลดระบบแสดงตัวอย่าง PDF ได้'));
+            document.head.appendChild(script);
+        });
+    },
+
+    async ensurePdfLib() {
+        if (window.PDFLib) return window.PDFLib;
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = '/vendor/pdf-lib.min.js';
+            script.onload = () => {
+                if (window.PDFLib) resolve(window.PDFLib);
+                else reject(new Error('PDFLib ไม่พร้อมทำงาน'));
+            };
+            script.onerror = () => {
+                const cdn = document.createElement('script');
+                cdn.src = 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js';
+                cdn.onload = () => resolve(window.PDFLib);
+                cdn.onerror = () => reject(new Error('ไม่สามารถโหลดระบบสร้าง PDF ได้'));
+                document.head.appendChild(cdn);
+            };
+            document.head.appendChild(script);
+        });
+    },
+
+    async loadStagedPdf() {
+        try {
+            if (typeof getStagedFiles === 'function') {
+                const staged = await getStagedFiles();
+                if (staged && staged.length > 0) {
+                    const firstPdf = staged.find(s => s.file && s.file.name && s.file.name.toLowerCase().endsWith('.pdf'));
+                    if (firstPdf) {
+                        await this.loadPdfFile(firstPdf.file);
+                        await clearStagedFiles();
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('loadStagedPdf error:', e);
+        }
+    },
+
+    handlePdfDrop(event) {
+        this.isDraggingFile = false;
+        const file = event.dataTransfer?.files?.[0];
+        if (file && file.name.toLowerCase().endsWith('.pdf')) {
+            this.loadPdfFile(file);
+        }
+    },
+
+    handlePdfInput(event) {
+        const file = event.target?.files?.[0];
+        if (file) {
+            this.loadPdfFile(file);
+        }
+    },
+
+    async loadPdfFile(file) {
+        this.pdfFile = file;
+        this.pdfFileName = file.name;
+        this.isRenderingPage = true;
+        this.pdfRenderError = null;
+        this.placedSignatures = [];
+        this.selectedSigId = null;
+
+        try {
+            await this.ensurePdfJs();
+            const buffer = await file.arrayBuffer();
+            this.pdfBytes = buffer;
+
+            const loadingTask = window.pdfjsLib.getDocument({
+                data: buffer,
+                cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+                cMapPacked: true,
+                standardFontDataUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/standard_fonts/',
+            });
+
+            signPdfDoc = await loadingTask.promise;
+            this.totalPages = signPdfDoc.numPages || 1;
+            this.currentPage = 1;
+            this.pdfLoaded = true;
+
+            await this.renderCurrentPdfPage();
+        } catch (e) {
+            console.error('loadPdfFile error:', e);
+            this.pdfRenderError = 'ไม่สามารถเปิดไฟล์ PDF ได้: ' + (e.message || '');
+        } finally {
+            this.isRenderingPage = false;
+        }
+    },
+
+    async renderCurrentPdfPage() {
+        if (!signPdfDoc) return;
+        this.isRenderingPage = true;
+        this.pdfRenderError = null;
+
+        try {
+            if (signRenderTask) {
+                try {
+                    signRenderTask.cancel();
+                    await signRenderTask.promise.catch(() => {});
+                } catch (e) {}
+                signRenderTask = null;
+            }
+
+            const page = await signPdfDoc.getPage(this.currentPage);
+            const baseViewport = page.getViewport({ scale: 1.0 });
+
+            const targetWidth = Math.min(760, Math.max(340, window.innerWidth > 1024 ? 620 : window.innerWidth - 64));
+            const displayScale = (targetWidth / baseViewport.width) * this.zoomLevel;
+            const viewport = page.getViewport({ scale: displayScale });
+
+            this.canvasDisplayWidth = Math.round(viewport.width);
+            this.canvasDisplayHeight = Math.round(viewport.height);
+
+            const canvas = this.$refs.pdfCanvas;
+            if (!canvas) return;
+
+            const pixelRatio = Math.min(2.0, window.devicePixelRatio || 1);
+            canvas.width = Math.round(viewport.width * pixelRatio);
+            canvas.height = Math.round(viewport.height * pixelRatio);
+
+            const ctx = canvas.getContext('2d');
+            ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+
+            const renderContext = {
+                canvasContext: ctx,
+                viewport: viewport,
+            };
+
+            const task = page.render(renderContext);
+            signRenderTask = task;
+            await task.promise;
+            if (signRenderTask === task) {
+                signRenderTask = null;
+            }
+
+            for (const sig of this.placedSignatures) {
+                if (sig.page === this.currentPage) {
+                    sig.x = Math.round(sig.relX * this.canvasDisplayWidth);
+                    sig.y = Math.round(sig.relY * this.canvasDisplayHeight);
+                    sig.w = Math.round(sig.relW * this.canvasDisplayWidth);
+                    sig.h = Math.round(sig.relH * this.canvasDisplayHeight);
+                }
+            }
+        } catch (e) {
+            if (e && (e.name === 'RenderingCancelledException' || e.message?.includes('cancelled'))) {
+                return;
+            }
+            console.error('renderCurrentPdfPage error:', e);
+            this.pdfRenderError = 'เกิดข้อผิดพลาดในการแสดงผลหน้าเอกสาร';
+        } finally {
+            this.isRenderingPage = false;
+        }
+    },
+
+    async prevPage() {
+        if (this.currentPage > 1 && !this.isRenderingPage) {
+            this.currentPage--;
+            await this.renderCurrentPdfPage();
+        }
+    },
+
+    async nextPage() {
+        if (this.currentPage < this.totalPages && !this.isRenderingPage) {
+            this.currentPage++;
+            await this.renderCurrentPdfPage();
+        }
+    },
+
+    async goToPage(p) {
+        const pageNum = parseInt(p, 10);
+        if (pageNum >= 1 && pageNum <= this.totalPages && pageNum !== this.currentPage && !this.isRenderingPage) {
+            this.currentPage = pageNum;
+            await this.renderCurrentPdfPage();
+        }
+    },
+
+    zoomIn() {
+        if (this.zoomLevel < 2.0) {
+            this.zoomLevel = Math.min(2.0, Math.round((this.zoomLevel + 0.15) * 100) / 100);
+            this.renderCurrentPdfPage();
+        }
+    },
+
+    zoomOut() {
+        if (this.zoomLevel > 0.6) {
+            this.zoomLevel = Math.max(0.6, Math.round((this.zoomLevel - 0.15) * 100) / 100);
+            this.renderCurrentPdfPage();
+        }
+    },
+
+    resetZoom() {
+        this.zoomLevel = 1.0;
+        this.renderCurrentPdfPage();
+    },
+
+    // ─── Drawing Studio ─────────────────────────────────
+    startDraw(e) {
+        const canvas = this.$refs.sigDrawCanvas;
+        if (!canvas) return;
+        this.isDrawing = true;
+
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        const x = (clientX - rect.left) * scaleX;
+        const y = (clientY - rect.top) * scaleY;
+
+        this.currentStroke = [{ x, y }];
+    },
+
+    draw(e) {
+        if (!this.isDrawing) return;
+        const canvas = this.$refs.sigDrawCanvas;
+        if (!canvas) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        const x = (clientX - rect.left) * scaleX;
+        const y = (clientY - rect.top) * scaleY;
+
+        this.currentStroke.push({ x, y });
+
+        const ctx = canvas.getContext('2d');
+        ctx.strokeStyle = this.drawColor;
+        ctx.lineWidth = this.penWidth * 1.5;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        if (this.currentStroke.length > 1) {
+            const prev = this.currentStroke[this.currentStroke.length - 2];
+            ctx.beginPath();
+            ctx.moveTo(prev.x, prev.y);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        }
+        this.hasDrawn = true;
+    },
+
+    stopDraw() {
+        if (!this.isDrawing) return;
+        this.isDrawing = false;
+        if (this.currentStroke.length > 0) {
+            this.drawStrokes.push({
+                color: this.drawColor,
+                width: this.penWidth * 1.5,
+                points: this.currentStroke,
+            });
+            this.currentStroke = [];
+            this.updateDrawPreview();
+        }
+    },
+
+    redrawStrokes() {
+        const canvas = this.$refs.sigDrawCanvas;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        for (const stroke of this.drawStrokes) {
+            if (!stroke.points || stroke.points.length === 0) continue;
+            ctx.strokeStyle = stroke.color;
+            ctx.lineWidth = stroke.width;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            ctx.beginPath();
+            ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+            for (let i = 1; i < stroke.points.length; i++) {
+                ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+            }
+            ctx.stroke();
+        }
+    },
+
+    undoDraw() {
+        if (this.drawStrokes.length > 0) {
+            this.drawStrokes.pop();
+            this.redrawStrokes();
+            this.hasDrawn = this.drawStrokes.length > 0;
+            this.updateDrawPreview();
+        }
+    },
+
+    clearDraw() {
+        const canvas = this.$refs.sigDrawCanvas;
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        this.drawStrokes = [];
+        this.currentStroke = [];
+        this.hasDrawn = false;
+        if (this.sigTab === 'draw') {
+            this.activeSigDataUrl = null;
+        }
+    },
+
+    updateDrawPreview() {
+        const canvas = this.$refs.sigDrawCanvas;
+        if (!canvas || !this.hasDrawn) {
+            this.activeSigDataUrl = null;
+            return;
+        }
+        const trimmed = this.trimCanvas(canvas);
+        this.activeSigDataUrl = trimmed ? trimmed.toDataURL('image/png') : canvas.toDataURL('image/png');
+    },
+
+    // ─── Type Studio ────────────────────────────────────
+    renderTypedSignature() {
+        if (!this.typedName || !this.typedName.trim()) {
+            if (this.sigTab === 'type') this.activeSigDataUrl = null;
+            return;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = 800;
+        canvas.height = 240;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const chosenFont = this.typeFonts.find(f => f.id === this.typeFont);
+        const fontFamily = chosenFont ? chosenFont.family : "'Dancing Script', cursive";
+
+        ctx.font = `64px ${fontFamily}`;
+        ctx.fillStyle = this.typeColor;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(this.typedName.trim(), canvas.width / 2, canvas.height / 2);
+
+        const trimmed = this.trimCanvas(canvas);
+        this.activeSigDataUrl = trimmed ? trimmed.toDataURL('image/png') : canvas.toDataURL('image/png');
+    },
+
+    // ─── Upload Studio ──────────────────────────────────
+    handleSignatureImageUpload(event) {
+        const file = event.target?.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            this.uploadedImageDataUrl = e.target.result;
+            this.processUploadedSignature();
+        };
+        reader.readAsDataURL(file);
+    },
+
+    processUploadedSignature() {
+        if (!this.uploadedImageDataUrl) return;
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+
+            if (this.autoRemoveWhite) {
+                const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const d = imgData.data;
+                const threshold = parseInt(this.whiteThreshold, 10) || 225;
+
+                for (let i = 0; i < d.length; i += 4) {
+                    const r = d[i];
+                    const g = d[i + 1];
+                    const b = d[i + 2];
+                    if (r >= threshold && g >= threshold && b >= threshold) {
+                        d[i + 3] = 0;
+                    }
+                }
+                ctx.putImageData(imgData, 0, 0);
+            }
+
+            const trimmed = this.trimCanvas(canvas);
+            this.activeSigDataUrl = trimmed ? trimmed.toDataURL('image/png') : canvas.toDataURL('image/png');
+        };
+        img.src = this.uploadedImageDataUrl;
+    },
+
+    // ─── Date Stamp Studio ──────────────────────────────
+    generateDateStamp() {
+        const now = new Date();
+        const thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+        const thaiFullMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+        const day = now.getDate();
+        const month = now.getMonth();
+        const yearCE = now.getFullYear();
+        const yearBE = yearCE + 543;
+
+        let dateStr = '';
+        if (this.dateType === 'th_buddhist') {
+            dateStr = `วันที่ ${day} ${thaiMonths[month]} ${yearBE}`;
+        } else if (this.dateType === 'th_full') {
+            dateStr = `วันที่ ${day} ${thaiFullMonths[month]} พ.ศ. ${yearBE}`;
+        } else if (this.dateType === 'th_short') {
+            dateStr = `${String(day).padStart(2, '0')}/${String(month + 1).padStart(2, '0')}/${yearBE}`;
+        } else {
+            dateStr = `${String(day).padStart(2, '0')}/${String(month + 1).padStart(2, '0')}/${yearCE}`;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 500;
+        canvas.height = 120;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.font = "bold 32px 'Sarabun', sans-serif";
+        ctx.fillStyle = this.dateColor;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(dateStr, canvas.width / 2, canvas.height / 2);
+
+        const trimmed = this.trimCanvas(canvas);
+        this.activeSigDataUrl = trimmed ? trimmed.toDataURL('image/png') : canvas.toDataURL('image/png');
+    },
+
+    switchTab(tab) {
+        this.sigTab = tab;
+        if (tab === 'draw') {
+            this.updateDrawPreview();
+        } else if (tab === 'type') {
+            this.renderTypedSignature();
+        } else if (tab === 'upload') {
+            this.processUploadedSignature();
+        } else if (tab === 'date') {
+            this.generateDateStamp();
+        }
+    },
+
+    trimCanvas(sourceCanvas) {
+        try {
+            const ctx = sourceCanvas.getContext('2d');
+            const w = sourceCanvas.width;
+            const h = sourceCanvas.height;
+            const imgData = ctx.getImageData(0, 0, w, h);
+            const d = imgData.data;
+
+            let minX = w, minY = h, maxX = 0, maxY = 0;
+            let found = false;
+
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    const idx = (y * w + x) * 4;
+                    const alpha = d[idx + 3];
+                    if (alpha > 10) {
+                        found = true;
+                        if (x < minX) minX = x;
+                        if (x > maxX) maxX = x;
+                        if (y < minY) minY = y;
+                        if (y > maxY) maxY = y;
+                    }
+                }
+            }
+            if (!found) return null;
+
+            const pad = 12;
+            minX = Math.max(0, minX - pad);
+            minY = Math.max(0, minY - pad);
+            maxX = Math.min(w, maxX + pad);
+            maxY = Math.min(h, maxY + pad);
+
+            const cropW = maxX - minX;
+            const cropH = maxY - minY;
+
+            const trimmedCanvas = document.createElement('canvas');
+            trimmedCanvas.width = cropW;
+            trimmedCanvas.height = cropH;
+            const trimmedCtx = trimmedCanvas.getContext('2d');
+            trimmedCtx.drawImage(sourceCanvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
+            return trimmedCanvas;
+        } catch (e) {
+            return sourceCanvas;
+        }
+    },
+
+    // ─── Placing Signatures on Document ─────────────────
+    placeSignature(clickedX = null, clickedY = null) {
+        if (!this.pdfLoaded) {
+            alert('กรุณาอัปโหลดเอกสาร PDF ก่อน');
+            return;
+        }
+        if (!this.activeSigDataUrl) {
+            alert('กรุณาสร้าง วาด หรือเลือกลายเซ็นก่อนนำไปวางบนเอกสาร');
+            return;
+        }
+
+        const id = 'sig_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+        const baseWidth = Math.round(Math.min(180, this.canvasDisplayWidth * 0.35) * this.sigScale);
+        const baseHeight = Math.round(baseWidth * 0.45);
+
+        let posX = (this.canvasDisplayWidth - baseWidth) / 2;
+        let posY = (this.canvasDisplayHeight - baseHeight) / 2;
+
+        if (clickedX !== null && clickedY !== null) {
+            posX = Math.max(5, Math.min(this.canvasDisplayWidth - baseWidth - 5, clickedX - baseWidth / 2));
+            posY = Math.max(5, Math.min(this.canvasDisplayHeight - baseHeight - 5, clickedY - baseHeight / 2));
+        }
+
+        posX = Math.round(posX);
+        posY = Math.round(posY);
+
+        const newSig = {
+            id,
+            page: this.currentPage,
+            x: posX,
+            y: posY,
+            w: baseWidth,
+            h: baseHeight,
+            relX: posX / this.canvasDisplayWidth,
+            relY: posY / this.canvasDisplayHeight,
+            relW: baseWidth / this.canvasDisplayWidth,
+            relH: baseHeight / this.canvasDisplayHeight,
+            dataUrl: this.activeSigDataUrl,
+            type: this.sigTab,
+        };
+
+        this.placedSignatures.push(newSig);
+        this.selectedSigId = id;
+    },
+
+    handleCanvasClick(event) {
+        if (this.justInteractedSig) {
+            this.justInteractedSig = false;
+            return;
+        }
+        if (this.selectedSigId) {
+            this.selectedSigId = null;
+            return;
+        }
+        if (this.activeSigDataUrl) {
+            const canvas = this.$refs.pdfCanvas;
+            if (!canvas) return;
+            const rect = canvas.getBoundingClientRect();
+            const clickX = (event.clientX - rect.left) * (this.canvasDisplayWidth / rect.width);
+            const clickY = (event.clientY - rect.top) * (this.canvasDisplayHeight / rect.height);
+            this.placeSignature(clickX, clickY);
+        }
+    },
+
+    startDragSig(e, sig) {
+        this.selectedSigId = sig.id;
+        this.isDraggingSig = true;
+        this.isResizingSig = false;
+        this.justInteractedSig = true;
+
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+        this.dragPointer = {
+            startX: clientX,
+            startY: clientY,
+            initX: sig.x,
+            initY: sig.y,
+            initW: sig.w,
+            initH: sig.h,
+            aspect: sig.w / Math.max(1, sig.h),
+        };
+    },
+
+    startResizeSig(e, sig) {
+        this.selectedSigId = sig.id;
+        this.isResizingSig = true;
+        this.isDraggingSig = false;
+        this.justInteractedSig = true;
+
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+        this.dragPointer = {
+            startX: clientX,
+            startY: clientY,
+            initX: sig.x,
+            initY: sig.y,
+            initW: sig.w,
+            initH: sig.h,
+            aspect: sig.w / Math.max(1, sig.h),
+        };
+    },
+
+    onPointerMove(e) {
+        if (!this.isDraggingSig && !this.isResizingSig) return;
+        if (e.cancelable) e.preventDefault();
+
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+        const dx = clientX - this.dragPointer.startX;
+        const dy = clientY - this.dragPointer.startY;
+
+        const sig = this.placedSignatures.find(s => s.id === this.selectedSigId);
+        if (!sig) return;
+
+        if (this.isDraggingSig) {
+            const maxX = Math.max(0, this.canvasDisplayWidth - sig.w);
+            const maxY = Math.max(0, this.canvasDisplayHeight - sig.h);
+            sig.x = Math.round(Math.max(0, Math.min(maxX, this.dragPointer.initX + dx)));
+            sig.y = Math.round(Math.max(0, Math.min(maxY, this.dragPointer.initY + dy)));
+            sig.relX = sig.x / this.canvasDisplayWidth;
+            sig.relY = sig.y / this.canvasDisplayHeight;
+        } else if (this.isResizingSig) {
+            const newW = Math.max(40, Math.min(this.canvasDisplayWidth - sig.x, this.dragPointer.initW + dx));
+            sig.w = Math.round(newW);
+            sig.h = Math.round(newW / this.dragPointer.aspect);
+            sig.relW = sig.w / this.canvasDisplayWidth;
+            sig.relH = sig.h / this.canvasDisplayHeight;
+        }
+    },
+
+    onPointerUp() {
+        if (this.isDraggingSig || this.isResizingSig) {
+            this.isDraggingSig = false;
+            this.isResizingSig = false;
+            setTimeout(() => { this.justInteractedSig = false; }, 80);
+        }
+    },
+
+    removePlacedSignature(id) {
+        this.placedSignatures = this.placedSignatures.filter(s => s.id !== id);
+        if (this.selectedSigId === id) this.selectedSigId = null;
+    },
+
+    clearAllPlacedSignatures() {
+        if (confirm('คุณต้องการลบลายเซ็นทั้งหมดบนเอกสารใช่หรือไม่?')) {
+            this.placedSignatures = [];
+            this.selectedSigId = null;
+        }
+    },
+
+    get currentPageSignatures() {
+        return this.placedSignatures.filter(s => s.page === this.currentPage);
+    },
+
+    get totalPlacedSignaturesCount() {
+        return this.placedSignatures.length;
+    },
+
+    // ─── Export & Direct Download ───────────────────────
+    async applyAndDownload() {
+        if (!this.pdfBytes || this.placedSignatures.length === 0) {
+            alert('กรุณาวางลายเซ็นบนเอกสารอย่างน้อย 1 ตำแหน่งก่อนดาวน์โหลด');
+            return;
+        }
+        this.isExporting = true;
+        this.exportError = null;
+
+        try {
+            await this.ensurePdfLib();
+            const { PDFDocument, degrees } = window.PDFLib;
+            const pdfDoc = await PDFDocument.load(this.pdfBytes);
+            const pages = pdfDoc.getPages();
+
+            for (const sig of this.placedSignatures) {
+                if (sig.page < 1 || sig.page > pages.length) continue;
+                const page = pages[sig.page - 1];
+                const { width: pw, height: ph } = page.getSize();
+                const angle = (page.getRotation().angle || 0) % 360;
+
+                let img;
+                if (sig.dataUrl.includes('image/png')) {
+                    img = await pdfDoc.embedPng(sig.dataUrl);
+                } else {
+                    img = await pdfDoc.embedJpg(sig.dataUrl);
+                }
+
+                if (angle === 0) {
+                    const pdfW = sig.relW * pw;
+                    const pdfH = sig.relH * ph;
+                    const pdfX = sig.relX * pw;
+                    const pdfY = ph - (sig.relY * ph) - pdfH;
+                    page.drawImage(img, { x: pdfX, y: pdfY, width: pdfW, height: pdfH });
+                } else if (angle === 90) {
+                    const visualW = ph;
+                    const visualH = pw;
+                    const imgW = sig.relW * visualW;
+                    const imgH = sig.relH * visualH;
+                    const visualX = sig.relX * visualW;
+                    const visualY = sig.relY * visualH;
+                    page.drawImage(img, {
+                        x: visualY + imgH,
+                        y: visualX,
+                        width: imgW,
+                        height: imgH,
+                        rotate: degrees(90),
+                    });
+                } else if (angle === 180) {
+                    const imgW = sig.relW * pw;
+                    const imgH = sig.relH * ph;
+                    page.drawImage(img, {
+                        x: pw - (sig.relX * pw),
+                        y: (sig.relY * ph) + imgH,
+                        width: imgW,
+                        height: imgH,
+                        rotate: degrees(180),
+                    });
+                } else if (angle === 270) {
+                    const visualW = ph;
+                    const visualH = pw;
+                    const imgW = sig.relW * visualW;
+                    const imgH = sig.relH * visualH;
+                    page.drawImage(img, {
+                        x: pw - (sig.relY * visualH) - imgH,
+                        y: ph - (sig.relX * visualW),
+                        width: imgW,
+                        height: imgH,
+                        rotate: degrees(270),
+                    });
+                }
+            }
+
+            const modifiedBytes = await pdfDoc.save();
+            const blob = new Blob([modifiedBytes], { type: 'application/pdf' });
+            const downloadUrl = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            const originalName = this.pdfFileName ? this.pdfFileName.replace(/\.pdf$/i, '') : 'document';
+            a.download = `${originalName}_signed.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(downloadUrl), 8000);
+
+            this.exportSuccess = true;
+            setTimeout(() => { this.exportSuccess = false; }, 5000);
+        } catch (err) {
+            console.error('Export signed PDF error:', err);
+            this.exportError = 'เกิดข้อผิดพลาดในการบันทึกเอกสาร: ' + (err.message || '');
+        } finally {
+            this.isExporting = false;
+        }
+    },
+
+    resetAll() {
+        if (confirm('คุณต้องการล้างข้อมูลเอกสารและลายเซ็นทั้งหมดใช่หรือไม่?')) {
+            this.pdfLoaded = false;
+            this.pdfFile = null;
+            this.pdfFileName = '';
+            this.pdfBytes = null;
+            signPdfDoc = null;
+            this.totalPages = 0;
+            this.currentPage = 1;
+            this.placedSignatures = [];
+            this.selectedSigId = null;
+            this.clearDraw();
+            this.typedName = '';
+            this.uploadedImageDataUrl = null;
+            this.activeSigDataUrl = null;
+        }
+    },
 }));
 
 // =====================================================
