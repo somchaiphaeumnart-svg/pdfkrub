@@ -4251,6 +4251,13 @@ Alpine.data('pdfEditor', () => ({
 
             await this.renderCurrentPage();
             this.renderThumbnails();
+            this.$nextTick(() => {
+                const ws = document.getElementById('pdfEditorWorkspace');
+                if (ws) {
+                    ws.scrollTop = 0;
+                    ws.scrollLeft = 0;
+                }
+            });
         } catch (err) {
             console.error('loadPdfFromBytes error:', err);
             throw err;
@@ -4340,6 +4347,10 @@ Alpine.data('pdfEditor', () => ({
             this.currentPage = num;
             this.selectedAnnotationId = null;
             this.renderCurrentPage();
+            this.$nextTick(() => {
+                const ws = document.getElementById('pdfEditorWorkspace');
+                if (ws) ws.scrollTop = 0;
+            });
         }
     },
 

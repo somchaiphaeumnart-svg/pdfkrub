@@ -699,7 +699,7 @@
 
             {{-- 3. CENTER VIEWPORT / CANVAS WORKSPACE --}}
             <div id="pdfEditorWorkspace"
-                 class="flex-1 editor-checkerboard overflow-auto p-4 sm:p-8 flex items-center justify-center relative custom-scrollbar select-none"
+                 class="flex-1 editor-checkerboard overflow-auto relative custom-scrollbar select-none"
                  :class="activeTool === 'hand' ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : (activeTool === 'pointer' ? 'cursor-default' : 'cursor-crosshair')">
 
                 {{-- Loading Overlay --}}
@@ -708,10 +708,12 @@
                     <span class="text-sm font-semibold text-slate-700" x-text="loadingMessage"></span>
                 </div>
 
-                {{-- The Centered Page Container --}}
-                <div id="pdfEditorPageContainer"
-                     class="relative bg-white shadow-2xl ring-1 ring-slate-300 rounded-sm transition-all duration-75"
-                     :style="`width: ${displayWidth}px; height: ${displayHeight}px;`">
+                {{-- Scrollable Page Wrapper: Starts at top (justify-start py-8) so the header is always 100% visible and never cut off --}}
+                <div class="w-fit min-w-full min-h-full flex flex-col items-center justify-start py-8 px-4 sm:px-8">
+                    {{-- The Centered Page Container --}}
+                    <div id="pdfEditorPageContainer"
+                         class="relative shrink-0 bg-white shadow-2xl ring-1 ring-slate-300 rounded-sm transition-all duration-75"
+                         :style="`width: ${displayWidth}px; height: ${displayHeight}px;`">
 
                     {{-- Base PDF.js Canvas --}}
                     <canvas id="pdfEditorCanvas" class="block w-full h-full"></canvas>
@@ -885,6 +887,7 @@
                             </div>
                         </template>
                     </div>
+                </div>
                 </div>
             </div>
         </div>
