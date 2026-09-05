@@ -210,11 +210,14 @@
                                     <span class="text-xs font-semibold text-slate-600">กำลังโหลดตัวอย่างเอกสาร PDF...</span>
                                 </div>
 
-                                {{-- Canvas Preview with CSS Rotate Animation on Wrapper --}}
+                                {{-- Image Preview with CSS Rotate Animation on Wrapper --}}
                                 <div class="relative max-w-[280px] max-h-[300px] flex items-center justify-center transition-transform duration-300 ease-out origin-center"
                                      :style="`transform: rotate(${rotationAngle}deg);`">
-                                    <canvas id="pdfRotatePreviewCanvas"
-                                            class="rounded-lg shadow-xl border border-slate-300 bg-white"></canvas>
+                                    <template x-if="previewImageUrl">
+                                        <img :src="previewImageUrl"
+                                             alt="PDF Preview"
+                                             class="max-w-[260px] max-h-[290px] w-auto h-auto rounded-lg shadow-xl border border-slate-300 bg-white object-contain select-none">
+                                    </template>
                                 </div>
                             </div>
 
