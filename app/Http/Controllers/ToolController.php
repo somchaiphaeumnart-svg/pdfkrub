@@ -269,6 +269,18 @@ class ToolController extends Controller
                 'premium' => true,
                 'output_format' => 'txt',
             ],
+            [
+                'slug' => 'pdf-editor',
+                'name' => 'PDF Editor',
+                'name_th' => 'แก้ไข PDF (Pro)',
+                'description_th' => 'เครื่องมือแก้ไข PDF แบบครบวงจร วาด ไฮไลต์ ใส่โน้ต พิมพ์ข้อความ ประทับตรา จัดการหน้า',
+                'icon' => '📝',
+                'category' => 'edit',
+                'color' => 'from-indigo-600 to-purple-600',
+                'accepts' => '.pdf',
+                'premium' => true,
+                'output_format' => 'pdf',
+            ],
         ];
     }
 
@@ -416,5 +428,10 @@ class ToolController extends Controller
     public function aiSummary(): View
     {
         return view('tools.ai-summary');
+    }
+
+    public function editor(): View
+    {
+        return view('tools.pdf-editor');
     }
 }

@@ -66,7 +66,10 @@ Route::prefix('tools')->name('tools.')->middleware(['auth'])->group(function () 
     Route::get('/sign-pdf', [ToolController::class, 'signPdf'])->name('sign-pdf');
     Route::get('/ocr-pdf', [ToolController::class, 'ocrPdf'])->name('ocr-pdf');
     Route::get('/ai-summary', [ToolController::class, 'aiSummary'])->name('ai-summary');
+    Route::get('/pdf-editor', [ToolController::class, 'editor'])->name('pdf-editor');
 });
+
+Route::get('/pdf-editor', [ToolController::class, 'editor'])->name('editor');
 
 // Template library
 Route::get('/templates', fn () => view('templates.index'))->name('templates');
@@ -78,6 +81,7 @@ Route::get('/sitemap.xml', function () {
         'word-to-pdf', 'excel-to-pdf', 'pptx-to-pdf', 'image-to-pdf',
         'merge-pdf', 'split-pdf', 'compress-pdf', 'rotate-pdf', 'delete-pages', 'crop-pdf',
         'watermark-pdf', 'protect-pdf', 'unlock-pdf', 'sign-pdf', 'ocr-pdf', 'ai-summary',
+        'pdf-editor',
     ];
     $pages = ['', 'tools', 'templates', 'pricing', 'about', 'contact', 'pdpa', 'privacy', 'terms'];
 

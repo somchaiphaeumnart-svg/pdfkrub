@@ -68,6 +68,10 @@
                     <a href="{{ route('tools') }}" class="px-3 py-2 text-sm font-medium text-gray-600 hover:text-red-600 rounded-lg hover:bg-red-50 transition-all">เครื่องมือ PDF</a>
                     <a href="{{ route('templates') }}" class="px-3 py-2 text-sm font-medium text-gray-600 hover:text-red-600 rounded-lg hover:bg-red-50 transition-all">แบบฟอร์มครู</a>
                     <a href="{{ route('pricing') }}" class="px-3 py-2 text-sm font-medium text-gray-600 hover:text-red-600 rounded-lg hover:bg-red-50 transition-all">ราคา</a>
+                    <a href="{{ route('editor') }}" class="px-3 py-2 text-sm font-medium text-gray-700 hover:text-brand-600 rounded-lg hover:bg-brand-50 transition-all flex items-center gap-1.5 group">
+                        <span class="font-semibold text-slate-800 group-hover:text-brand-600">PDF Editor</span>
+                        <span class="px-1.5 py-0.5 text-[10px] font-extrabold uppercase rounded-md bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-2xs">PRO</span>
+                    </a>
                 </div>
 
                 <!-- Auth Buttons -->
@@ -186,6 +190,10 @@
                 <a href="{{ route('tools') }}" class="block px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" @click="close()">เครื่องมือ PDF</a>
                 <a href="{{ route('templates') }}" class="block px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" @click="close()">คลังแบบฟอร์ม</a>
                 <a href="{{ route('pricing') }}" class="block px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" @click="close()">ราคา</a>
+                <a href="{{ route('editor') }}" class="flex items-center justify-between px-4 py-2.5 text-sm font-medium text-gray-700 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-all" @click="close()">
+                    <span class="font-semibold text-slate-800">PDF Editor</span>
+                    <span class="px-2 py-0.5 text-[10px] font-extrabold uppercase rounded-md bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-2xs">PRO</span>
+                </a>
                 <div class="pt-4 border-t border-gray-100 flex flex-col gap-2 px-2">
                     @auth
                         @if(auth()->user()->is_admin)

@@ -97,6 +97,9 @@ let watermarkRenderTask = null;
 let watermarkPageCache = {};
 let signPdfDoc = null;
 let signRenderTask = null;
+let editorPdfDoc = null;
+let editorRenderTask = null;
+let editorThumbnailsCache = {};
 
 // =====================================================
 // Alpine Component: fileUpload
@@ -2430,6 +2433,1037 @@ Alpine.data('signPdf', () => ({
             this.activeSigDataUrl = null;
         }
     },
+}));
+
+// =====================================================
+// Alpine Component: pdfEditor (Pro PDF Editor Suite)
+// =====================================================
+Alpine.data('pdfEditor', () => ({
+    // Document state
+    pdfLoaded: false,
+    pdfFile: null,
+    pdfFileName: 'document.pdf',
+    pdfBytes: null,
+    totalPages: 0,
+    currentPage: 1,
+    zoom: 100, // percent
+    unscaledWidth: 595.28, // A4 default points
+    unscaledHeight: 841.89,
+    displayWidth: 595,
+    displayHeight: 842,
+    isLoading: false,
+    isExporting: false,
+    loadingMessage: '',
+    exportError: '',
+
+    // Active tool: 'pointer' | 'hand' | 'note' | 'text' | 'draw' | 'highlight' | 'underline' | 'strikethrough' | 'stamp'
+    activeTool: 'pointer',
+
+    // Sidebar state
+    sidebarCollapsed: false,
+    activeSidebarTab: 'pages', // 'pages' | 'bookmarks' | 'search' | 'attachments' | 'comments'
+    thumbnails: [],
+
+    // Annotations: [{ id, type, page, pctX, pctY, pctW, pctH, ... }]
+    annotations: [],
+    selectedAnnotationId: null,
+
+    // Drawing & Markup in-progress
+    isDrawing: false,
+    currentDrawPoints: [],
+    drawColor: '#dc2626',
+    drawWidth: 3,
+
+    // Highlight tool
+    highlightColor: '#fde047', // vivid yellow
+    isHighlighting: false,
+    highlightStart: null,
+
+    // Text tool settings
+    textColor: '#111827',
+    textSize: 16,
+    textBold: false,
+    textItalic: false,
+
+    // Stamp settings
+    activeStampPreset: 'APPROVED',
+    customStampText: 'สำเนาถูกต้อง',
+    stampColor: '#16a34a',
+
+    // Sticky Note state
+    noteModalOpen: false,
+    activeNoteText: '',
+    noteColor: '#fef08a',
+
+    // Search state
+    searchQuery: '',
+    searchResults: [],
+    searchResultIndex: -1,
+    isSearching: false,
+
+    // Bookmarks / Outline
+    bookmarks: [],
+
+    // Hand / Pan Tool
+    isPanning: false,
+    panStart: { x: 0, y: 0, scrollLeft: 0, scrollTop: 0 },
+
+    // Dragging / Resizing annotations
+    isDraggingAnnotation: false,
+    dragStart: { x: 0, y: 0, origPctX: 0, origPctY: 0 },
+    isResizingAnnotation: false,
+    resizeStart: { x: 0, y: 0, origPctW: 0, origPctH: 0, handle: '' },
+
+    // History stack for Undo / Redo
+    history: [],
+    historyIndex: -1,
+
+    // Modals
+    shareModalOpen: false,
+    shareCopied: false,
+    newDocModalOpen: false,
+
+    async init() {
+        if (typeof pdfjsLib !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.js';
+        }
+
+        // Global hotkeys
+        window.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+                if (e.shiftKey) {
+                    this.redo();
+                } else {
+                    this.undo();
+                }
+                e.preventDefault();
+            } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+                this.redo();
+                e.preventDefault();
+            } else if ((e.key === 'Delete' || e.key === 'Backspace') && this.selectedAnnotationId && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
+                this.deleteSelectedAnnotation();
+                e.preventDefault();
+            } else if (e.key === 'Escape') {
+                this.selectedAnnotationId = null;
+                this.activeTool = 'pointer';
+            }
+        });
+
+        // Initialize with a blank A4 page so user sees ready workspace immediately!
+        await this.createNewTask(false);
+    },
+
+    // ─── FILE OPERATIONS ───
+    async createNewTask(confirmReset = true) {
+        if (confirmReset && this.annotations.length > 0) {
+            if (!confirm('คุณต้องการสร้างเอกสารใหม่และล้างงานเดิมใช่หรือไม่?')) return;
+        }
+
+        try {
+            this.isLoading = true;
+            this.loadingMessage = 'กำลังสร้างเอกสารใหม่...';
+
+            // Create blank A4 PDF via PDF-Lib
+            const pdfDoc = await PDFLib.PDFDocument.create();
+            pdfDoc.addPage([595.28, 841.89]); // A4 in points
+            const bytes = await pdfDoc.save();
+
+            this.pdfBytes = bytes;
+            this.pdfFileName = 'Untitled-Document.pdf';
+            this.pdfFile = null;
+            this.annotations = [];
+            this.selectedAnnotationId = null;
+            this.history = [];
+            this.historyIndex = -1;
+            this.currentPage = 1;
+            editorThumbnailsCache = {};
+
+            await this.loadPdfFromBytes(bytes);
+            this.pushHistory('สร้างเอกสารใหม่');
+        } catch (err) {
+            console.error('Error creating new document:', err);
+        } finally {
+            this.isLoading = false;
+        }
+    },
+
+    triggerOpenDialog() {
+        const fileInput = document.getElementById('pdfEditorFileInput');
+        if (fileInput) fileInput.click();
+    },
+
+    async handleFileInput(e) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+            alert('กรุณาเลือกไฟล์ PDF เท่านั้น');
+            return;
+        }
+
+        try {
+            this.isLoading = true;
+            this.loadingMessage = 'กำลังโหลดไฟล์ PDF...';
+            this.pdfFileName = file.name;
+            this.pdfFile = file;
+            const buffer = await file.arrayBuffer();
+            this.pdfBytes = new Uint8Array(buffer);
+            this.annotations = [];
+            this.selectedAnnotationId = null;
+            this.history = [];
+            this.historyIndex = -1;
+            this.currentPage = 1;
+            editorThumbnailsCache = {};
+
+            await this.loadPdfFromBytes(this.pdfBytes);
+            this.pushHistory('เปิดไฟล์ PDF');
+        } catch (err) {
+            console.error('Error opening PDF:', err);
+            alert('ไม่สามารถเปิดไฟล์ PDF ได้: ' + (err.message || ''));
+        } finally {
+            this.isLoading = false;
+            e.target.value = '';
+        }
+    },
+
+    async loadPdfFromBytes(bytes) {
+        try {
+            const loadingTask = pdfjsLib.getDocument({
+                data: bytes.slice(0),
+                cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+                cMapPacked: true
+            });
+            editorPdfDoc = await loadingTask.promise;
+            this.totalPages = editorPdfDoc.numPages || 1;
+            this.pdfLoaded = true;
+
+            // Load outline/bookmarks if any
+            try {
+                const outline = await editorPdfDoc.getOutline();
+                this.bookmarks = outline || [];
+            } catch {
+                this.bookmarks = [];
+            }
+
+            await this.renderCurrentPage();
+            this.renderThumbnails();
+        } catch (err) {
+            console.error('loadPdfFromBytes error:', err);
+            throw err;
+        }
+    },
+
+    // ─── RENDERING & VIEWPORT ───
+    async renderCurrentPage() {
+        if (!editorPdfDoc) return;
+        try {
+            const canvas = document.getElementById('pdfEditorCanvas');
+            if (!canvas) return;
+
+            const page = await editorPdfDoc.getPage(this.currentPage);
+            const rawViewport = page.getViewport({ scale: 1.0 });
+            this.unscaledWidth = rawViewport.width;
+            this.unscaledHeight = rawViewport.height;
+
+            const effectiveScale = (this.zoom / 100);
+            const viewport = page.getViewport({ scale: effectiveScale });
+
+            this.displayWidth = Math.round(viewport.width);
+            this.displayHeight = Math.round(viewport.height);
+
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = Math.round(viewport.width * dpr);
+            canvas.height = Math.round(viewport.height * dpr);
+            canvas.style.width = `${this.displayWidth}px`;
+            canvas.style.height = `${this.displayHeight}px`;
+
+            const ctx = canvas.getContext('2d', { alpha: false });
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+            if (editorRenderTask) {
+                try { editorRenderTask.cancel(); } catch {}
+            }
+
+            editorRenderTask = page.render({
+                canvasContext: ctx,
+                viewport: viewport
+            });
+
+            await editorRenderTask.promise;
+        } catch (err) {
+            if (err?.name !== 'RenderingCancelledException') {
+                console.error('renderCurrentPage error:', err);
+            }
+        }
+    },
+
+    async renderThumbnails() {
+        if (!editorPdfDoc) return;
+        const thumbs = [];
+        for (let i = 1; i <= this.totalPages; i++) {
+            thumbs.push({
+                page: i,
+                dataUrl: editorThumbnailsCache[i] || null
+            });
+        }
+        this.thumbnails = thumbs;
+
+        // Render thumbnails in background
+        for (let i = 1; i <= this.totalPages; i++) {
+            if (!editorThumbnailsCache[i]) {
+                try {
+                    const page = await editorPdfDoc.getPage(i);
+                    const vp = page.getViewport({ scale: 0.25 });
+                    const offCanvas = document.createElement('canvas');
+                    offCanvas.width = vp.width;
+                    offCanvas.height = vp.height;
+                    const ctx = offCanvas.getContext('2d');
+                    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+                    const url = offCanvas.toDataURL('image/jpeg', 0.8);
+                    editorThumbnailsCache[i] = url;
+                    if (this.thumbnails[i - 1]) {
+                        this.thumbnails[i - 1].dataUrl = url;
+                    }
+                } catch {}
+            }
+        }
+    },
+
+    goToPage(pageNum) {
+        const num = Math.max(1, Math.min(this.totalPages, parseInt(pageNum) || 1));
+        if (num !== this.currentPage) {
+            this.currentPage = num;
+            this.selectedAnnotationId = null;
+            this.renderCurrentPage();
+        }
+    },
+
+    prevPage() {
+        if (this.currentPage > 1) this.goToPage(this.currentPage - 1);
+    },
+
+    nextPage() {
+        if (this.currentPage < this.totalPages) this.goToPage(this.currentPage + 1);
+    },
+
+    setZoom(val) {
+        this.zoom = Math.max(30, Math.min(300, Math.round(val)));
+        this.renderCurrentPage();
+    },
+
+    zoomIn() {
+        this.setZoom(this.zoom + 15);
+    },
+
+    zoomOut() {
+        this.setZoom(this.zoom - 15);
+    },
+
+    fitWidth() {
+        const container = document.getElementById('pdfEditorWorkspace');
+        if (!container || !this.unscaledWidth) return;
+        const availableWidth = container.clientWidth - 80;
+        const targetZoom = Math.round((availableWidth / this.unscaledWidth) * 100);
+        this.setZoom(targetZoom);
+    },
+
+    fitPage() {
+        const container = document.getElementById('pdfEditorWorkspace');
+        if (!container || !this.unscaledWidth || !this.unscaledHeight) return;
+        const availableWidth = container.clientWidth - 80;
+        const availableHeight = container.clientHeight - 80;
+        const zoomW = (availableWidth / this.unscaledWidth) * 100;
+        const zoomH = (availableHeight / this.unscaledHeight) * 100;
+        this.setZoom(Math.min(zoomW, zoomH));
+    },
+
+    // ─── PAGE MANAGEMENT ───
+    async addBlankPage(position = 'after') {
+        try {
+            this.isLoading = true;
+            this.loadingMessage = 'กำลังแทรกหน้าว่าง...';
+
+            const pdfDoc = await PDFLib.PDFDocument.load(this.pdfBytes.slice(0));
+            const insertIndex = position === 'before' ? this.currentPage - 1 : this.currentPage;
+            pdfDoc.insertPage(insertIndex, [this.unscaledWidth || 595.28, this.unscaledHeight || 841.89]);
+            const newBytes = await pdfDoc.save();
+
+            // Shift annotations that are on or after the inserted page
+            const targetPage = insertIndex + 1;
+            this.annotations.forEach(a => {
+                if (a.page >= targetPage) {
+                    a.page += 1;
+                }
+            });
+
+            this.pdfBytes = newBytes;
+            editorThumbnailsCache = {};
+            await this.loadPdfFromBytes(this.pdfBytes);
+
+            this.goToPage(targetPage);
+            this.pushHistory('เพิ่มหน้าว่าง');
+        } catch (err) {
+            console.error('Error adding blank page:', err);
+            alert('ไม่สามารถเพิ่มหน้าว่างได้: ' + (err.message || ''));
+        } finally {
+            this.isLoading = false;
+        }
+    },
+
+    async deleteCurrentPage() {
+        if (this.totalPages <= 1) {
+            alert('เอกสารต้องมีอย่างน้อย 1 หน้า ไม่สามารถลบหน้าสุดท้ายได้');
+            return;
+        }
+
+        if (!confirm(`คุณต้องการลบหน้า ${this.currentPage} ใช่หรือไม่?`)) return;
+
+        try {
+            this.isLoading = true;
+            this.loadingMessage = 'กำลังลบหน้า...';
+
+            const pdfDoc = await PDFLib.PDFDocument.load(this.pdfBytes.slice(0));
+            const removeIndex = this.currentPage - 1;
+            pdfDoc.removePage(removeIndex);
+            const newBytes = await pdfDoc.save();
+
+            const deletedPage = this.currentPage;
+            // Remove annotations on this page and shift down subsequent pages
+            this.annotations = this.annotations
+                .filter(a => a.page !== deletedPage)
+                .map(a => {
+                    if (a.page > deletedPage) {
+                        return { ...a, page: a.page - 1 };
+                    }
+                    return a;
+                });
+
+            this.pdfBytes = newBytes;
+            editorThumbnailsCache = {};
+            await this.loadPdfFromBytes(this.pdfBytes);
+
+            const nextPage = Math.min(this.currentPage, this.totalPages);
+            this.goToPage(nextPage);
+            this.pushHistory('ลบหน้าเอกสาร');
+        } catch (err) {
+            console.error('Error deleting page:', err);
+            alert('ไม่สามารถลบหน้าได้: ' + (err.message || ''));
+        } finally {
+            this.isLoading = false;
+        }
+    },
+
+    // ─── TOOLS & INTERACTIONS ───
+    setTool(tool) {
+        this.activeTool = tool;
+        if (tool !== 'pointer') {
+            this.selectedAnnotationId = null;
+        }
+    },
+
+    get pageAnnotations() {
+        return this.annotations.filter(a => a.page === this.currentPage);
+    },
+
+    get selectedAnnotation() {
+        return this.annotations.find(a => a.id === this.selectedAnnotationId) || null;
+    },
+
+    handleOverlayMouseDown(e) {
+        if (e.button !== 0) return; // only left click
+        const overlay = document.getElementById('pdfEditorOverlay');
+        if (!overlay) return;
+
+        const rect = overlay.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const clickY = e.clientY - rect.top;
+        const pctX = (clickX / rect.width) * 100;
+        const pctY = (clickY / rect.height) * 100;
+
+        if (this.activeTool === 'hand') {
+            const ws = document.getElementById('pdfEditorWorkspace');
+            if (ws) {
+                this.isPanning = true;
+                this.panStart = {
+                    x: e.clientX,
+                    y: e.clientY,
+                    scrollLeft: ws.scrollLeft,
+                    scrollTop: ws.scrollTop
+                };
+            }
+            return;
+        }
+
+        if (this.activeTool === 'pointer') {
+            // Deselect if clicking on empty area
+            if (e.target === overlay || e.target.id === 'pdfEditorCanvas' || e.target.id === 'drawingSvg') {
+                this.selectedAnnotationId = null;
+            }
+            return;
+        }
+
+        if (this.activeTool === 'draw') {
+            this.isDrawing = true;
+            this.currentDrawPoints = [{ x: pctX, y: pctY }];
+            return;
+        }
+
+        if (this.activeTool === 'highlight' || this.activeTool === 'underline' || this.activeTool === 'strikethrough') {
+            this.isHighlighting = true;
+            this.highlightStart = { x: pctX, y: pctY, clientX: e.clientX, clientY: e.clientY };
+            return;
+        }
+
+        if (this.activeTool === 'text') {
+            const newId = 'text_' + Date.now();
+            this.annotations.push({
+                id: newId,
+                type: 'text',
+                page: this.currentPage,
+                pctX: Math.max(0, Math.min(80, pctX)),
+                pctY: Math.max(0, Math.min(95, pctY)),
+                pctW: 30,
+                pctH: 6,
+                text: 'พิมพ์ข้อความที่นี่',
+                fontSize: this.textSize,
+                color: this.textColor,
+                bold: this.textBold,
+                italic: this.textItalic
+            });
+            this.selectedAnnotationId = newId;
+            this.activeTool = 'pointer';
+            this.pushHistory('เพิ่มข้อความ');
+            return;
+        }
+
+        if (this.activeTool === 'note') {
+            const newId = 'note_' + Date.now();
+            this.annotations.push({
+                id: newId,
+                type: 'note',
+                page: this.currentPage,
+                pctX: Math.max(0, Math.min(90, pctX)),
+                pctY: Math.max(0, Math.min(90, pctY)),
+                pctW: 5,
+                pctH: 4,
+                text: 'เพิ่มความคิดเห็นที่นี่...',
+                color: this.noteColor,
+                author: 'ผู้ตรวจทาน',
+                createdAt: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+            });
+            this.selectedAnnotationId = newId;
+            this.activeTool = 'pointer';
+            this.openNoteEditor(newId);
+            this.pushHistory('เพิ่มหมายเหตุ');
+            return;
+        }
+
+        if (this.activeTool === 'stamp') {
+            const newId = 'stamp_' + Date.now();
+            const dateStr = new Date().toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            this.annotations.push({
+                id: newId,
+                type: 'stamp',
+                page: this.currentPage,
+                pctX: Math.max(5, Math.min(75, pctX - 12)),
+                pctY: Math.max(5, Math.min(85, pctY - 5)),
+                pctW: 24,
+                pctH: 10,
+                preset: this.activeStampPreset,
+                customText: this.customStampText,
+                color: this.stampColor,
+                date: dateStr
+            });
+            this.selectedAnnotationId = newId;
+            this.activeTool = 'pointer';
+            this.pushHistory('ประทับตรา');
+            return;
+        }
+    },
+
+    handleOverlayMouseMove(e) {
+        const overlay = document.getElementById('pdfEditorOverlay');
+        if (!overlay) return;
+
+        if (this.isPanning) {
+            const ws = document.getElementById('pdfEditorWorkspace');
+            if (ws) {
+                const dx = e.clientX - this.panStart.x;
+                const dy = e.clientY - this.panStart.y;
+                ws.scrollLeft = this.panStart.scrollLeft - dx;
+                ws.scrollTop = this.panStart.scrollTop - dy;
+            }
+            return;
+        }
+
+        if (this.isDrawing) {
+            const rect = overlay.getBoundingClientRect();
+            const pctX = ((e.clientX - rect.left) / rect.width) * 100;
+            const pctY = ((e.clientY - rect.top) / rect.height) * 100;
+            this.currentDrawPoints.push({ x: pctX, y: pctY });
+            return;
+        }
+
+        if (this.isDraggingAnnotation && this.selectedAnnotationId) {
+            const rect = overlay.getBoundingClientRect();
+            const dx = ((e.clientX - this.dragStart.x) / rect.width) * 100;
+            const dy = ((e.clientY - this.dragStart.y) / rect.height) * 100;
+            const ann = this.annotations.find(a => a.id === this.selectedAnnotationId);
+            if (ann) {
+                ann.pctX = Math.max(0, Math.min(100 - (ann.pctW || 5), this.dragStart.origPctX + dx));
+                ann.pctY = Math.max(0, Math.min(100 - (ann.pctH || 5), this.dragStart.origPctY + dy));
+            }
+            return;
+        }
+
+        if (this.isResizingAnnotation && this.selectedAnnotationId) {
+            const rect = overlay.getBoundingClientRect();
+            const dx = ((e.clientX - this.resizeStart.x) / rect.width) * 100;
+            const dy = ((e.clientY - this.resizeStart.y) / rect.height) * 100;
+            const ann = this.annotations.find(a => a.id === this.selectedAnnotationId);
+            if (ann) {
+                ann.pctW = Math.max(5, Math.min(100 - ann.pctX, this.resizeStart.origPctW + dx));
+                ann.pctH = Math.max(3, Math.min(100 - ann.pctY, this.resizeStart.origPctH + dy));
+            }
+            return;
+        }
+    },
+
+    handleOverlayMouseUp(e) {
+        if (this.isPanning) {
+            this.isPanning = false;
+        }
+
+        if (this.isDrawing) {
+            this.isDrawing = false;
+            if (this.currentDrawPoints.length > 1) {
+                const pathData = this.pointsToSvgPath(this.currentDrawPoints);
+                this.annotations.push({
+                    id: 'draw_' + Date.now(),
+                    type: 'draw',
+                    page: this.currentPage,
+                    path: pathData,
+                    color: this.drawColor,
+                    strokeWidth: this.drawWidth
+                });
+                this.pushHistory('วาดเส้น');
+            }
+            this.currentDrawPoints = [];
+        }
+
+        if (this.isHighlighting && this.highlightStart) {
+            this.isHighlighting = false;
+            const overlay = document.getElementById('pdfEditorOverlay');
+            if (overlay) {
+                const rect = overlay.getBoundingClientRect();
+                const endPctX = ((e.clientX - rect.left) / rect.width) * 100;
+                const endPctY = ((e.clientY - rect.top) / rect.height) * 100;
+
+                const left = Math.min(this.highlightStart.x, endPctX);
+                const top = Math.min(this.highlightStart.y, endPctY);
+                const width = Math.max(2, Math.abs(endPctX - this.highlightStart.x));
+                const height = this.activeTool === 'underline' ? 0.5 : (this.activeTool === 'strikethrough' ? 0.4 : Math.max(1.5, Math.abs(endPctY - this.highlightStart.y)));
+
+                this.annotations.push({
+                    id: this.activeTool + '_' + Date.now(),
+                    type: this.activeTool,
+                    page: this.currentPage,
+                    pctX: left,
+                    pctY: top,
+                    pctW: width,
+                    pctH: height,
+                    color: this.highlightColor
+                });
+                this.pushHistory('ไฮไลท์/ขีดเส้น');
+            }
+            this.highlightStart = null;
+        }
+
+        if (this.isDraggingAnnotation) {
+            this.isDraggingAnnotation = false;
+            this.pushHistory('ย้ายตำแหน่ง');
+        }
+
+        if (this.isResizingAnnotation) {
+            this.isResizingAnnotation = false;
+            this.pushHistory('ปรับขนาด');
+        }
+    },
+
+    pointsToSvgPath(pts) {
+        if (!pts || pts.length === 0) return '';
+        let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+        for (let i = 1; i < pts.length; i++) {
+            d += ` L ${pts[i].x.toFixed(2)} ${pts[i].y.toFixed(2)}`;
+        }
+        return d;
+    },
+
+    get currentDrawSvgPath() {
+        return this.pointsToSvgPath(this.currentDrawPoints);
+    },
+
+    // ─── ANNOTATION SELECTION & EDITING ───
+    selectAnnotation(id, e) {
+        if (e) e.stopPropagation();
+        if (this.activeTool !== 'pointer') return;
+        this.selectedAnnotationId = id;
+    },
+
+    startDragAnnotation(e, id) {
+        if (e.button !== 0) return;
+        if (this.activeTool !== 'pointer') return;
+        e.stopPropagation();
+        this.selectedAnnotationId = id;
+        const ann = this.annotations.find(a => a.id === id);
+        if (!ann) return;
+
+        this.isDraggingAnnotation = true;
+        this.dragStart = {
+            x: e.clientX,
+            y: e.clientY,
+            origPctX: ann.pctX,
+            origPctY: ann.pctY
+        };
+    },
+
+    startResizeAnnotation(e, id, handle) {
+        if (e.button !== 0) return;
+        e.stopPropagation();
+        const ann = this.annotations.find(a => a.id === id);
+        if (!ann) return;
+
+        this.isResizingAnnotation = true;
+        this.resizeStart = {
+            x: e.clientX,
+            y: e.clientY,
+            origPctW: ann.pctW || 20,
+            origPctH: ann.pctH || 10,
+            handle: handle
+        };
+    },
+
+    deleteSelectedAnnotation() {
+        if (!this.selectedAnnotationId) return;
+        this.annotations = this.annotations.filter(a => a.id !== this.selectedAnnotationId);
+        this.selectedAnnotationId = null;
+        this.pushHistory('ลบวัตถุ');
+    },
+
+    deleteAnnotationById(id) {
+        this.annotations = this.annotations.filter(a => a.id !== id);
+        if (this.selectedAnnotationId === id) this.selectedAnnotationId = null;
+        this.pushHistory('ลบวัตถุ');
+    },
+
+    openNoteEditor(id) {
+        const ann = this.annotations.find(a => a.id === id);
+        if (!ann) return;
+        this.selectedAnnotationId = id;
+        this.activeNoteText = ann.text || '';
+        this.noteColor = ann.color || '#fef08a';
+        this.noteModalOpen = true;
+    },
+
+    saveActiveNote() {
+        const ann = this.annotations.find(a => a.id === this.selectedAnnotationId);
+        if (ann) {
+            ann.text = this.activeNoteText;
+            ann.color = this.noteColor;
+            this.pushHistory('แก้ไขหมายเหตุ');
+        }
+        this.noteModalOpen = false;
+    },
+
+    // ─── HISTORY (UNDO / REDO) ───
+    pushHistory(actionDesc) {
+        // Truncate redo stack
+        if (this.historyIndex < this.history.length - 1) {
+            this.history = this.history.slice(0, this.historyIndex + 1);
+        }
+        const state = JSON.stringify(this.annotations);
+        this.history.push({
+            action: actionDesc,
+            state: state
+        });
+        if (this.history.length > 50) {
+            this.history.shift();
+        } else {
+            this.historyIndex++;
+        }
+    },
+
+    undo() {
+        if (this.historyIndex > 0) {
+            this.historyIndex--;
+            const item = this.history[this.historyIndex];
+            this.annotations = JSON.parse(item.state);
+            this.selectedAnnotationId = null;
+        }
+    },
+
+    redo() {
+        if (this.historyIndex < this.history.length - 1) {
+            this.historyIndex++;
+            const item = this.history[this.historyIndex];
+            this.annotations = JSON.parse(item.state);
+            this.selectedAnnotationId = null;
+        }
+    },
+
+    get canUndo() {
+        return this.historyIndex > 0;
+    },
+
+    get canRedo() {
+        return this.historyIndex < this.history.length - 1;
+    },
+
+    // ─── IN-DOCUMENT SEARCH ───
+    async performSearch() {
+        const query = (this.searchQuery || '').trim().toLowerCase();
+        if (!query || !editorPdfDoc) {
+            this.searchResults = [];
+            this.searchResultIndex = -1;
+            return;
+        }
+
+        try {
+            this.isSearching = true;
+            const results = [];
+            for (let i = 1; i <= this.totalPages; i++) {
+                const page = await editorPdfDoc.getPage(i);
+                const textContent = await page.getTextContent();
+                const fullText = textContent.items.map(item => item.str).join(' ');
+                let pos = fullText.toLowerCase().indexOf(query);
+                while (pos !== -1) {
+                    const snippetStart = Math.max(0, pos - 25);
+                    const snippetEnd = Math.min(fullText.length, pos + query.length + 25);
+                    const snippet = (snippetStart > 0 ? '...' : '') +
+                        fullText.substring(snippetStart, snippetEnd) +
+                        (snippetEnd < fullText.length ? '...' : '');
+
+                    results.push({
+                        page: i,
+                        snippet: snippet
+                    });
+                    pos = fullText.toLowerCase().indexOf(query, pos + query.length);
+                }
+            }
+
+            this.searchResults = results;
+            this.searchResultIndex = results.length > 0 ? 0 : -1;
+            if (results.length > 0) {
+                this.goToPage(results[0].page);
+            }
+        } catch (err) {
+            console.error('Search error:', err);
+        } finally {
+            this.isSearching = false;
+        }
+    },
+
+    nextSearchResult() {
+        if (this.searchResults.length === 0) return;
+        this.searchResultIndex = (this.searchResultIndex + 1) % this.searchResults.length;
+        this.goToPage(this.searchResults[this.searchResultIndex].page);
+    },
+
+    prevSearchResult() {
+        if (this.searchResults.length === 0) return;
+        this.searchResultIndex = (this.searchResultIndex - 1 + this.searchResults.length) % this.searchResults.length;
+        this.goToPage(this.searchResults[this.searchResultIndex].page);
+    },
+
+    // ─── PRINT & SHARE ───
+    async printDocument() {
+        window.print();
+    },
+
+    shareDocument() {
+        this.shareModalOpen = true;
+    },
+
+    copyShareLink() {
+        navigator.clipboard.writeText(window.location.href);
+        this.shareCopied = true;
+        setTimeout(() => { this.shareCopied = false; }, 2500);
+    },
+
+    // ─── EXPORT & DOWNLOAD ───
+    async saveAndDownloadPdf() {
+        if (!this.pdfBytes) return;
+        try {
+            this.isExporting = true;
+            this.exportError = '';
+
+            const pdfDoc = await PDFLib.PDFDocument.load(this.pdfBytes.slice(0));
+            const pages = pdfDoc.getPages();
+
+            // Render annotations on each page
+            for (let i = 0; i < pages.length; i++) {
+                const pageNum = i + 1;
+                const page = pages[i];
+                const pageAnns = this.annotations.filter(a => a.page === pageNum);
+                if (pageAnns.length === 0) continue;
+
+                const pw = page.getWidth();
+                const ph = page.getHeight();
+
+                // High-resolution canvas for rendering annotations
+                const scaleFactor = 2;
+                const offCanvas = document.createElement('canvas');
+                offCanvas.width = pw * scaleFactor;
+                offCanvas.height = ph * scaleFactor;
+                const ctx = offCanvas.getContext('2d');
+                ctx.scale(scaleFactor, scaleFactor);
+
+                for (const ann of pageAnns) {
+                    const x = (ann.pctX / 100) * pw;
+                    const y = (ann.pctY / 100) * ph;
+                    const w = ((ann.pctW || 10) / 100) * pw;
+                    const h = ((ann.pctH || 5) / 100) * ph;
+
+                    if (ann.type === 'draw') {
+                        ctx.save();
+                        ctx.strokeStyle = ann.color || '#dc2626';
+                        ctx.lineWidth = ann.strokeWidth || 3;
+                        ctx.lineCap = 'round';
+                        ctx.lineJoin = 'round';
+                        const p = new Path2D();
+                        // Convert pct path to canvas pixels
+                        const commands = ann.path.split(/(?=[LMCZ])/);
+                        commands.forEach(cmd => {
+                            const type = cmd[0];
+                            const coords = cmd.slice(1).trim().split(/\s+/).map(Number);
+                            if (type === 'M' && coords.length >= 2) {
+                                p.moveTo((coords[0] / 100) * pw, (coords[1] / 100) * ph);
+                            } else if (type === 'L' && coords.length >= 2) {
+                                p.lineTo((coords[0] / 100) * pw, (coords[1] / 100) * ph);
+                            }
+                        });
+                        ctx.stroke(p);
+                        ctx.restore();
+                    } else if (ann.type === 'highlight') {
+                        ctx.save();
+                        ctx.fillStyle = ann.color || '#fde047';
+                        ctx.globalAlpha = 0.45;
+                        ctx.fillRect(x, y, w, h);
+                        ctx.restore();
+                    } else if (ann.type === 'underline') {
+                        ctx.save();
+                        ctx.strokeStyle = ann.color || '#dc2626';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(x, y + h);
+                        ctx.lineTo(x + w, y + h);
+                        ctx.stroke();
+                        ctx.restore();
+                    } else if (ann.type === 'strikethrough') {
+                        ctx.save();
+                        ctx.strokeStyle = ann.color || '#dc2626';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(x, y + h / 2);
+                        ctx.lineTo(x + w, y + h / 2);
+                        ctx.stroke();
+                        ctx.restore();
+                    } else if (ann.type === 'text') {
+                        ctx.save();
+                        const fontStyle = `${ann.italic ? 'italic ' : ''}${ann.bold ? 'bold ' : ''}`;
+                        ctx.font = `${fontStyle}${ann.fontSize || 16}px 'Sarabun', sans-serif`;
+                        ctx.fillStyle = ann.color || '#111827';
+                        ctx.textBaseline = 'top';
+                        // Simple multiline wrapping
+                        const lines = (ann.text || '').split('\n');
+                        let lineY = y;
+                        lines.forEach(line => {
+                            ctx.fillText(line, x, lineY);
+                            lineY += (ann.fontSize || 16) * 1.3;
+                        });
+                        ctx.restore();
+                    } else if (ann.type === 'note') {
+                        ctx.save();
+                        // Draw cute sticky note badge
+                        ctx.fillStyle = ann.color || '#fef08a';
+                        ctx.strokeStyle = '#ca8a04';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.roundRect(x, y, 28, 28, 4);
+                        ctx.fill();
+                        ctx.stroke();
+                        ctx.font = '16px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText('💬', x + 14, y + 14);
+                        ctx.restore();
+                    } else if (ann.type === 'stamp') {
+                        ctx.save();
+                        ctx.translate(x + w / 2, y + h / 2);
+                        ctx.rotate(-5 * Math.PI / 180); // tilt 5 deg
+                        ctx.strokeStyle = ann.color || '#16a34a';
+                        ctx.fillStyle = ann.color || '#16a34a';
+                        ctx.lineWidth = 2.5;
+
+                        const sw = w;
+                        const sh = h;
+                        ctx.beginPath();
+                        ctx.roundRect(-sw / 2, -sh / 2, sw, sh, 6);
+                        ctx.stroke();
+
+                        ctx.beginPath();
+                        ctx.roundRect(-sw / 2 + 3, -sh / 2 + 3, sw - 6, sh - 6, 4);
+                        ctx.stroke();
+
+                        const stampLabel = ann.preset === 'CUSTOM' ? (ann.customText || 'สำเนาถูกต้อง') :
+                            (ann.preset === 'APPROVED' ? 'APPROVED' :
+                            (ann.preset === 'DRAFT' ? 'DRAFT' :
+                            (ann.preset === 'CONFIDENTIAL' ? 'CONFIDENTIAL' :
+                            (ann.preset === 'VERIFIED' ? 'สำเนาถูกต้อง' : ann.preset))));
+
+                        ctx.font = `bold ${Math.max(12, Math.round(sh * 0.35))}px 'Sarabun', sans-serif`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(stampLabel, 0, -sh * 0.12);
+
+                        if (ann.date) {
+                            ctx.font = `${Math.max(8, Math.round(sh * 0.2))}px 'Sarabun', sans-serif`;
+                            ctx.fillText(ann.date, 0, sh * 0.25);
+                        }
+                        ctx.restore();
+                    }
+                }
+
+                // Embed canvas as PNG
+                const pngDataUrl = offCanvas.toDataURL('image/png');
+                const pngBytes = Uint8Array.from(atob(pngDataUrl.split(',')[1]), c => c.charCodeAt(0));
+                const pngImage = await pdfDoc.embedPng(pngBytes);
+                page.drawImage(pngImage, {
+                    x: 0,
+                    y: 0,
+                    width: pw,
+                    height: ph
+                });
+            }
+
+            const outPdfBytes = await pdfDoc.save();
+            const blob = new Blob([outPdfBytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const originalName = this.pdfFileName.replace(/\.pdf$/i, '');
+            a.download = `${originalName}-edited.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Error saving PDF:', err);
+            this.exportError = 'เกิดข้อผิดพลาดในการบันทึกเอกสาร: ' + (err.message || '');
+            alert(this.exportError);
+        } finally {
+            this.isExporting = false;
+        }
+    }
 }));
 
 // =====================================================
