@@ -158,7 +158,7 @@
                     <template x-if="isProcessing">
                         <span class="flex items-center gap-2">
                             <svg class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                            <span x-text="processingStatus"></span>
+                            <span x-text="`กำลังประมวลผล ( ${progress}% )`"></span>
                         </span>
                     </template>
                 </button>
@@ -196,7 +196,7 @@
 
                 {{-- Processing Progress View --}}
                 <template x-if="isProcessing">
-                    <div class="my-auto py-16 text-center space-y-4">
+                    <div class="my-auto py-16 text-center space-y-5">
                         <div class="relative w-20 h-20 mx-auto">
                             <div class="absolute inset-0 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 opacity-20 animate-ping"></div>
                             <div class="relative w-20 h-20 rounded-2xl bg-gradient-to-tr from-purple-600 to-pink-600 flex items-center justify-center text-3xl shadow-xl shadow-pink-500/20 text-white animate-pulse">
@@ -204,12 +204,25 @@
                             </div>
                         </div>
                         <div>
-                            <h3 class="text-gray-800 font-bold text-lg mb-1" x-text="processingStatus"></h3>
+                            <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-purple-50 border border-purple-200 text-purple-700 text-sm font-bold mb-2 shadow-xs">
+                                <span class="w-2 h-2 rounded-full bg-purple-600 animate-ping"></span>
+                                <span x-text="`${progress}%`"></span>
+                            </div>
+                            <h3 class="text-gray-800 font-bold text-lg mb-1">
+                                <span x-text="processingStatus"></span>
+                                <span class="text-purple-600 font-extrabold ml-1" x-text="`(${progress}%)`"></span>
+                            </h3>
                             <p class="text-gray-400 text-xs">กำลังสกัดใจความสำคัญและเรียบเรียงเป็นข้อความที่เข้าใจง่าย...</p>
                         </div>
-                        <div class="w-64 mx-auto bg-gray-100 rounded-full h-2 overflow-hidden">
-                            <div class="bg-gradient-to-r from-purple-500 to-pink-500 h-2 transition-all duration-300 rounded-full"
-                                 :style="`width: ${progress}%`"></div>
+                        <div class="w-72 mx-auto space-y-2">
+                            <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden p-0.5 border border-gray-200/60 shadow-inner">
+                                <div class="bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500 h-full transition-all duration-300 rounded-full"
+                                     :style="`width: ${progress}%`"></div>
+                            </div>
+                            <div class="flex justify-between items-center text-xs text-gray-500 px-1 font-medium">
+                                <span>ความคืบหน้า</span>
+                                <span class="font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded border border-purple-100" x-text="`${progress}%`"></span>
+                            </div>
                         </div>
                     </div>
                 </template>
@@ -339,12 +352,19 @@ function aiSummaryTool() {
                     const data = await res.json();
 
                     if (data.status === 'processing') {
-                        tick = Math.min(90, tick + 6);
-                        this.progress = tick;
-                        this.processingStatus = 'AI กำลังสรุปเนื้อหาและเรียบเรียง...';
+                        tick = Math.min(95, tick + 5);
+                        this.progress = (data.progress && data.progress > 0) ? data.progress : tick;
+                        if (this.progress < 40) {
+                            this.processingStatus = 'กำลังสกัดข้อความจากเอกสาร...';
+                        } else if (this.progress < 75) {
+                            this.processingStatus = 'AI กำลังวิเคราะห์และสรุปสาระสำคัญ...';
+                        } else {
+                            this.processingStatus = 'กำลังเรียบเรียงและจัดรูปแบบบทสรุป...';
+                        }
                     } else if (data.status === 'done') {
                         clearInterval(this.pollTimer);
                         this.progress = 100;
+                        this.processingStatus = 'สรุปเอกสารเรียบร้อยแล้ว!';
                         this.isProcessing = false;
                         if (data.extracted_text) {
                             this.summaryText = data.extracted_text;
