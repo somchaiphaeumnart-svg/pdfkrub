@@ -5147,9 +5147,39 @@ Alpine.data('pdfEditor', () => ({
                     setTimeout(doFocus, 30);
                     setTimeout(doFocus, 100);
                     setTimeout(doFocus, 250);
+                    setTimeout(doFocus, 500);
                 }
             });
         }
+    },
+
+    handleDocContainerMouseDown(e, ann) {
+        if (!ann || !ann.lines || ann.lines.length === 0) return;
+        if (e.target && e.target.tagName === 'INPUT') return; // direct click on input handles itself
+        if (e.preventDefault) e.preventDefault(); // Stop browser from blurring active input!
+
+        const overlay = document.getElementById('pdfEditorOverlay');
+        let clickRelPctY = 0;
+        if (overlay) {
+            const oRect = overlay.getBoundingClientRect();
+            const clickClientY = e.clientY - oRect.top;
+            const clickPctYInOverlay = (clickClientY / oRect.height) * 100;
+            clickRelPctY = ((clickPctYInOverlay - ann.pctY) / Math.max(1, ann.pctH)) * 100;
+        }
+
+        let closestIdx = 0;
+        let minDist = Infinity;
+        ann.lines.forEach((l, idx) => {
+            const dist = Math.abs(l.relPctY - clickRelPctY);
+            if (dist < minDist) {
+                minDist = dist;
+                closestIdx = idx;
+            }
+        });
+
+        this.selectedAnnotationId = ann.id;
+        this.activeDocLineIdx = closestIdx;
+        this.focusDocLine(ann.id, closestIdx);
     },
 
     handleDocContainerClick(e, ann) {
@@ -5176,6 +5206,7 @@ Alpine.data('pdfEditor', () => ({
         });
 
         this.selectedAnnotationId = ann.id;
+        this.activeDocLineIdx = closestIdx;
         this.focusDocLine(ann.id, closestIdx);
     },
 
@@ -5184,7 +5215,7 @@ Alpine.data('pdfEditor', () => ({
         const existing = this.pageAnnotations.find(a => a.type === 'text_document');
         if (existing) {
             this.selectedAnnotationId = existing.id;
-            this.handleDocContainerClick(e, existing);
+            this.handleDocContainerMouseDown(e, existing);
             return;
         }
 
@@ -5274,44 +5305,49 @@ Alpine.data('pdfEditor', () => ({
     addNewLineAfter(ann, lIdx) {
         if (!ann || !ann.lines) return;
         const currentLine = ann.lines[lIdx];
+        const approxLineRelH = currentLine ? currentLine.relPctH : 2.5;
+        const nextRelY = currentLine ? (currentLine.relPctY + approxLineRelH + 0.5) : 10;
         const newLine = {
+            id: `line_${Date.now()}`,
             text: '',
             fontSize: currentLine ? currentLine.fontSize : 14,
             align: currentLine ? currentLine.align : 'left',
             bold: false,
             italic: false,
             fontFamily: currentLine ? currentLine.fontFamily : 'TH Niramit AS',
-            color: '#111827',
-            gapAfter: 4
+            color: currentLine ? currentLine.color : '#111827',
+            relPctX: currentLine ? currentLine.relPctX : 10,
+            relPctY: nextRelY,
+            relPctW: currentLine ? currentLine.relPctW : 80,
+            relPctH: approxLineRelH
         };
         ann.lines.splice(lIdx + 1, 0, newLine);
         this.activeDocLineIdx = lIdx + 1;
         this.$nextTick(() => {
-            const inputs = document.querySelectorAll(`input[data-doc-ann="${ann.id}"]`);
-            if (inputs[lIdx + 1]) inputs[lIdx + 1].focus();
+            this.focusDocLine(ann.id, lIdx + 1);
         });
     },
 
     handleLineKeydown(e, ann, lIdx) {
-        if (e.key === 'Backspace' && (!ann.lines[lIdx].text || ann.lines[lIdx].text === '') && ann.lines.length > 1) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            this.addNewLineAfter(ann, lIdx);
+        } else if (e.key === 'Backspace' && (!ann.lines[lIdx].text || ann.lines[lIdx].text === '') && ann.lines.length > 1) {
             e.preventDefault();
             ann.lines.splice(lIdx, 1);
             const prev = Math.max(0, lIdx - 1);
             this.activeDocLineIdx = prev;
             this.$nextTick(() => {
-                const inputs = document.querySelectorAll(`input[data-doc-ann="${ann.id}"]`);
-                if (inputs[prev]) inputs[prev].focus();
+                this.focusDocLine(ann.id, prev);
             });
         } else if (e.key === 'ArrowUp' && lIdx > 0) {
             e.preventDefault();
             this.activeDocLineIdx = lIdx - 1;
-            const inputs = document.querySelectorAll(`input[data-doc-ann="${ann.id}"]`);
-            if (inputs[lIdx - 1]) inputs[lIdx - 1].focus();
+            this.focusDocLine(ann.id, lIdx - 1);
         } else if (e.key === 'ArrowDown' && lIdx < ann.lines.length - 1) {
             e.preventDefault();
             this.activeDocLineIdx = lIdx + 1;
-            const inputs = document.querySelectorAll(`input[data-doc-ann="${ann.id}"]`);
-            if (inputs[lIdx + 1]) inputs[lIdx + 1].focus();
+            this.focusDocLine(ann.id, lIdx + 1);
         }
     },
 
@@ -5556,11 +5592,11 @@ Alpine.data('pdfEditor', () => ({
             return;
         }
 
-        if (this.activeTool === 'pointer') {
+        if (['pointer', 'edit-text'].includes(this.activeTool)) {
             // Check if an existing text_document is on this page
             const existingDoc = this.pageAnnotations.find(a => a.type === 'text_document');
             if (existingDoc) {
-                this.handleDocContainerClick(e, existingDoc);
+                this.handleDocContainerMouseDown(e, existingDoc);
                 return;
             }
 

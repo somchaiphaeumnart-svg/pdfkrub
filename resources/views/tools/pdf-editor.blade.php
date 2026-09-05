@@ -205,7 +205,7 @@
                 {{-- Edit Document Text Button --}}
                 <button type="button"
                         @click="startEditingCurrentPageText()"
-                        :class="activeTool === 'pointer' ? 'bg-brand-50 border-brand-500 text-brand-700 font-bold shadow-2xs' : 'text-slate-700 hover:bg-slate-100 border-slate-200'"
+                        :class="activeTool === 'pointer' || pageAnnotations.some(a => a.type === 'text_document') ? 'bg-brand-50 border-brand-500 text-brand-700 font-bold shadow-2xs' : 'text-slate-700 hover:bg-slate-100 border-slate-200'"
                         class="px-2.5 py-1 rounded text-xs font-semibold border flex items-center gap-1.5 cursor-pointer transition-all"
                         title="คลิกข้อความในเอกสารเพื่อแก้ไขข้อความเดิมได้ทันที (คงรูปแบบ ฟอนต์ ขนาด และตำแหน่งเดิม 100%)">
                     <svg class="w-4 h-4 text-brand-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/></svg>
@@ -778,14 +778,14 @@
                         {{-- Layer 0: Detected Original Text Block (Single unified container preserving 100% typography) --}}
                         <div x-show="['pointer', 'edit-text', 'text'].includes(activeTool) && currentOriginalTextBlocks.length > 0 && !pageAnnotations.some(a => a.type === 'text_document')" class="absolute inset-0 pointer-events-none z-10" x-cloak>
                             <template x-for="block in currentOriginalTextBlocks" :key="block.id">
-                                <div class="absolute pointer-events-auto cursor-text border border-dashed border-sky-400/80 bg-sky-50/5 hover:bg-sky-50/20 hover:border-brand-500 rounded-xs transition-all group"
+                                <div class="absolute pointer-events-auto cursor-text border-2 border-dashed border-sky-500/80 bg-sky-50/10 hover:bg-sky-50/25 hover:border-brand-600 rounded-xs transition-all group"
                                      :style="`left: ${block.pctX || 0}%; top: ${block.pctY || 0}%; width: ${block.pctW || 100}%; height: ${block.pctH || 100}%;`"
                                      @click.stop="startEditingOriginalText(block, $event)"
-                                     @mousedown.stop="startEditingOriginalText(block, $event)"
+                                     @mousedown.stop.prevent="startEditingOriginalText(block, $event)"
                                      title="คลิกเพื่อแก้ไขข้อความทั้งหมดในเอกสารนี้ (คงรูปแบบ ฟอนต์ ขนาด ตัวหนา และการจัดวางเดิม 100%)">
-                                    <span class="absolute -top-6 right-1 text-[11px] font-bold text-sky-700 bg-white/95 px-2 py-0.5 rounded shadow-xs border border-sky-200 flex items-center gap-1.5 pointer-events-none">
-                                        <svg class="w-3.5 h-3.5 text-brand-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/></svg>
-                                        <span>คลิกข้อความเพื่อแก้ไข (คงรูปแบบเดิม 100%)</span>
+                                    <span class="absolute -top-7 right-2 text-xs font-bold text-sky-800 bg-white px-2.5 py-1 rounded shadow-sm border border-sky-300 flex items-center gap-1.5 pointer-events-none">
+                                        <svg class="w-3.5 h-3.5 text-brand-600 animate-pulse" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/></svg>
+                                        <span>คลิกเพื่อแก้ไขข้อความ</span>
                                     </span>
                                 </div>
                             </template>
@@ -855,20 +855,34 @@
 
                                 {{-- ── TYPE 1.5: UNIFIED DOCUMENT TEXT CONTAINER (Single unified block preserving 100% typography) ── --}}
                                 <div x-show="ann.type === 'text_document'"
-                                     class="w-full h-full relative select-text cursor-text overflow-hidden"
+                                     class="w-full h-full relative select-text cursor-text"
                                      :style="`background-color: ${ann.bgColor || '#ffffff'};`"
+                                     @mousedown.prevent="handleDocContainerMouseDown($event, ann)"
                                      @click="handleDocContainerClick($event, ann)">
+
+                                    {{-- Active Document Indicator & Subtle Outline --}}
+                                    <div x-show="selectedAnnotationId === ann.id" class="absolute -top-7 left-0 z-40 bg-brand-600 text-white text-[11px] font-semibold px-2.5 py-0.5 rounded-t-xs shadow-sm flex items-center gap-1.5 pointer-events-none select-none">
+                                        <svg class="w-3.5 h-3.5 animate-pulse" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/></svg>
+                                        <span>โหมดแก้ไขข้อความ (คลิกที่บรรทัดเพื่อพิมพ์ได้ทันที)</span>
+                                    </div>
+                                    <div x-show="selectedAnnotationId === ann.id" class="absolute inset-0 border border-brand-500/70 pointer-events-none z-10"></div>
+
                                     <template x-for="(line, lIdx) in (ann.lines || [])" :key="lIdx">
-                                        <div class="absolute group/line"
-                                             :style="`left: ${line.relPctX}%; top: ${line.relPctY}%; width: ${line.relPctW}%; height: ${line.relPctH}%;`">
+                                        <div class="absolute group/line transition-all"
+                                             :style="`left: ${line.relPctX}%; top: ${line.relPctY}%; width: ${line.relPctW}%; min-height: ${Math.max(22, (line.fontSize || 14) * 1.5 * (zoom / 100))}px;`"
+                                             :class="activeDocLineIdx === lIdx ? 'z-30' : 'z-20'"
+                                             @mousedown.stop="activeDocLineIdx = lIdx; focusDocLine(ann.id, lIdx)"
+                                             @click.stop="activeDocLineIdx = lIdx; focusDocLine(ann.id, lIdx)">
                                             <input type="text"
                                                    x-model="line.text"
                                                    :data-doc-ann="ann.id"
                                                    :data-line-idx="lIdx"
                                                    @focus="activeDocLineIdx = lIdx; syncToolbarToLine(line)"
+                                                   @keydown="handleLineKeydown($event, ann, lIdx)"
                                                    @click.stop
                                                    @mousedown.stop
-                                                   class="w-full h-full bg-transparent border-none outline-none font-inherit p-0 m-0 cursor-text leading-none shadow-none focus:bg-sky-50/50 focus:ring-1 focus:ring-brand-400 rounded-2xs transition-all"
+                                                   class="w-full h-full font-inherit px-1 py-0.5 m-0 cursor-text leading-normal rounded-xs transition-all border outline-none"
+                                                   :class="activeDocLineIdx === lIdx ? 'bg-sky-50/90 border-[#0078d4] ring-2 ring-[#0078d4]/30 shadow-xs' : 'bg-transparent border-transparent hover:border-sky-300 hover:bg-sky-50/30'"
                                                    :style="`text-align: ${line.align || 'left'}; font-size: ${(line.fontSize || 14) * (zoom / 100)}px; font-weight: ${line.bold ? 'bold' : 'normal'}; font-style: ${line.italic ? 'italic' : 'normal'}; font-family: '${line.fontFamily || 'TH Niramit AS'}', 'TH Sarabun PSK', sans-serif; color: ${line.color || '#111827'}; letter-spacing: ${line.letterSpacing || 'normal'};`">
                                         </div>
                                     </template>
