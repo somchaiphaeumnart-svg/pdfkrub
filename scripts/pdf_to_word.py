@@ -16,6 +16,50 @@ import subprocess
 import tempfile
 import zipfile
 import xml.sax.saxutils as saxutils
+import re
+import unicodedata
+
+def normalize_thai_text(text):
+    if not text:
+        return ""
+    # PUA mapping
+    pua_map = {
+        0xF700: 0x0E10, 0xF701: 0x0E0D, 0xF702: 0x0E47, 0xF703: 0x0E34, 0xF704: 0x0E35,
+        0xF705: 0x0E36, 0xF706: 0x0E37, 0xF70A: 0x0E48, 0xF70B: 0x0E49, 0xF70C: 0x0E4A,
+        0xF70D: 0x0E4B, 0xF70E: 0x0E4C, 0xF710: 0x0E31, 0xF711: 0x0E34, 0xF712: 0x0E35,
+        0xF713: 0x0E36, 0xF714: 0x0E37, 0xF715: 0x0E48, 0xF716: 0x0E49, 0xF717: 0x0E4A,
+        0xF718: 0x0E4B, 0xF719: 0x0E4C, 0xF71A: 0x0E4D,
+        0xF884: 0x0E47, 0xF885: 0x0E34, 0xF886: 0x0E35, 0xF887: 0x0E36, 0xF888: 0x0E37,
+        0xF889: 0x0E48, 0xF88A: 0x0E49, 0xF88B: 0x0E4A, 0xF88C: 0x0E4B, 0xF88D: 0x0E4C,
+        0xF894: 0x0E31, 0xF897: 0x0E48, 0xF898: 0x0E49, 0xF899: 0x0E4A, 0xF89A: 0x0E4B, 0xF89B: 0x0E4C
+    }
+    chars = [chr(pua_map.get(ord(c), ord(c))) for c in text]
+    text = "".join(chars)
+
+    # Mojibake detection & repair (CP874 misread as CP1252/Latin-1)
+    def fix_mojibake(m):
+        return "".join([chr(ord(c) - 0xA0 + 0x0E00) if 0xA1 <= ord(c) <= 0xFB else c for c in m.group(0)])
+    text = re.sub(r'[\u00A1-\u00FB]{3,}', fix_mojibake, text)
+
+    # 3-level Thai character stacking reordering
+    text = re.sub(r'([\u0E48-\u0E4C])([\u0E34-\u0E37\u0E31\u0E47\u0E4D])', r'\2\1', text)
+    text = re.sub(r'([\u0E48-\u0E4C])([\u0E38-\u0E3A])', r'\2\1', text)
+    text = re.sub(r'\u0E4D\u0E32', '\u0E33', text)
+    text = re.sub(r'([\u0E48-\u0E4B])\u0E4D\u0E32', r'\1\u0E33', text)
+    text = re.sub(r'\u0E4D([\u0E48-\u0E4B])\u0E32', r'\1\u0E33', text)
+    text = re.sub(r'\u0E33([\u0E48-\u0E4B])', r'\1\u0E33', text)
+    text = re.sub(r'([\u0E31\u0E34-\u0E3A\u0E47-\u0E4E])\1+', r'\1', text)
+
+    # Accidental space removal
+    text = re.sub(r'([เแโใไ])\s+([ก-ฮ])', r'\1\2', text)
+    text = re.sub(r'([ก-ฮ])\s+([\u0E30-\u0E3A\u0E47-\u0E4E])', r'\1\2', text)
+    text = re.sub(r'([ก-ฮ])\s+([าะำๅ])', r'\1\2', text)
+    text = re.sub(r'([์])\s+([ก-ฮ])', r'\1\2', text)
+    text = re.sub(r'[\uFFFD\u0000-\u0008\u000B-\u001F]', '', text)
+    try:
+        return unicodedata.normalize('NFC', text)
+    except Exception:
+        return text
 
 def parse_page_range(range_str, total_pages):
     """
@@ -213,6 +257,7 @@ def convert_with_ocr(input_pdf, output_docx, page_indices=None, ocr_lang="tha+en
                 else:
                     text = page.get_text().strip()
 
+                text = normalize_thai_text(text)
                 pages_text.append(text)
 
         doc.close()

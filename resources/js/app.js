@@ -2991,7 +2991,7 @@ Alpine.data('fileUpload', (config = {}) => ({
                 let hasCidOrCorrupt = false;
                 if (textContent && textContent.items) {
                     for (const item of textContent.items) {
-                        const str = item.str || '';
+                        const str = this.normalizeThaiText(item.str || '');
                         if (str.includes('(cid:') || str.includes('\ufffd') || /\b(6202|5202|4202|7652|6652|5652|4652)\/\d+/.test(str)) {
                             hasCidOrCorrupt = true;
                             break;
@@ -4476,6 +4476,176 @@ Alpine.data('pdfEditor', () => ({
         }
     },
 
+        // ─── THAI TEXT REPAIR SUITE (แก้ภาษาไทยเพี้ยน สระลอย วรรณยุกต์ซ้อน PUA & Mojibake) ───
+    fixThaiPuaAndEncoding(str) {
+        if (!str) return '';
+        let out = '';
+        for (let i = 0; i < str.length; i++) {
+            const code = str.charCodeAt(i);
+            // Thai PUA 0xF700 - 0xF71A (Windows / DSK / PSL / UPC fonts)
+            if (code >= 0xF700 && code <= 0xF71A) {
+                const puaMap = {
+                    0xF700: 0x0E10, // ฐ ไม่มีเชิง
+                    0xF701: 0x0E0D, // ญ ไม่มีเชิง
+                    0xF702: 0x0E47, // ไม้ไต่คู้
+                    0xF703: 0x0E34, // สระอิ
+                    0xF704: 0x0E35, // สระอี
+                    0xF705: 0x0E36, // สระอึ
+                    0xF706: 0x0E37, // สระอือ
+                    0xF70A: 0x0E48, // ไม้เอก
+                    0xF70B: 0x0E49, // ไม้โท
+                    0xF70C: 0x0E4A, // ไม้ตรี
+                    0xF70D: 0x0E4B, // ไม้จัตวา
+                    0xF70E: 0x0E4C, // ทัณฑฆาต/การันต์
+                    0xF710: 0x0E31, // ไม้หันอากาศ
+                    0xF711: 0x0E34, // สระอิ หลบหาง
+                    0xF712: 0x0E35, // สระอี หลบหาง
+                    0xF713: 0x0E36, // สระอึ หลบหาง
+                    0xF714: 0x0E37, // สระอือ หลบหาง
+                    0xF715: 0x0E48, // ไม้เอก หลบหาง
+                    0xF716: 0x0E49, // ไม้โท หลบหาง
+                    0xF717: 0x0E4A, // ไม้ตรี หลบหาง
+                    0xF718: 0x0E4B, // ไม้จัตวา หลบหาง
+                    0xF719: 0x0E4C, // ทัณฑฆาต หลบหาง
+                    0xF71A: 0x0E4D  // นฤคหิต
+                };
+                out += String.fromCharCode(puaMap[code] || 0x0E48);
+            } else if (code >= 0xF884 && code <= 0xF89B) {
+                // Adobe Thai PUA
+                const adobeMap = {
+                    0xF884: 0x0E47, 0xF885: 0x0E34, 0xF886: 0x0E35, 0xF887: 0x0E36, 0xF888: 0x0E37,
+                    0xF889: 0x0E48, 0xF88A: 0x0E49, 0xF88B: 0x0E4A, 0xF88C: 0x0E4B, 0xF88D: 0x0E4C,
+                    0xF894: 0x0E31, 0xF897: 0x0E48, 0xF898: 0x0E49, 0xF899: 0x0E4A, 0xF89A: 0x0E4B, 0xF89B: 0x0E4C
+                };
+                out += String.fromCharCode(adobeMap[code] || code);
+            } else {
+                out += str[i];
+            }
+        }
+        return out;
+    },
+
+    fixThaiMojibake(str) {
+        if (!str) return '';
+        // Detect CP874 decoded as ISO-8859-1 / CP1252 (e.g. ¡ÒÃ·Ò§ -> การทาง)
+        if (/[\u00A1-\u00FB]{3,}/.test(str)) {
+            str = str.replace(/[\u00A1-\u00FB]/g, (ch) => {
+                const code = ch.charCodeAt(0);
+                if (code >= 0xA1 && code <= 0xFB) {
+                    return String.fromCharCode(code - 0xA0 + 0x0E00);
+                }
+                return ch;
+            });
+        }
+        return str;
+    },
+
+    normalizeThaiText(str) {
+        if (!str) return '';
+        // 1. PUA and Encoding fixes
+        str = this.fixThaiPuaAndEncoding(str);
+        str = this.fixThaiMojibake(str);
+
+        // 2. Common legacy font artifacts ($ in DSK / ancient fonts)
+        str = str.replace(/ด\$บ/g, 'ดับ');
+        str = str.replace(/ชั้\$/g, 'ชั้น');
+        str = str.replace(/นม\$ธิ\s*ยม/g, 'มัธยม');
+        str = str.replace(/พิลงัช์/g, 'พิรัชต์');
+        str = str.replace(/ศี\.กษา/g, 'ศึกษา');
+        str = str.replace(/กิษา/g, 'กษา');
+
+        // 3. 3-level Thai character stacking reordering
+        // A) Tone mark or Karan before above vowel (e.g. ท + ่ + ี -> ท + ี + ่)
+        str = str.replace(/([\u0E48-\u0E4C])([\u0E34-\u0E37\u0E31\u0E47\u0E4D])/g, '$2$1');
+        // B) Tone mark before below vowel (e.g. ผ + ้ + ู -> ผ + ู + ้)
+        str = str.replace(/([\u0E48-\u0E4C])([\u0E38-\u0E3A])/g, '$2$1');
+        // C) Inverted vowels
+        str = str.replace(/([\u0E34-\u0E37\u0E31\u0E47])([\u0E38-\u0E3A])/g, '$2$1');
+
+        // D) Sara Am canonical normalization (e.g. น้ำ)
+        str = str.replace(/\u0E4D\u0E32/g, '\u0E33');
+        str = str.replace(/([\u0E48-\u0E4B])\u0E4D\u0E32/g, '$1\u0E33');
+        str = str.replace(/\u0E4D([\u0E48-\u0E4B])\u0E32/g, '$1\u0E33');
+        str = str.replace(/\u0E33([\u0E48-\u0E4B])/g, '$1\u0E33');
+
+        // E) Remove duplicate tone marks or duplicate vowels
+        str = str.replace(/([\u0E31\u0E34-\u0E3A\u0E47-\u0E4E])\1+/g, '$1');
+
+        // F) Remove accidental spaces inside Thai words
+        // Leading vowels (เ แ โ ใ ไ) followed by spaces: e.g. "เ รื่อง" -> "เรื่อง"
+        str = str.replace(/([เแโใไ])\s+([ก-ฮ])/g, '$1$2');
+        // Consonant followed by spaces before vowels or tone marks: e.g. "คอมพิ วเตอร์" -> "คอมพิวเตอร์"
+        str = str.replace(/([ก-ฮ])\s+([\u0E30-\u0E3A\u0E47-\u0E4E])/g, '$1$2');
+        // Consonant followed by spaces before trailing vowel (า, ะ, ำ, ๅ)
+        str = str.replace(/([ก-ฮ])\s+([าะำๅ])/g, '$1$2');
+        // Thanthakhat / Karan followed by spaces before Thai character: e.g. "ต์ แวร์" -> "ต์แวร์"
+        str = str.replace(/([์])\s+([ก-ฮ])/g, '$1$2');
+        // Common broken Thai phrases
+        str = str.replace(/ป\s*ระเภท/g, 'ประเภท');
+        str = str.replace(/ซอฟ\s*ต์/g, 'ซอฟต์');
+        str = str.replace(/ส\s*านพฤ/g, 'สวนพฤ');
+        str = str.replace(/กษ\s*ศาสตร์/g, 'กษศาสตร์');
+        str = str.replace(/ร\s*โรงเรียน/g, 'โรงเรียน');
+
+        // Remove tofu / unprintable characters (except newline, tab)
+        str = str.replace(/[\uFFFD\u0000-\u0008\u000B-\u001F]/g, '');
+
+        try {
+            return str.normalize('NFC');
+        } catch (_) {
+            return str;
+        }
+    },
+
+    autoFixThaiText() {
+        let count = 0;
+        const ann = this.selectedAnnotation;
+        if (ann) {
+            if (ann.type === 'text' && ann.text) {
+                const old = ann.text;
+                ann.text = this.normalizeThaiText(ann.text);
+                if (ann.text !== old) count++;
+            } else if (ann.type === 'text_document' && ann.lines) {
+                ann.lines.forEach(l => {
+                    if (l.text) {
+                        const old = l.text;
+                        l.text = this.normalizeThaiText(l.text);
+                        if (l.text !== old) count++;
+                    }
+                });
+            }
+        } else {
+            this.pageAnnotations.forEach(a => {
+                if (a.type === 'text' && a.text) {
+                    const old = a.text;
+                    a.text = this.normalizeThaiText(a.text);
+                    if (a.text !== old) count++;
+                } else if (a.type === 'text_document' && a.lines) {
+                    a.lines.forEach(l => {
+                        if (l.text) {
+                            const old = l.text;
+                            l.text = this.normalizeThaiText(l.text);
+                            if (l.text !== old) count++;
+                        }
+                    });
+                }
+            });
+        }
+
+        if (this.currentOriginalTextBlocks && this.currentOriginalTextBlocks.length > 0) {
+            this.currentOriginalTextBlocks.forEach(b => {
+                if (b.lines) {
+                    b.lines.forEach(l => {
+                        if (l.text) l.text = this.normalizeThaiText(l.text);
+                    });
+                }
+            });
+        }
+
+        this.pushHistory('แก้ภาษาไทยเพี้ยน');
+        alert(count > 0 ? `จัดระเบียบสระ วรรณยุกต์ และแก้ไขภาษาไทยเพี้ยนเรียบร้อยแล้ว (${count} รายการ)` : 'ตรวจสอบและจัดระเบียบสระ/วรรณยุกต์เรียบร้อยแล้ว');
+    },
+
     async extractPageTextBlocks() {
         if (!editorPdfDoc) {
             this.currentOriginalTextBlocks = [];
@@ -4563,14 +4733,17 @@ Alpine.data('pdfEditor', () => ({
                         lineText += it.str;
                     } else {
                         const gap = it.vx - (prevItem.vx + prevItem.width);
-                        const firstCode = it.str.charCodeAt(0);
-                        // Thai combining vowels & tone marks (Sara I..UU, Mai Ek..Chattawa, Thanthakhat, etc.)
-                        const isThaiCombining = (firstCode >= 0x0E31 && firstCode <= 0x0E3A) || (firstCode >= 0x0E47 && firstCode <= 0x0E4E);
+                        const isPrevThai = /[\u0E01-\u0E5B]$/.test(lineText);
+                        const isCurrThai = /^[\u0E01-\u0E5B]/.test(it.str);
+                        const isThaiCombining = /^[\u0E31-\u0E3A\u0E47-\u0E4E]/.test(it.str);
 
                         if (isThaiCombining || gap <= 2) {
                             lineText += it.str;
+                        } else if (isPrevThai && isCurrThai && gap < Math.max(12, lc.fontSize * 0.65)) {
+                            // Thai letters inside the same word or clause
+                            lineText += it.str;
                         } else if (gap > 16) {
-                            const spaces = Math.min(8, Math.max(1, Math.round(gap / (lc.fontSize * 0.45))));
+                            const spaces = Math.min(6, Math.max(1, Math.round(gap / (lc.fontSize * 0.45))));
                             lineText += ' '.repeat(spaces) + it.str;
                         } else if (gap > 4 && !lineText.endsWith(' ') && !it.str.startsWith(' ')) {
                             lineText += ' ' + it.str;
@@ -4581,6 +4754,7 @@ Alpine.data('pdfEditor', () => ({
                     prevItem = it;
                 }
 
+                lineText = this.normalizeThaiText(lineText);
                 const trimmed = lineText.trim();
                 if (trimmed) {
                     // 1. Detect Alignment (Center, Right, Left)

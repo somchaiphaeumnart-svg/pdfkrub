@@ -339,8 +339,18 @@
                     </button>
                 </div>
 
-                <div class="h-4 w-px bg-slate-200"></div>
+                                {{-- Auto-Fix Thai Text Button --}}
+                <div class="flex items-center">
+                    <button type="button"
+                            @click="autoFixThaiText()"
+                            class="px-2.5 py-1 rounded border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-semibold text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all"
+                            title="แก้สระลอย วรรณยุกต์ซ้อนตัวอักษร ตัดช่องว่างในคำ และแปลงรหัสภาษาไทยเพี้ยน">
+                        <span class="text-xs">✨</span>
+                        <span>แก้ภาษาไทยเพี้ยน</span>
+                    </button>
+                </div>
 
+                <div class="h-4 w-px bg-slate-200"></div>
                 {{-- Undo / Redo in Ribbon --}}
                 <div class="flex items-center gap-0.5">
                     <button type="button" @click="undo()" :disabled="!canUndo" class="p-1 rounded text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer" title="Undo (Ctrl+Z)">
