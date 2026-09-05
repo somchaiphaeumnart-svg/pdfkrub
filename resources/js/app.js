@@ -4646,6 +4646,106 @@ Alpine.data('pdfEditor', () => ({
         alert(count > 0 ? `จัดระเบียบสระ วรรณยุกต์ และแก้ไขภาษาไทยเพี้ยนเรียบร้อยแล้ว (${count} รายการ)` : 'ตรวจสอบและจัดระเบียบสระ/วรรณยุกต์เรียบร้อยแล้ว');
     },
 
+        autoResizeTextarea(el) {
+        if (!el) return;
+        el.style.height = 'auto';
+        el.style.height = Math.max(26, el.scrollHeight + 4) + 'px';
+    },
+
+    wrapTextLines(ctx, text, maxWidth) {
+        if (!text) return [];
+        const result = [];
+        const rawLines = text.split('\n');
+        for (const rawLine of rawLines) {
+            if (!rawLine) {
+                result.push('');
+                continue;
+            }
+            if (ctx.measureText(rawLine).width <= maxWidth) {
+                result.push(rawLine);
+                continue;
+            }
+            const words = rawLine.split(' ');
+            let current = '';
+            for (let i = 0; i < words.length; i++) {
+                const word = words[i];
+                const testLine = current ? (current + ' ' + word) : word;
+                if (ctx.measureText(testLine).width > maxWidth && current) {
+                    result.push(current);
+                    current = word;
+                } else {
+                    current = testLine;
+                }
+            }
+            if (current) result.push(current);
+        }
+        return result;
+    },
+
+    groupLinesIntoParagraphs(lines) {
+        if (!lines || lines.length === 0) return [];
+        const paragraphs = [];
+        let cur = null;
+
+        for (const l of lines) {
+            if (!cur) {
+                cur = {
+                    text: l.text,
+                    fontSize: l.fontSize,
+                    align: l.align,
+                    bold: l.bold,
+                    italic: l.italic,
+                    fontFamily: l.fontFamily,
+                    color: l.color || '#111827',
+                    lineHeight: 1.55,
+                    linesCount: 1,
+                    minX: l.minX,
+                    maxX: l.maxX,
+                    baselineY: l.baselineY,
+                    gapAfter: l.gapAfter || 6
+                };
+                continue;
+            }
+
+            const sameAlign = cur.align === l.align;
+            const sameBold = cur.bold === l.bold;
+            const similarSize = Math.abs(cur.fontSize - l.fontSize) <= 1.5;
+            const lineGap = l.baselineY - cur.baselineY;
+            const isNormalGap = lineGap > 0 && lineGap <= (cur.fontSize * 1.85);
+            const isList = /^\s*(\d+[\.\)]|[①-⑩]|[\-\*•])\s+/.test(l.text);
+            const isHeading = cur.align === 'center' || cur.fontSize >= 17;
+
+            // Merge lines that belong to the same paragraph
+            if (sameAlign && sameBold && similarSize && isNormalGap && !isList && !isHeading) {
+                const needSpace = /[a-zA-Z0-9]$/.test(cur.text) || /^[a-zA-Z0-9]/.test(l.text);
+                cur.text += (needSpace ? ' ' : '') + l.text;
+                cur.linesCount++;
+                cur.baselineY = l.baselineY;
+                cur.maxX = Math.max(cur.maxX, l.maxX);
+                cur.gapAfter = l.gapAfter || 6;
+            } else {
+                paragraphs.push(cur);
+                cur = {
+                    text: l.text,
+                    fontSize: l.fontSize,
+                    align: l.align,
+                    bold: l.bold,
+                    italic: l.italic,
+                    fontFamily: l.fontFamily,
+                    color: l.color || '#111827',
+                    lineHeight: 1.55,
+                    linesCount: 1,
+                    minX: l.minX,
+                    maxX: l.maxX,
+                    baselineY: l.baselineY,
+                    gapAfter: l.gapAfter || 6
+                };
+            }
+        }
+        if (cur) paragraphs.push(cur);
+        return paragraphs;
+    },
+
     async extractPageTextBlocks() {
         if (!editorPdfDoc) {
             this.currentOriginalTextBlocks = [];
@@ -4836,7 +4936,9 @@ Alpine.data('pdfEditor', () => ({
                     pctH: Math.min(100, (masterH / viewport.height) * 100)
                 };
 
-                // ═══ ONE UNIFIED BLOCK: All lines in one single container preserving 100% per-line format ═══
+                // ═══ ONE UNIFIED BLOCK: Grouped by PARAGRAPH (ย่อหน้า) for natural flow editing ═══
+                const processedParagraphs = this.groupLinesIntoParagraphs(processedLines);
+
                 this.currentOriginalTextBlocks = [{
                     id: `orig_doc_${this.currentPage}`,
                     pctX: Math.max(0, (boundedMinX / viewport.width) * 100),
@@ -4845,21 +4947,8 @@ Alpine.data('pdfEditor', () => ({
                     pctH: Math.min(100, (masterH / viewport.height) * 100),
                     masterW: masterW,
                     masterH: masterH,
-                    lines: processedLines.map((l, i) => {
-                        const nextL = processedLines[i + 1];
-                        const gap = nextL ? Math.max(2, nextL.baselineY - l.baselineY - l.fontSize * 1.1) : 4;
-                        return {
-                            text: l.text,
-                            fontSize: l.fontSize,
-                            align: l.align,
-                            bold: l.bold,
-                            italic: l.italic,
-                            fontFamily: l.fontFamily,
-                            color: '#111827',
-                            relY: Math.max(0, (l.baselineY - l.fontSize * 0.95) - boundedMinY),
-                            gapAfter: Math.round(gap)
-                        };
-                    })
+                    paragraphs: processedParagraphs,
+                    lines: processedParagraphs
                 }];
             } else {
                 this.currentOriginalTextBlocks = [];
@@ -4883,7 +4972,7 @@ Alpine.data('pdfEditor', () => ({
     startEditingOriginalText(block, e) {
         if (!block) return;
         const newId = 'edit_doc_' + Date.now();
-        const lines = JSON.parse(JSON.stringify(block.lines || []));
+        const paragraphs = JSON.parse(JSON.stringify(block.paragraphs || block.lines || []));
         const newAnn = {
             id: newId,
             type: 'text_document',
@@ -4895,33 +4984,35 @@ Alpine.data('pdfEditor', () => ({
             masterW: block.masterW,
             masterH: block.masterH,
             bgColor: '#ffffff', // Clean white background covering original PDF canvas!
-            lines: lines
+            paragraphs: paragraphs,
+            lines: paragraphs
         };
 
-        // Determine which line was clicked
-        let targetLineIdx = 0;
-        if (e && e.currentTarget && lines.length > 0) {
+        // Determine which paragraph was clicked
+        let targetIdx = 0;
+        if (e && e.currentTarget && paragraphs.length > 0) {
             const rect = e.currentTarget.getBoundingClientRect();
             const clickPct = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-            targetLineIdx = Math.min(lines.length - 1, Math.max(0, Math.floor(clickPct * lines.length)));
+            targetIdx = Math.min(paragraphs.length - 1, Math.max(0, Math.floor(clickPct * paragraphs.length)));
         }
 
         this.annotations.push(newAnn);
         this.selectedAnnotationId = newId;
-        this.activeDocLineIdx = targetLineIdx;
+        this.activeDocLineIdx = targetIdx;
         this.currentOriginalTextBlocks = [];
         this.pushHistory('แก้ไขข้อความในเอกสาร');
 
         this.$nextTick(() => {
-            const inputs = document.querySelectorAll(`input[data-doc-ann="${newId}"]`);
-            if (inputs[targetLineIdx]) {
-                inputs[targetLineIdx].focus();
-                if (lines[targetLineIdx]) {
-                    this.syncToolbarToLine(lines[targetLineIdx]);
+            const textareas = document.querySelectorAll(`textarea[data-doc-ann="${newId}"]`);
+            textareas.forEach(ta => this.autoResizeTextarea(ta));
+            if (textareas[targetIdx]) {
+                textareas[targetIdx].focus();
+                if (paragraphs[targetIdx]) {
+                    this.syncToolbarToLine(paragraphs[targetIdx]);
                 }
-            } else if (inputs[0]) {
-                inputs[0].focus();
-                if (lines[0]) this.syncToolbarToLine(lines[0]);
+            } else if (textareas[0]) {
+                textareas[0].focus();
+                if (paragraphs[0]) this.syncToolbarToLine(paragraphs[0]);
             }
         });
     },
@@ -5841,7 +5932,7 @@ Alpine.data('pdfEditor', () => ({
                             lineY += lineHeight;
                         });
                         ctx.restore();
-                    } else if (ann.type === 'text_document' && ann.lines) {
+                    } else if (ann.type === 'text_document') {
                         ctx.save();
                         // 1. Cover original PDF canvas under the document container
                         if (ann.bgColor && ann.bgColor !== 'transparent') {
@@ -5850,29 +5941,36 @@ Alpine.data('pdfEditor', () => ({
                         }
                         const scaleRatio = ann.masterH ? (h / ann.masterH) : 1;
                         let curY = y + 8;
-                        for (const line of ann.lines) {
-                            if (!line) continue;
-                            const fSize = (line.fontSize || 14) * (scaleRatio || 1);
-                            const fontStyle = `${line.italic ? 'italic ' : ''}${line.bold ? 'bold ' : ''}`;
-                            const fontFam = line.fontFamily || 'TH Niramit AS';
+                        const items = ann.paragraphs || ann.lines || [];
+                        const maxTextW = Math.max(50, w - 16);
+
+                        for (const para of items) {
+                            if (!para || !para.text) continue;
+                            const fSize = (para.fontSize || 14) * (scaleRatio || 1);
+                            const fontStyle = `${para.italic ? 'italic ' : ''}${para.bold ? 'bold ' : ''}`;
+                            const fontFam = para.fontFamily || 'TH Niramit AS';
                             ctx.font = `${fontStyle}${fSize}px '${fontFam}', 'Niramit', 'TH Sarabun PSK', 'Sarabun', sans-serif`;
-                            ctx.fillStyle = line.color || '#111827';
+                            ctx.fillStyle = para.color || '#111827';
                             ctx.textBaseline = 'top';
-                            ctx.textAlign = line.align || 'left';
+                            ctx.textAlign = para.align || 'left';
 
                             let drawX = x + 8;
-                            if (line.align === 'center') {
+                            if (para.align === 'center') {
                                 drawX = x + w / 2;
-                            } else if (line.align === 'right') {
+                            } else if (para.align === 'right') {
                                 drawX = x + w - 12;
                             }
 
-                            const lineY = (line.relY !== undefined) ? (y + (line.relY * scaleRatio)) : curY;
-                            if (line.text) {
-                                ctx.fillText(line.text, drawX, lineY);
+                            const wrappedLines = this.wrapTextLines(ctx, para.text, maxTextW);
+                            const lineH = fSize * (para.lineHeight || 1.55);
+
+                            for (const lineStr of wrappedLines) {
+                                ctx.fillText(lineStr, drawX, curY);
+                                curY += lineH;
                             }
-                            const gap = (line.gapAfter !== undefined ? line.gapAfter : 4) * (scaleRatio || 1);
-                            curY = lineY + (fSize * 1.35) + gap;
+
+                            const gap = (para.gapAfter !== undefined ? para.gapAfter : 8) * (scaleRatio || 1);
+                            curY += gap;
                         }
                         ctx.restore();
                     } else if (ann.type === 'note') {

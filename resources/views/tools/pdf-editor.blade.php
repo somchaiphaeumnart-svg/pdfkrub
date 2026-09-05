@@ -841,21 +841,22 @@
 
                                 {{-- ── TYPE 1.5: UNIFIED DOCUMENT TEXT CONTAINER (Single block preserving per-line format 100%) ── --}}
                                 <template x-if="ann.type === 'text_document'">
-                                    <div class="w-full h-full p-2 rounded-xs overflow-auto flex flex-col custom-scrollbar select-text cursor-default"
+                                    <div class="w-full h-full p-3 rounded-xs overflow-y-auto overflow-x-hidden flex flex-col custom-scrollbar select-text cursor-default"
                                          :style="`background-color: ${ann.bgColor || '#ffffff'};`">
-                                        <template x-for="(line, lIdx) in ann.lines" :key="lIdx">
-                                            <div class="w-full relative flex items-center group/line"
-                                                 :style="`margin-bottom: ${(line.gapAfter !== undefined ? line.gapAfter : 4) * (zoom / 100)}px;`">
-                                                <input type="text"
-                                                       x-model="line.text"
-                                                       :data-doc-ann="ann.id"
-                                                       @focus="activeDocLineIdx = lIdx; syncToolbarToLine(line)"
-                                                       @click.stop
-                                                       @mousedown.stop
-                                                       @keydown.enter.prevent="addNewLineAfter(ann, lIdx)"
-                                                       @keydown="handleLineKeydown($event, ann, lIdx)"
-                                                       class="w-full bg-transparent border border-transparent hover:border-sky-300 focus:border-brand-500 focus:bg-sky-50/30 rounded px-1.5 py-0.5 outline-none transition-all"
-                                                       :style="`text-align: ${line.align || 'left'}; font-size: ${(line.fontSize || 14) * (zoom / 100)}px; font-weight: ${line.bold ? 'bold' : 'normal'}; font-style: ${line.italic ? 'italic' : 'normal'}; font-family: '${line.fontFamily || 'TH Niramit AS'}', 'TH Sarabun PSK', sans-serif; color: ${line.color || '#111827'}; line-height: 1.4;`">
+                                        <template x-for="(para, pIdx) in (ann.paragraphs || ann.lines)" :key="pIdx">
+                                            <div class="w-full relative flex items-start group/para"
+                                                 :style="`margin-bottom: ${(para.gapAfter !== undefined ? para.gapAfter : 8) * (zoom / 100)}px;`">
+                                                <textarea x-model="para.text"
+                                                          :data-doc-ann="ann.id"
+                                                          :data-para-idx="pIdx"
+                                                          x-init="$nextTick(() => autoResizeTextarea($el))"
+                                                          @focus="activeDocLineIdx = pIdx; syncToolbarToLine(para)"
+                                                          @input="autoResizeTextarea($el)"
+                                                          @click.stop
+                                                          @mousedown.stop
+                                                          class="w-full bg-transparent border border-transparent hover:border-sky-300 focus:border-brand-500 focus:bg-sky-50/25 rounded px-2 py-1 outline-none transition-all resize-none overflow-hidden font-inherit block leading-relaxed"
+                                                          :style="`text-align: ${para.align || 'left'}; font-size: ${(para.fontSize || 14) * (zoom / 100)}px; font-weight: ${para.bold ? 'bold' : 'normal'}; font-style: ${para.italic ? 'italic' : 'normal'}; font-family: '${para.fontFamily || 'TH Niramit AS'}', 'TH Sarabun PSK', sans-serif; color: ${para.color || '#111827'}; line-height: ${para.lineHeight || 1.55};`"
+                                                          rows="1"></textarea>
                                             </div>
                                         </template>
                                     </div>
