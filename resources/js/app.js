@@ -84,6 +84,11 @@ async function clearStagedFiles() {
     } catch (e) {}
 }
 
+// Non-reactive PDF.js document and render task instances
+// (Must stay outside Alpine's Proxy wrapper to avoid "Cannot read private member #d" errors)
+let rotatePdfDoc = null;
+let rotateRenderTask = null;
+
 // =====================================================
 // Alpine Component: fileUpload
 // Handles drag-drop, file validation, and submission
@@ -101,11 +106,9 @@ Alpine.data('fileUpload', (config = {}) => ({
     // Rotate PDF state
     rotationAngle: 90,
     isRenderingPdf: false,
-    pdfDoc: null,
     pdfTotalPages: 0,
     pdfCurrentPage: 1,
     pdfRenderError: null,
-    currentRenderTask: null,
 
     // Processing state
     isUploading: false,
@@ -244,7 +247,11 @@ Alpine.data('fileUpload', (config = {}) => ({
             if (this.files.length > 0) {
                 setTimeout(() => this.loadPdfPreview(), 60);
             } else {
-                this.pdfDoc = null;
+                rotatePdfDoc = null;
+                if (rotateRenderTask) {
+                    try { rotateRenderTask.cancel(); } catch (e) {}
+                    rotateRenderTask = null;
+                }
                 this.pdfTotalPages = 0;
                 this.pdfCurrentPage = 1;
             }
@@ -255,7 +262,11 @@ Alpine.data('fileUpload', (config = {}) => ({
         this.cancelConversion();
         this.files = [];
         this.error = null;
-        this.pdfDoc = null;
+        rotatePdfDoc = null;
+        if (rotateRenderTask) {
+            try { rotateRenderTask.cancel(); } catch (e) {}
+            rotateRenderTask = null;
+        }
         this.pdfTotalPages = 0;
         this.pdfCurrentPage = 1;
         this.rotationAngle = 90;
@@ -630,7 +641,7 @@ Alpine.data('fileUpload', (config = {}) => ({
 
     async loadPdfPreview() {
         if (!this.files.length || !this.files[0].file) {
-            this.pdfDoc = null;
+            rotatePdfDoc = null;
             this.pdfTotalPages = 0;
             this.pdfCurrentPage = 1;
             return;
@@ -652,8 +663,8 @@ Alpine.data('fileUpload', (config = {}) => ({
                 cMapPacked: true,
                 standardFontDataUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/standard_fonts/',
             });
-            this.pdfDoc = await loadingTask.promise;
-            this.pdfTotalPages = this.pdfDoc.numPages || 1;
+            rotatePdfDoc = await loadingTask.promise;
+            this.pdfTotalPages = rotatePdfDoc.numPages || 1;
             this.pdfCurrentPage = 1;
             await this.renderCurrentPage();
         } catch (e) {
@@ -665,17 +676,17 @@ Alpine.data('fileUpload', (config = {}) => ({
     },
 
     async renderCurrentPage() {
-        if (!this.pdfDoc) return;
+        if (!rotatePdfDoc) return;
         this.isRenderingPdf = true;
         try {
-            if (this.currentRenderTask) {
+            if (rotateRenderTask) {
                 try {
-                    this.currentRenderTask.cancel();
+                    rotateRenderTask.cancel();
                 } catch (err) {}
-                this.currentRenderTask = null;
+                rotateRenderTask = null;
             }
 
-            const page = await this.pdfDoc.getPage(this.pdfCurrentPage);
+            const page = await rotatePdfDoc.getPage(this.pdfCurrentPage);
             const canvas = document.getElementById('pdfRotatePreviewCanvas');
             if (!canvas) return;
 
@@ -707,9 +718,9 @@ Alpine.data('fileUpload', (config = {}) => ({
                 viewport: viewport
             };
 
-            this.currentRenderTask = page.render(renderContext);
-            await this.currentRenderTask.promise;
-            this.currentRenderTask = null;
+            rotateRenderTask = page.render(renderContext);
+            await rotateRenderTask.promise;
+            rotateRenderTask = null;
             this.pdfRenderError = null;
         } catch (e) {
             if (e && e.name === 'RenderingCancelledException') {
