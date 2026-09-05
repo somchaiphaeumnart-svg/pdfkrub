@@ -1207,6 +1207,156 @@
                         </div>
                     </div>
                     @endif
+
+                    @if($tool['slug'] === 'split-pdf')
+                    {{-- Split PDF Visual Range & Page Selector --}}
+                    <div class="mt-6 pt-6 border-t border-gray-100" @click.stop>
+                        <div class="bg-slate-50/90 rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs">
+                            {{-- Header & Mode Tabs --}}
+                            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 mb-5 border-b border-slate-200">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 rounded-xl bg-pink-100 text-pink-600 flex items-center justify-center font-bold">
+                                            <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M7.848 8.25a3 3 0 1 0 0-4.5 3 3 0 0 0 0 4.5Zm0 0-3.5 3.5m0 0 3.5 3.5m-3.5-3.5h15.75M7.848 15.75a3 3 0 1 0 0 4.5 3 3 0 0 0 0-4.5Z" />
+                                            </svg>
+                                        </div>
+                                        <h3 class="text-base font-bold text-gray-800">เครื่องมือแยกไฟล์ PDF (Split PDF)</h3>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1">เลือกหน้าที่ต้องการดึงออกมา หรือแยกเอกสารทุกหน้าเป็นไฟล์เดี่ยว</p>
+                                </div>
+
+                                {{-- Mode Switcher Tabs --}}
+                                <div class="flex items-center p-1 bg-slate-200/80 rounded-2xl shadow-inner text-xs font-semibold">
+                                    <button type="button"
+                                            @click="splitMode = 'range'"
+                                            class="px-3.5 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
+                                            :class="splitMode === 'range' ? 'bg-white text-gray-800 shadow-xs font-bold' : 'text-gray-600 hover:text-gray-900'">
+                                        <svg class="w-3.5 h-3.5 text-brand-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
+                                        <span>แยกตามช่วงหน้า</span>
+                                    </button>
+                                    <button type="button"
+                                            @click="splitMode = 'all'"
+                                            class="px-3.5 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
+                                            :class="splitMode === 'all' ? 'bg-white text-gray-800 shadow-xs font-bold' : 'text-gray-600 hover:text-gray-900'">
+                                        <svg class="w-3.5 h-3.5 text-pink-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 6.878V6a2.25 2.25 0 0 1 2.25-2.25h7.5A2.25 2.25 0 0 1 18 6v.878m-12 0c.235-.083.487-.128.75-.128h10.5c.263 0 .515.045.75.128m-12 0A2.25 2.25 0 0 0 4.5 9v.878m13.5-3A2.25 2.25 0 0 1 19.5 9v.878m-15 0a2.246 2.246 0 0 0-.75.128m15.75 0c-.235-.083-.487-.128-.75-.128m-14.25 0A2.25 2.25 0 0 0 3 12v6a2.25 2.25 0 0 0 2.25 2.25h13.5A2.25 2.25 0 0 0 21 18v-6a2.25 2.25 0 0 0-1.5-2.122" /></svg>
+                                        <span>แยกทุกหน้า</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {{-- MODE 1: SPLIT BY RANGE --}}
+                            <div x-show="splitMode === 'range'" class="space-y-4">
+                                {{-- Toolbar: Quick Select, Range Input, & Merge Switch --}}
+                                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+                                    {{-- Quick select buttons --}}
+                                    <div class="flex flex-wrap items-center gap-1.5">
+                                        <span class="text-xs text-gray-400 mr-1">เลือกด่วน:</span>
+                                        <button type="button" @click="selectAllPagesToSplit()" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 text-gray-700 transition-colors">
+                                            เลือกทั้งหมด
+                                        </button>
+                                        <button type="button" @click="deselectAllPagesToSplit()" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 text-gray-700 transition-colors">
+                                            ล้างที่เลือก
+                                        </button>
+                                        <button type="button" @click="selectOddPagesToSplit()" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 text-gray-700 transition-colors">
+                                            หน้าคี่
+                                        </button>
+                                        <button type="button" @click="selectEvenPagesToSplit()" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 text-gray-700 transition-colors">
+                                            หน้าคู่
+                                        </button>
+                                    </div>
+
+                                    {{-- Range input & stats --}}
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="text-xs text-gray-500 font-medium">ช่วงหน้า:</span>
+                                            <input type="text"
+                                                   x-model="splitManualInput"
+                                                   @input="onSplitManualInputChange()"
+                                                   placeholder="เช่น 1-3, 5, 8"
+                                                   class="text-xs px-3 py-1.5 rounded-xl border border-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 font-mono w-40">
+                                        </div>
+                                        <span class="text-xs px-2.5 py-1 rounded-xl bg-brand-50 text-brand-700 border border-brand-200 font-bold">
+                                            เลือกแล้ว <span x-text="selectedPagesToSplit.length"></span>/<span x-text="splitTotalPages"></span> หน้า
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {{-- Output Mode Checkbox --}}
+                                <div class="bg-brand-50/50 border border-brand-200/70 rounded-2xl p-3.5 sm:px-4 flex items-center justify-between">
+                                    <label class="flex items-center gap-2.5 cursor-pointer select-none">
+                                        <input type="checkbox" x-model="splitMergeExtracted" class="rounded text-brand-600 focus:ring-brand-500 w-4.5 h-4.5">
+                                        <div>
+                                            <span class="text-xs sm:text-sm font-bold text-gray-800">รวมหน้าที่เลือกทั้งหมดเป็น 1 ไฟล์ PDF เดียว</span>
+                                            <p class="text-[11px] text-gray-500">หากไม่เลือก ระบบจะแยกแต่ละหน้าออกเป็นไฟล์เดี่ยวใน Zip</p>
+                                        </div>
+                                    </label>
+                                    <span class="text-xs font-semibold px-2.5 py-1 rounded-full"
+                                          :class="splitMergeExtracted ? 'bg-brand-600 text-white' : 'bg-slate-200 text-slate-700'"
+                                          x-text="splitMergeExtracted ? 'ไฟล์ .PDF เดียว' : 'ไฟล์ .ZIP รวมหน้า'">
+                                    </span>
+                                </div>
+
+                                {{-- Visual Pages Grid --}}
+                                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 max-h-[460px] overflow-y-auto p-1 rounded-2xl">
+                                    <template x-for="page in splitPagesList" :key="page.pageNum">
+                                        <div
+                                            @click="togglePageToSplit(page.pageNum)"
+                                            class="relative group rounded-2xl p-2 cursor-pointer border-2 transition-all duration-150 flex flex-col items-center select-none"
+                                            :class="isPageSelectedToSplit(page.pageNum)
+                                                ? 'border-brand-500 bg-brand-50/60 ring-2 ring-brand-500/20 shadow-xs'
+                                                : 'border-slate-200 bg-white hover:border-brand-300 hover:bg-brand-50/10'">
+
+                                            {{-- Top Checkbox Badge --}}
+                                            <div class="w-full flex items-center justify-between mb-1.5 px-0.5">
+                                                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-md"
+                                                      :class="isPageSelectedToSplit(page.pageNum) ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-600'"
+                                                      x-text="`หน้า ${page.pageNum}`"></span>
+                                                <div class="w-4 h-4 rounded-full flex items-center justify-center transition-colors"
+                                                     :class="isPageSelectedToSplit(page.pageNum) ? 'bg-brand-600 text-white' : 'border border-slate-300 bg-white'">
+                                                    <template x-if="isPageSelectedToSplit(page.pageNum)">
+                                                        <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                                                    </template>
+                                                </div>
+                                            </div>
+
+                                            {{-- Thumbnail Box --}}
+                                            <div class="w-full aspect-[3/4] bg-slate-50 rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-100 shadow-inner">
+                                                <template x-if="page.dataUrl">
+                                                    <img :src="page.dataUrl" class="w-full h-full object-contain pointer-events-none rounded-lg" />
+                                                </template>
+                                                <template x-if="!page.dataUrl">
+                                                    <div class="flex flex-col items-center justify-center p-1 text-slate-300 text-center">
+                                                        <svg class="w-6 h-6 animate-pulse" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
+                            {{-- MODE 2: SPLIT ALL PAGES --}}
+                            <div x-show="splitMode === 'all'" class="space-y-4">
+                                <div class="bg-white border border-slate-200/80 rounded-2xl p-6 text-center max-w-lg mx-auto shadow-xs">
+                                    <div class="w-14 h-14 rounded-2xl bg-pink-100 text-pink-600 flex items-center justify-center mx-auto mb-3">
+                                        <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 6.878V6a2.25 2.25 0 0 1 2.25-2.25h7.5A2.25 2.25 0 0 1 18 6v.878m-12 0c.235-.083.487-.128.75-.128h10.5c.263 0 .515.045.75.128m-12 0A2.25 2.25 0 0 0 4.5 9v.878m13.5-3A2.25 2.25 0 0 1 19.5 9v.878m-15 0a2.246 2.246 0 0 0-.75.128m15.75 0c-.235-.083-.487-.128-.75-.128m-14.25 0A2.25 2.25 0 0 0 3 12v6a2.25 2.25 0 0 0 2.25 2.25h13.5A2.25 2.25 0 0 0 21 18v-6a2.25 2.25 0 0 0-1.5-2.122" />
+                                        </svg>
+                                    </div>
+                                    <h4 class="text-base font-bold text-gray-900 mb-1">แยกเอกสารออกเป็น 1 หน้าต่อ 1 ไฟล์</h4>
+                                    <p class="text-xs text-gray-500 leading-relaxed max-w-md mx-auto">
+                                        ระบบจะทำการแยกเอกสารทั้งเล่ม (ทั้งหมด <strong class="text-gray-800" x-text="splitTotalPages"></strong> หน้า) ออกเป็นไฟล์ PDF เดี่ยวจำนวน <strong class="text-gray-800" x-text="splitTotalPages"></strong> ไฟล์ และบรรจุลงในไฟล์ <strong>.ZIP</strong> เพื่อให้คุณดาวน์โหลดได้ในคลิกเดียว
+                                    </p>
+                                    <div class="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold">
+                                        <span>ผลลัพธ์:</span>
+                                        <span class="text-pink-600 font-mono">pages.zip (<span x-text="splitTotalPages"></span> PDFs)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
                 </div>
             </template>
 
@@ -1220,8 +1370,8 @@
                 <button
                     @click="hasFiles ? startConversion('{{ $tool['slug'] }}') : $refs.fileInput.click()"
                     class="btn-primary px-10 py-4 rounded-2xl text-base flex items-center gap-2"
-                    :class="{ 'opacity-50 cursor-not-allowed': !hasFiles || (tool === 'delete-pages' && hasFiles && !canSubmitDeletePages) || (tool === 'watermark-pdf' && hasFiles && !canSubmitWatermark) || (tool === 'protect-pdf' && hasFiles && !canSubmitProtectPdf) || (tool === 'unlock-pdf' && hasFiles && !canSubmitUnlockPdf) || (tool === 'merge-pdf' && hasFiles && !canSubmitMergePdf) }"
-                    :disabled="!hasFiles || (tool === 'delete-pages' && hasFiles && !canSubmitDeletePages) || (tool === 'watermark-pdf' && hasFiles && !canSubmitWatermark) || (tool === 'protect-pdf' && hasFiles && !canSubmitProtectPdf) || (tool === 'unlock-pdf' && hasFiles && !canSubmitUnlockPdf) || (tool === 'merge-pdf' && hasFiles && !canSubmitMergePdf)"
+                    :class="{ 'opacity-50 cursor-not-allowed': !hasFiles || (tool === 'delete-pages' && hasFiles && !canSubmitDeletePages) || (tool === 'watermark-pdf' && hasFiles && !canSubmitWatermark) || (tool === 'protect-pdf' && hasFiles && !canSubmitProtectPdf) || (tool === 'unlock-pdf' && hasFiles && !canSubmitUnlockPdf) || (tool === 'merge-pdf' && hasFiles && !canSubmitMergePdf) || (tool === 'split-pdf' && hasFiles && !canSubmitSplitPdf) }"
+                    :disabled="!hasFiles || (tool === 'delete-pages' && hasFiles && !canSubmitDeletePages) || (tool === 'watermark-pdf' && hasFiles && !canSubmitWatermark) || (tool === 'protect-pdf' && hasFiles && !canSubmitProtectPdf) || (tool === 'unlock-pdf' && hasFiles && !canSubmitUnlockPdf) || (tool === 'merge-pdf' && hasFiles && !canSubmitMergePdf) || (tool === 'split-pdf' && hasFiles && !canSubmitSplitPdf)"
                     @if($tool['premium'] && !(auth()->check() && auth()->user()->getActivePlan()->has_ocr)) disabled @endif>
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>
@@ -1349,7 +1499,7 @@
 </div>
 @endsection
 
-@if(in_array($tool['slug'], ['rotate-pdf', 'delete-pages', 'watermark-pdf', 'unlock-pdf', 'merge-pdf', 'compress-pdf']))
+@if(in_array($tool['slug'], ['rotate-pdf', 'delete-pages', 'watermark-pdf', 'unlock-pdf', 'merge-pdf', 'compress-pdf', 'split-pdf']))
 @push('scripts')
 <script src="{{ asset('vendor/pdfjs/pdf.min.js') }}"></script>
 <script>

@@ -190,20 +190,46 @@ class PdfProcessingService
         $config = $job->tool_config ?? [];
         $tmpDir = $this->makeTmpDir();
 
-        // Split into individual pages
-        $outputPattern = $tmpDir.DIRECTORY_SEPARATOR.'page_%04d.pdf';
+        $mode = $config['split_mode'] ?? 'range'; // 'range' or 'all'
+        $pageList = trim($config['page_list'] ?? '');
+        $mergeExtracted = filter_var($config['merge_extracted'] ?? true, FILTER_VALIDATE_BOOLEAN);
+        $basename = pathinfo($inputFile->original_name, PATHINFO_FILENAME);
 
         try {
-            $result = Process::timeout(120)->run([
-                'gs', '-dBATCH', '-dNOPAUSE', '-q', '-sDEVICE=pdfwrite',
-                "-sOutputFile={$outputPattern}", $inputPath,
-            ]);
+            // Case 1: Custom page range & merge into a single PDF
+            if ($mode === 'range' && $pageList !== '' && $mergeExtracted) {
+                $outputPath = $tmpDir.DIRECTORY_SEPARATOR.'extracted.pdf';
+                $args = [
+                    'gs', '-dBATCH', '-dNOPAUSE', '-q', '-sDEVICE=pdfwrite',
+                    "-sPageList={$pageList}",
+                    "-sOutputFile={$outputPath}",
+                    $inputPath,
+                ];
 
+                $result = Process::timeout(120)->run($args);
+                if (! $result->successful() || ! file_exists($outputPath)) {
+                    throw new RuntimeException('Ghostscript extract failed: '.$result->errorOutput());
+                }
+
+                return $this->storeOutput($job, $outputPath, "{$basename}_extracted.pdf", 'application/pdf');
+            }
+
+            // Case 2: Extract individual pages (either specific page range or all pages) -> pack into ZIP
+            $outputPattern = $tmpDir.DIRECTORY_SEPARATOR.'page_%04d.pdf';
+            $args = [
+                'gs', '-dBATCH', '-dNOPAUSE', '-q', '-sDEVICE=pdfwrite',
+            ];
+            if ($mode === 'range' && $pageList !== '') {
+                $args[] = "-sPageList={$pageList}";
+            }
+            $args[] = "-sOutputFile={$outputPattern}";
+            $args[] = $inputPath;
+
+            $result = Process::timeout(120)->run($args);
             if (! $result->successful()) {
                 throw new RuntimeException('Ghostscript split failed: '.$result->errorOutput());
             }
 
-            // Zip all pages and return the zip
             $pages = glob($tmpDir.DIRECTORY_SEPARATOR.'page_*.pdf');
             sort($pages);
 
@@ -211,21 +237,24 @@ class PdfProcessingService
                 throw new RuntimeException('Split ไม่พบไฟล์ผลลัพธ์');
             }
 
-            // If only 1 page, return it directly
+            // If only 1 page resulted, return it as PDF directly
             if (count($pages) === 1) {
-                return $this->storeOutput($job, $pages[0], 'page_1.pdf', 'application/pdf');
+                return $this->storeOutput($job, $pages[0], "{$basename}_page_1.pdf", 'application/pdf');
             }
 
             // Multiple pages → zip
             $zipPath = $tmpDir.DIRECTORY_SEPARATOR.'pages.zip';
             $zip = new \ZipArchive;
-            $zip->open($zipPath, \ZipArchive::CREATE);
+            if ($zip->open($zipPath, \ZipArchive::CREATE) !== true) {
+                throw new RuntimeException('ไม่สามารถสร้างไฟล์ Zip สำหรับหน้าเอกสารได้');
+            }
             foreach ($pages as $idx => $page) {
-                $zip->addFile($page, 'page_'.str_pad($idx + 1, 4, '0', STR_PAD_LEFT).'.pdf');
+                $pageNum = $idx + 1;
+                $zip->addFile($page, "{$basename}_page_{$pageNum}.pdf");
             }
             $zip->close();
 
-            return $this->storeOutput($job, $zipPath, 'pages.zip', 'application/zip');
+            return $this->storeOutput($job, $zipPath, "{$basename}_pages.zip", 'application/zip');
         } finally {
             $this->cleanTmpDir($tmpDir);
         }

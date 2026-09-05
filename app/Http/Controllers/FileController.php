@@ -116,6 +116,15 @@ class FileController extends Controller
         if ($request->filled('quality')) {
             $config['quality'] = (string) $request->input('quality');
         }
+        if ($request->filled('split_mode')) {
+            $config['split_mode'] = (string) $request->input('split_mode');
+        }
+        if ($request->has('page_list')) {
+            $config['page_list'] = (string) $request->input('page_list');
+        }
+        if ($request->has('merge_extracted')) {
+            $config['merge_extracted'] = filter_var($request->input('merge_extracted'), FILTER_VALIDATE_BOOLEAN);
+        }
 
         // Create the processing job record
         $pdfJob = PdfJob::create([

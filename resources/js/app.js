@@ -100,6 +100,8 @@ let signRenderTask = null;
 let editorPdfDoc = null;
 let editorRenderTask = null;
 let editorThumbnailsCache = {};
+let splitPdfDoc = null;
+let splitThumbnailsCache = {};
 
 // =====================================================
 // Alpine Component: fileUpload
@@ -175,6 +177,16 @@ Alpine.data('fileUpload', (config = {}) => ({
     compressTotalPages: null,
     compressIsLoadingPreview: false,
 
+    // Split PDF State
+    splitMode: 'range', // 'range' or 'all'
+    selectedPagesToSplit: [],
+    splitManualInput: '',
+    splitMergeExtracted: true,
+    splitTotalPages: 0,
+    splitPagesList: [],
+    splitPagesError: null,
+    isRenderingSplitPages: false,
+
     // Processing state
     isUploading: false,
     uploadProgress: 0,
@@ -219,6 +231,9 @@ Alpine.data('fileUpload', (config = {}) => ({
         }
         if (this.tool === 'compress-pdf' && this.files.length > 0) {
             this.loadCompressPdfPreview();
+        }
+        if (this.tool === 'split-pdf' && this.files.length > 0) {
+            this.loadSplitPagesPreview();
         }
     },
 
@@ -331,6 +346,10 @@ Alpine.data('fileUpload', (config = {}) => ({
         if (this.tool === 'compress-pdf' && this.files.length > 0) {
             setTimeout(() => this.loadCompressPdfPreview(), 60);
         }
+        // If split-pdf, load preview
+        if (this.tool === 'split-pdf' && this.files.length > 0) {
+            setTimeout(() => this.loadSplitPagesPreview(), 60);
+        }
     },
 
     removeFile(id) {
@@ -384,6 +403,12 @@ Alpine.data('fileUpload', (config = {}) => ({
                 setTimeout(() => this.loadCompressPdfPreview(), 60);
             }
         }
+        if (this.tool === 'split-pdf') {
+            this.clearSplitPagesState();
+            if (this.files.length > 0) {
+                setTimeout(() => this.loadSplitPagesPreview(), 60);
+            }
+        }
     },
 
     clearAll() {
@@ -409,6 +434,7 @@ Alpine.data('fileUpload', (config = {}) => ({
         this.mergeThumbnailsCache = {};
         this.draggedFileIndex = null;
         this.clearCompressState();
+        this.clearSplitPagesState();
         this.protectPassword = '';
         this.protectPasswordConfirm = '';
         this.showProtectPassword = false;
@@ -550,6 +576,22 @@ Alpine.data('fileUpload', (config = {}) => ({
         if (activeTool === 'compress-pdf') {
             formData.append('quality', this.compressQuality);
             formData.append('config[quality]', this.compressQuality);
+        }
+        if (activeTool === 'split-pdf') {
+            if (!this.canSubmitSplitPdf) {
+                this.error = 'กรุณาเลือกอย่างน้อย 1 หน้าที่ต้องการแยก';
+                this.isUploading = false;
+                return;
+            }
+            formData.append('split_mode', this.splitMode);
+            formData.append('config[split_mode]', this.splitMode);
+
+            const pageListStr = this.selectedPagesToSplit.join(',');
+            formData.append('page_list', pageListStr);
+            formData.append('config[page_list]', pageListStr);
+
+            formData.append('merge_extracted', this.splitMergeExtracted ? '1' : '0');
+            formData.append('config[merge_extracted]', this.splitMergeExtracted ? '1' : '0');
         }
         const tokenMeta = document.querySelector('meta[name="csrf-token"]');
         if (tokenMeta) {
@@ -1379,6 +1421,18 @@ Alpine.data('fileUpload', (config = {}) => ({
             const label = labels[this.compressQuality] || 'บีบอัดที่แนะนำ';
             return `บีบอัด PDF (${label})`;
         }
+        if (this.tool === 'split-pdf' && this.hasFiles) {
+            if (this.splitMode === 'all') {
+                return `แยกทุกหน้า (${this.splitTotalPages || 1} หน้า) เป็นไฟล์ Zip`;
+            }
+            if (this.selectedPagesToSplit.length === 0) {
+                return 'กรุณาเลือกหน้าที่ต้องการแยก';
+            }
+            if (this.splitMergeExtracted) {
+                return `แยกและรวม ${this.selectedPagesToSplit.length} หน้าเป็น 1 ไฟล์ PDF`;
+            }
+            return `แยก ${this.selectedPagesToSplit.length} หน้าออกเป็นไฟล์ Zip`;
+        }
         return null;
     },
 
@@ -1805,6 +1859,211 @@ Alpine.data('fileUpload', (config = {}) => ({
 
     get compressSavedPercent() {
         return Math.round((1 - this.compressEstimatedRatio) * 100);
+    },
+
+    // =====================================================
+    // Split PDF Methods & Visual Page Range Extractor
+    // =====================================================
+    clearSplitPagesState() {
+        splitPdfDoc = null;
+        splitThumbnailsCache = {};
+        this.splitPagesList = [];
+        this.selectedPagesToSplit = [];
+        this.splitTotalPages = 0;
+        this.splitManualInput = '';
+        this.splitPagesError = null;
+        this.isRenderingSplitPages = false;
+        this.splitMode = 'range';
+        this.splitMergeExtracted = true;
+    },
+
+    async loadSplitPagesPreview() {
+        if (!this.files.length || !this.files[0].file) {
+            this.clearSplitPagesState();
+            return;
+        }
+        const file = this.files[0].file;
+        if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+            return;
+        }
+
+        this.clearSplitPagesState();
+        this.isRenderingSplitPages = true;
+
+        try {
+            await this.ensurePdfJs();
+            const arrayBuffer = await file.arrayBuffer();
+            const loadingTask = window.pdfjsLib.getDocument({
+                data: arrayBuffer,
+                cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+                cMapPacked: true,
+                standardFontDataUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/standard_fonts/',
+            });
+            splitPdfDoc = await loadingTask.promise;
+            this.splitTotalPages = splitPdfDoc.numPages || 1;
+
+            // Pre-populate page placeholders for instant UI feedback
+            this.splitPagesList = Array.from({ length: this.splitTotalPages }, (_, i) => ({
+                pageNum: i + 1,
+                dataUrl: null,
+            }));
+
+            // Pre-select page 1 by default
+            this.selectedPagesToSplit = [1];
+            this.splitManualInput = '1';
+
+            // Render all thumbnails
+            for (let p = 1; p <= this.splitTotalPages; p++) {
+                if (!splitPdfDoc || this.files.length === 0) break;
+                await this.renderSplitThumbnail(p);
+            }
+        } catch (e) {
+            console.error('loadSplitPagesPreview error:', e);
+            this.splitPagesError = 'ไม่สามารถอ่านไฟล์ PDF ได้: ' + (e.message || '');
+        } finally {
+            this.isRenderingSplitPages = false;
+        }
+    },
+
+    async renderSplitThumbnail(pageNum) {
+        if (!splitPdfDoc) return;
+        try {
+            if (splitThumbnailsCache[pageNum]) {
+                const item = this.splitPagesList.find(x => x.pageNum === pageNum);
+                if (item) {
+                    item.dataUrl = splitThumbnailsCache[pageNum];
+                }
+                return;
+            }
+
+            const page = await splitPdfDoc.getPage(pageNum);
+            const baseViewport = page.getViewport({ scale: 1.0 });
+            const maxDim = Math.max(baseViewport.width, baseViewport.height);
+            const targetDim = 220;
+            const scale = Math.min(0.4, targetDim / maxDim);
+            const viewport = page.getViewport({ scale });
+
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            const ctx = canvas.getContext('2d');
+
+            await page.render({
+                canvasContext: ctx,
+                viewport: viewport,
+            }).promise;
+
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            splitThumbnailsCache[pageNum] = dataUrl;
+
+            const item = this.splitPagesList.find(x => x.pageNum === pageNum);
+            if (item) {
+                item.dataUrl = dataUrl;
+            }
+        } catch (err) {
+            console.warn(`Error rendering split thumbnail page ${pageNum}:`, err);
+        }
+    },
+
+    togglePageToSplit(pageNum) {
+        const idx = this.selectedPagesToSplit.indexOf(pageNum);
+        if (idx >= 0) {
+            this.selectedPagesToSplit.splice(idx, 1);
+        } else {
+            this.selectedPagesToSplit.push(pageNum);
+            this.selectedPagesToSplit.sort((a, b) => a - b);
+        }
+        this.splitManualInput = this.formatPagesRangeString(this.selectedPagesToSplit);
+    },
+
+    isPageSelectedToSplit(pageNum) {
+        return this.selectedPagesToSplit.includes(pageNum);
+    },
+
+    onSplitManualInputChange() {
+        if (!this.splitManualInput.trim()) {
+            this.selectedPagesToSplit = [];
+            return;
+        }
+        const parsed = this.parsePagesRangeString(this.splitManualInput, this.splitTotalPages);
+        this.selectedPagesToSplit = parsed;
+    },
+
+    selectAllPagesToSplit() {
+        this.selectedPagesToSplit = Array.from({ length: this.splitTotalPages }, (_, i) => i + 1);
+        this.splitManualInput = this.formatPagesRangeString(this.selectedPagesToSplit);
+    },
+
+    deselectAllPagesToSplit() {
+        this.selectedPagesToSplit = [];
+        this.splitManualInput = '';
+    },
+
+    selectOddPagesToSplit() {
+        this.selectedPagesToSplit = [];
+        for (let i = 1; i <= this.splitTotalPages; i += 2) {
+            this.selectedPagesToSplit.push(i);
+        }
+        this.splitManualInput = this.formatPagesRangeString(this.selectedPagesToSplit);
+    },
+
+    selectEvenPagesToSplit() {
+        this.selectedPagesToSplit = [];
+        for (let i = 2; i <= this.splitTotalPages; i += 2) {
+            this.selectedPagesToSplit.push(i);
+        }
+        this.splitManualInput = this.formatPagesRangeString(this.selectedPagesToSplit);
+    },
+
+    formatPagesRangeString(pages) {
+        if (!pages || !pages.length) return '';
+        const sorted = [...pages].sort((a, b) => a - b);
+        const ranges = [];
+        let start = sorted[0];
+        let end = start;
+
+        for (let i = 1; i < sorted.length; i++) {
+            if (sorted[i] === end + 1) {
+                end = sorted[i];
+            } else {
+                ranges.push(start === end ? `${start}` : `${start}-${end}`);
+                start = sorted[i];
+                end = start;
+            }
+        }
+        ranges.push(start === end ? `${start}` : `${start}-${end}`);
+        return ranges.join(', ');
+    },
+
+    parsePagesRangeString(str, maxPages) {
+        const parts = str.split(',').map(s => s.trim()).filter(Boolean);
+        const set = new Set();
+
+        for (const part of parts) {
+            if (part.includes('-')) {
+                const [startStr, endStr] = part.split('-').map(s => s.trim());
+                const start = parseInt(startStr, 10);
+                const end = parseInt(endStr, 10);
+                if (!isNaN(start) && !isNaN(end)) {
+                    const min = Math.max(1, Math.min(start, end));
+                    const max = Math.min(maxPages || 9999, Math.max(start, end));
+                    for (let p = min; p <= max; p++) {
+                        set.add(p);
+                    }
+                }
+            } else {
+                const single = parseInt(part, 10);
+                if (!isNaN(single) && single >= 1 && (!maxPages || single <= maxPages)) {
+                    set.add(single);
+                }
+            }
+        }
+        return Array.from(set).sort((a, b) => a - b);
+    },
+
+    get canSubmitSplitPdf() {
+        if (this.splitMode === 'all') return true;
+        return this.selectedPagesToSplit.length > 0;
     },
 
     get hasFiles() { return this.files.length > 0; },
