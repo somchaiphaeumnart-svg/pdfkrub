@@ -6,10 +6,18 @@
 @push('head')
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Dancing+Script:wght@600;700&family=Great+Vibes&family=Pacifico&family=Kanit:wght@300;400;500;600;700&family=Prompt:wght@300;400;500;600;700&family=Sarabun:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600;1,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Dancing+Script:wght@600;700&family=Great+Vibes&family=Pacifico&family=Kanit:wght@300;400;500;600;700&family=Prompt:wght@300;400;500;600;700&family=Sarabun:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600;1,700&family=Niramit:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,600&family=Chakra+Petch:wght@400;600&family=Mitr:wght@400;500&display=swap" rel="stylesheet">
     <script src="/vendor/pdfjs/pdf.min.js"></script>
     <script src="/vendor/pdf-lib.min.js"></script>
     <style>
+        @font-face {
+            font-family: 'TH Niramit AS';
+            src: local('TH Niramit AS'), local('Niramit');
+        }
+        @font-face {
+            font-family: 'TH Sarabun PSK';
+            src: local('TH Sarabun PSK'), local('TH Sarabun New'), local('Sarabun');
+        }
         .editor-checkerboard {
             background-color: #f1f5f9;
             background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
@@ -75,367 +83,347 @@
     </div>
     @endif
 
-    {{-- Hidden File Input --}}
+    {{-- Hidden File Input for PDF --}}
     <input type="file" id="pdfEditorFileInput" accept=".pdf,application/pdf" class="hidden" @change="handleFileInput($event)">
+    {{-- Hidden File Input for Picture / Image insertion --}}
+    <input type="file" id="pdfEditorImageInput" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden" @change="handleImageInput($event)">
 
     {{-- ══════════════════════════════════════════════════════════════════ --}}
     {{-- MAIN EDITOR CONTAINER --}}
     {{-- ══════════════════════════════════════════════════════════════════ --}}
-    <div class="bg-white rounded-2xl shadow-xl border border-slate-200/90 overflow-hidden flex flex-col h-[82vh] min-h-[680px]">
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200/90 overflow-hidden flex flex-col h-[84vh] min-h-[700px]">
 
-        {{-- ─── TOP HORIZONTAL ACTION & TOOLS BAR ─── --}}
-        <div class="bg-slate-50/90 border-b border-slate-200 px-3 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0 select-none">
-            
-            {{-- Left: Tool Selection Strip --}}
-            <div class="flex items-center gap-1 overflow-x-auto custom-scrollbar py-0.5">
-                {{-- 1. Pointer / Select & In-place Edit --}}
-                <button type="button"
-                        @click="setTool('pointer')"
-                        :class="activeTool === 'pointer' ? 'bg-brand-600 text-white shadow-xs font-semibold' : 'text-slate-700 hover:bg-slate-200/70'"
-                        class="px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
-                        title="เครื่องมือเลือก / คลิกข้อความเดิมเพื่อแก้ไขได้ทันที (Select & Edit)">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672 13.684 16.6m0 0-2.51 2.225.569-9.47 5.227 7.917-3.286-.672ZM12 2.25V4.5m5.834.166-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243-1.59-1.59"/></svg>
-                    <span class="font-medium">เลือก / แก้ไขข้อความ</span>
+        {{-- ─── 1. TOP RIBBON TABS (Document | Organize Pages | Edit Content | Security | Form Editor) ─── --}}
+        <div class="bg-slate-100/95 border-b border-slate-200 px-3 pt-1.5 flex items-center justify-between gap-2 shrink-0 select-none">
+            <div class="flex items-center gap-1 overflow-x-auto text-xs font-medium">
+                {{-- Quick Save Icon --}}
+                <button type="button" @click="saveAndDownloadPdf()" class="p-1.5 mr-1 text-slate-600 hover:text-brand-600 hover:bg-white rounded-lg cursor-pointer transition-colors" title="บันทึกเอกสาร (Save PDF)">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16v4m0 0H7m10 0v-4m-10 4v-4m0 4h10m1-16H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.414a2 2 0 0 0-.586-1.414l-4.414-4.414A2 2 0 0 0 13.586 1H6Z"/></svg>
                 </button>
 
-                {{-- 2. Hand Tool (Pan) --}}
+                {{-- Tab 1: Document --}}
                 <button type="button"
-                        @click="setTool('hand')"
-                        :class="activeTool === 'hand' ? 'bg-brand-600 text-white shadow-xs font-semibold' : 'text-slate-700 hover:bg-slate-200/70'"
-                        class="px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
-                        title="เครื่องมือเลื่อนมุมมอง (Hand Tool)">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.05 4.575a1.575 1.575 0 1 0-3.15 0v3m3-3v3m0-3 2.887 1.642a1.575 1.575 0 0 1 .788 1.364v3.994m-6.825-7a1.575 1.575 0 0 0-3.15 0v7.875a6.3 6.3 0 0 0 6.3 6.3h2.625a6.3 6.3 0 0 0 6.3-6.3V10.5a1.575 1.575 0 0 0-3.15 0v3m-3-3v3m-3-3v3"/></svg>
-                    <span class="hidden sm:inline">เลื่อน</span>
+                        @click="setRibbonTab('document')"
+                        :class="activeRibbonTab === 'document' ? 'bg-white text-brand-700 font-bold border-b-2 border-brand-600 shadow-2xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'"
+                        class="px-3 py-1.5 rounded-t-lg flex items-center gap-1.5 transition-all cursor-pointer">
+                    <svg class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    <span>Document</span>
                 </button>
 
-                <div class="h-5 w-px bg-slate-200 mx-0.5"></div>
-
-                {{-- 3. Edit Existing PDF Text (Primary New Feature!) --}}
+                {{-- Tab 2: Organize Pages --}}
                 <button type="button"
-                        @click="setTool('edit-text')"
-                        :class="activeTool === 'edit-text' ? 'bg-brand-600 text-white shadow-xs font-semibold' : 'text-slate-700 hover:bg-slate-200/70'"
-                        class="px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer transition-colors relative"
-                        title="แก้ไขข้อความเดิมในเอกสาร หรือคลิกเลือกพิมพ์ข้อความ (Edit Text)">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/></svg>
-                    <span class="font-bold">แก้ไขข้อความ</span>
-                    <span class="px-1 py-0.2 bg-amber-400 text-amber-950 font-extrabold text-[9px] rounded-full hidden md:inline">ใหม่</span>
+                        @click="setRibbonTab('organize')"
+                        :class="activeRibbonTab === 'organize' ? 'bg-white text-brand-700 font-bold border-b-2 border-brand-600 shadow-2xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'"
+                        class="px-3 py-1.5 rounded-t-lg flex items-center gap-1.5 transition-all cursor-pointer">
+                    <svg class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                    <span>Organize Pages</span>
                 </button>
 
-                {{-- 4. Text Tool (Add New Text Box) --}}
+                {{-- Tab 3: Edit Content (🔴 Highlighted & Circled matching user screenshot!) --}}
                 <button type="button"
-                        @click="setTool('text')"
-                        :class="activeTool === 'text' ? 'bg-brand-600 text-white shadow-xs font-semibold' : 'text-slate-700 hover:bg-slate-200/70'"
-                        class="px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
-                        title="พิมพ์กล่องข้อความใหม่ลงบนเอกสาร (Text)">
-                    <span class="font-serif font-bold text-sm">T</span>
-                    <span class="hidden sm:inline">พิมพ์เพิ่ม</span>
+                        @click="setRibbonTab('edit-content')"
+                        :class="activeRibbonTab === 'edit-content' ? 'bg-white text-brand-600 font-extrabold border-b-2 border-brand-600 shadow-2xs ring-1 ring-brand-500/20' : 'text-slate-700 hover:text-slate-900 hover:bg-slate-200/60'"
+                        class="px-3.5 py-1.5 rounded-t-lg flex items-center gap-1.5 transition-all cursor-pointer relative group">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="text-xs font-bold text-brand-700">Edit Content</span>
+                    <span class="px-1.5 py-0.2 bg-red-100 text-red-700 font-extrabold text-[9px] rounded-full">แก้ไขเนื้อหา</span>
                 </button>
 
-                {{-- 5. Whiteout / Erase Tool --}}
+                {{-- Tab 4: Security --}}
                 <button type="button"
-                        @click="setTool('whiteout')"
-                        :class="activeTool === 'whiteout' ? 'bg-brand-600 text-white shadow-xs font-semibold' : 'text-slate-700 hover:bg-slate-200/70'"
-                        class="px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
-                        title="ลบข้อความเดิม / ยางลบปิดทับสีขาว (Whiteout / Erase)">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9.75 14.25 12m0 0 2.25 2.25M14.25 12l2.25-2.25M14.25 12l-2.25 2.25m-10.5-2.25a6 6 0 1 1 12 0v5.25a2.25 2.25 0 0 1-2.25 2.25h-7.5A2.25 2.25 0 0 1 3.75 17.25V12Z"/></svg>
-                    <span>ลบข้อความ</span>
+                        @click="setRibbonTab('security')"
+                        :class="activeRibbonTab === 'security' ? 'bg-white text-brand-700 font-bold border-b-2 border-brand-600 shadow-2xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'"
+                        class="px-3 py-1.5 rounded-t-lg flex items-center gap-1.5 transition-all cursor-pointer">
+                    <svg class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                    <span>Security</span>
                 </button>
 
-                <div class="h-5 w-px bg-slate-200 mx-0.5"></div>
-
-                {{-- 6. Sticky Note --}}
+                {{-- Tab 5: Form Editor --}}
                 <button type="button"
-                        @click="setTool('note')"
-                        :class="activeTool === 'note' ? 'bg-brand-600 text-white shadow-xs font-semibold' : 'text-slate-700 hover:bg-slate-200/70'"
-                        class="px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
-                        title="เพิ่มหมายเหตุ / บันทึกช่วยจำ (Sticky Note)">
-                    <span class="text-sm">💬</span>
-                    <span>หมายเหตุ</span>
+                        @click="setRibbonTab('form')"
+                        :class="activeRibbonTab === 'form' ? 'bg-white text-brand-700 font-bold border-b-2 border-brand-600 shadow-2xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'"
+                        class="px-3 py-1.5 rounded-t-lg flex items-center gap-1.5 transition-all cursor-pointer">
+                    <svg class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                    <span>Form Editor</span>
                 </button>
-
-                {{-- 5. Draw / Pen --}}
-                <button type="button"
-                        @click="setTool('draw')"
-                        :class="activeTool === 'draw' ? 'bg-brand-600 text-white shadow-xs font-semibold' : 'text-slate-700 hover:bg-slate-200/70'"
-                        class="px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
-                        title="วาดเส้นอิสระ (Draw / Pen)">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125"/></svg>
-                    <span>วาดเขียน</span>
-                </button>
-
-                {{-- 6. Markup (Highlight) --}}
-                <div class="relative" x-data="{ open: false }">
-                    <button type="button"
-                            @click="setTool('highlight')"
-                            :class="['highlight', 'underline', 'strikethrough'].includes(activeTool) ? 'bg-brand-600 text-white shadow-xs font-semibold' : 'text-slate-700 hover:bg-slate-200/70'"
-                            class="px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
-                            title="เครื่องมือทำเครื่องหมายเน้นข้อความ (Markup)">
-                        <span class="w-3 h-3 rounded-full bg-yellow-400 border border-yellow-600 inline-block"></span>
-                        <span>ไฮไลท์</span>
-                        <svg class="w-3 h-3 ml-0.5 opacity-70" @click.stop="open = !open" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
-                    </button>
-                    {{-- Dropdown for markup styles --}}
-                    <div x-show="open" @click.away="open = false" x-cloak
-                         class="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 z-30 min-w-[140px] space-y-1">
-                        <button type="button" @click="setTool('highlight'); open = false" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 flex items-center gap-2">
-                            <span class="w-3 h-3 bg-yellow-300 rounded"></span> ไฮไลท์ (Highlight)
-                        </button>
-                        <button type="button" @click="setTool('underline'); open = false" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 flex items-center gap-2">
-                            <span class="font-bold underline text-red-600">U</span> ขีดเส้นใต้ (Underline)
-                        </button>
-                        <button type="button" @click="setTool('strikethrough'); open = false" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 flex items-center gap-2">
-                            <span class="font-bold line-through text-red-600">S</span> ขีดฆ่า (Strikethrough)
-                        </button>
-                    </div>
-                </div>
-
-                {{-- 7. Stamp --}}
-                <button type="button"
-                        @click="setTool('stamp')"
-                        :class="activeTool === 'stamp' ? 'bg-brand-600 text-white shadow-xs font-semibold' : 'text-slate-700 hover:bg-slate-200/70'"
-                        class="px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
-                        title="ตราประทับสำเร็จรูปและตราประทับกำหนดเอง (Stamp)">
-                    <span class="text-sm">🏷️</span>
-                    <span>ตราประทับ</span>
-                </button>
-
-                <div class="h-5 w-px bg-slate-200 mx-0.5"></div>
-
-                {{-- 8. Undo / Redo --}}
-                <div class="flex items-center gap-0.5">
-                    <button type="button"
-                            @click="undo()"
-                            :disabled="!canUndo"
-                            class="p-1.5 rounded-lg text-xs text-slate-700 hover:bg-slate-200/70 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                            title="เลิกทำ (Undo - Ctrl+Z)">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"/></svg>
-                    </button>
-                    <button type="button"
-                            @click="redo()"
-                            :disabled="!canRedo"
-                            class="p-1.5 rounded-lg text-xs text-slate-700 hover:bg-slate-200/70 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                            title="ทำซ้ำ (Redo - Ctrl+Y)">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m15 15 6-6m0 0-6-6m6 6H9a6 6 0 0 0 0 12h3"/></svg>
-                    </button>
-                </div>
             </div>
 
-            {{-- Right: File Management & Export --}}
-            <div class="flex items-center gap-1.5 ml-auto">
-                {{-- New Task --}}
-                <button type="button"
-                        @click="createNewTask()"
-                        class="px-2.5 py-1.5 rounded-lg text-xs border border-slate-200 hover:bg-slate-100 text-slate-700 flex items-center gap-1.5 cursor-pointer transition-colors"
-                        title="สร้างงานใหม่ / หน้าว่างใหม่">
+            {{-- Right: Quick File Actions --}}
+            <div class="flex items-center gap-1.5 pb-1">
+                <button type="button" @click="createNewTask()" class="px-2 py-1 rounded text-xs text-slate-700 hover:bg-slate-200 flex items-center gap-1 cursor-pointer">
                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-                    <span class="hidden md:inline">งานใหม่</span>
+                    <span class="hidden sm:inline">งานใหม่</span>
                 </button>
-
-                {{-- Open File --}}
-                <button type="button"
-                        @click="triggerOpenDialog()"
-                        class="px-2.5 py-1.5 rounded-lg text-xs border border-slate-200 hover:bg-slate-100 text-slate-700 flex items-center gap-1.5 cursor-pointer transition-colors"
-                        title="เปิดไฟล์ PDF จากคอมพิวเตอร์">
+                <button type="button" @click="triggerOpenDialog()" class="px-2 py-1 rounded text-xs text-slate-700 hover:bg-slate-200 flex items-center gap-1 cursor-pointer">
                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776"/></svg>
-                    <span class="hidden md:inline">เปิดไฟล์</span>
+                    <span class="hidden sm:inline">เปิดไฟล์</span>
                 </button>
-
-                {{-- Print --}}
-                <button type="button"
-                        @click="printDocument()"
-                        class="p-1.5 rounded-lg text-slate-700 hover:bg-slate-100 border border-slate-200 cursor-pointer transition-colors"
-                        title="พิมพ์เอกสาร (Print)">
+                <button type="button" @click="printDocument()" class="p-1 rounded text-slate-700 hover:bg-slate-200 cursor-pointer" title="พิมพ์ (Print)">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5Zm-3 0h.008v.008H15V10.5Z"/></svg>
                 </button>
-
-                {{-- Share --}}
-                <button type="button"
-                        @click="shareDocument()"
-                        class="p-1.5 rounded-lg text-slate-700 hover:bg-slate-100 border border-slate-200 cursor-pointer transition-colors"
-                        title="แชร์เอกสาร">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z"/></svg>
-                </button>
-
-                {{-- Save & Download PDF --}}
-                <button type="button"
-                        @click="saveAndDownloadPdf()"
-                        :disabled="isExporting"
-                        class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white shadow-sm flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 disabled:opacity-50">
-                    <svg x-show="!isExporting" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
-                    <svg x-show="isExporting" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                <button type="button" @click="saveAndDownloadPdf()" :disabled="isExporting" class="px-3 py-1 rounded-lg text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-xs flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-50">
+                    <svg x-show="!isExporting" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
                     <span x-text="isExporting ? 'กำลังบันทึก...' : 'ดาวน์โหลด PDF'"></span>
                 </button>
             </div>
         </div>
 
         {{-- ─── SECONDARY CONTEXTUAL TOOLBAR ─── --}}
-        <div class="bg-white border-b border-slate-200/80 px-4 py-1.5 flex flex-wrap items-center justify-between text-xs gap-3 shrink-0">
-            {{-- Contextual properties for active tool --}}
-            <div class="flex items-center gap-3 overflow-x-auto">
+        <div class="bg-white border-b border-slate-200/80 px-3 py-1.5 flex flex-wrap items-center justify-between text-xs gap-2 shrink-0 select-none">
+            
+            {{-- ═══ RIBBON 1: EDIT CONTENT (ตรงตามภาพหน้าจอของผู้ใช้!) ═══ --}}
+            <div x-show="activeRibbonTab === 'edit-content'" class="flex items-center gap-1.5 sm:gap-2 flex-wrap" x-cloak>
+                {{-- Header and Footer dropdown --}}
+                <div class="relative" x-data="{ hfOpen: false }">
+                    <button type="button"
+                            @click="hfOpen = !hfOpen"
+                            class="px-2 py-1 rounded text-xs font-medium text-slate-700 hover:bg-slate-100 border border-slate-200 flex items-center gap-1 cursor-pointer">
+                        <span>Header and Footer</span>
+                        <svg class="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                    <div x-show="hfOpen" @click.away="hfOpen = false" x-cloak class="absolute left-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-xl z-50 py-1 text-xs">
+                        <button type="button" @click="addHeaderFooterText('header'); hfOpen = false;" class="w-full text-left px-3 py-1.5 hover:bg-slate-100 flex items-center gap-2 text-slate-700">
+                            <span>🔝 เพิ่มหัวกระดาษ (Header)</span>
+                        </button>
+                        <button type="button" @click="addHeaderFooterText('footer'); hfOpen = false;" class="w-full text-left px-3 py-1.5 hover:bg-slate-100 flex items-center gap-2 text-slate-700">
+                            <span>🔚 เพิ่มท้ายกระดาษ (Footer)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="h-4 w-px bg-slate-200"></div>
+
+                {{-- Picture (Insert Image) --}}
+                <button type="button"
+                        @click="triggerImageDialog()"
+                        class="px-2.5 py-1 rounded text-xs font-medium text-slate-700 hover:bg-slate-100 border border-slate-200 flex items-center gap-1.5 cursor-pointer"
+                        title="แทรกรูปภาพลงในเอกสาร (Picture)">
+                    <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/></svg>
+                    <span>Picture</span>
+                </button>
+
+                {{-- Add Text --}}
+                <button type="button"
+                        @click="setTool('text')"
+                        :class="activeTool === 'text' ? 'bg-brand-50 border-brand-500 text-brand-700 font-bold' : 'text-slate-700 hover:bg-slate-100 border-slate-200'"
+                        class="px-2.5 py-1 rounded text-xs font-medium border flex items-center gap-1.5 cursor-pointer"
+                        title="เพิ่มกล่องข้อความใหม่ (Add Text)">
+                    <svg class="w-4 h-4 text-brand-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15M4.5 7.5V6a2.25 2.25 0 0 1 2.25-2.25h10.5A2.25 2.25 0 0 1 19.5 6v1.5"/></svg>
+                    <span>Add Text</span>
+                </button>
+
+                <div class="h-4 w-px bg-slate-200"></div>
+
+                {{-- Font Family Dropdown with TH Niramit AS selected as default --}}
+                <div class="flex items-center" title="แบบอักษรภาษาไทย">
+                    <select x-model="textFontFamily"
+                            @change="updateSelectedTextProp('fontFamily', textFontFamily)"
+                            class="border border-slate-300 rounded px-2 py-1 text-xs bg-white text-slate-800 font-medium focus:ring-1 focus:ring-brand-500">
+                        <option value="TH Niramit AS">TH Niramit AS</option>
+                        <option value="TH Sarabun PSK">TH Sarabun PSK</option>
+                        <option value="Sarabun">สารบัญ (Sarabun)</option>
+                        <option value="Kanit">คณิต (Kanit)</option>
+                        <option value="Prompt">พร้อมพ์ (Prompt)</option>
+                        <option value="Chakra Petch">Chakra Petch</option>
+                        <option value="Mitr">Mitr</option>
+                        <option value="sans-serif">Sans-serif มาตรฐาน</option>
+                    </select>
+                </div>
+
+                {{-- Font Size Dropdown (e.g. 12pt default) --}}
+                <div class="flex items-center" title="ขนาดตัวอักษร">
+                    <select x-model.number="textSize"
+                            @change="updateSelectedTextProp('fontSize', textSize)"
+                            class="border border-slate-300 rounded px-1.5 py-1 text-xs bg-white text-slate-800 font-medium focus:ring-1 focus:ring-brand-500 w-16">
+                        <option value="8">8</option>
+                        <option value="9">9</option>
+                        <option value="10">10</option>
+                        <option value="11">11</option>
+                        <option value="12">12</option>
+                        <option value="14">14</option>
+                        <option value="16">16</option>
+                        <option value="18">18</option>
+                        <option value="20">20</option>
+                        <option value="22">22</option>
+                        <option value="24">24</option>
+                        <option value="28">28</option>
+                        <option value="32">32</option>
+                        <option value="36">36</option>
+                        <option value="48">48</option>
+                    </select>
+                </div>
+
+                {{-- A^ / A_ Font Size Step Buttons --}}
+                <div class="flex items-center gap-0.5">
+                    <button type="button" @click="increaseFontSize()" class="px-1.5 py-1 rounded hover:bg-slate-100 text-slate-700 font-bold text-xs cursor-pointer border border-slate-200" title="เพิ่มขนาดตัวอักษร">A<span class="text-[9px] align-super">▲</span></button>
+                    <button type="button" @click="decreaseFontSize()" class="px-1.5 py-1 rounded hover:bg-slate-100 text-slate-700 font-bold text-xs cursor-pointer border border-slate-200" title="ลดขนาดตัวอักษร">A<span class="text-[9px] align-sub">▼</span></button>
+                </div>
+
+                <div class="h-4 w-px bg-slate-200"></div>
+
+                {{-- Style: B, I, U --}}
+                <div class="flex items-center gap-0.5 bg-slate-100 p-0.5 rounded border border-slate-200">
+                    <button type="button"
+                            @click="toggleTextProp('bold')"
+                            :class="textBold ? 'bg-white shadow-2xs text-brand-600 font-extrabold' : 'text-slate-600 hover:text-slate-900'"
+                            class="w-6 h-6 rounded flex items-center justify-center font-bold text-xs cursor-pointer"
+                            title="ตัวหนา (Bold)">B</button>
+                    <button type="button"
+                            @click="toggleTextProp('italic')"
+                            :class="textItalic ? 'bg-white shadow-2xs text-brand-600 font-extrabold' : 'text-slate-600 hover:text-slate-900'"
+                            class="w-6 h-6 rounded flex items-center justify-center italic font-serif text-xs cursor-pointer"
+                            title="ตัวเอียง (Italic)">I</button>
+                    <button type="button"
+                            @click="toggleTextProp('underline')"
+                            :class="textUnderline ? 'bg-white shadow-2xs text-brand-600 font-extrabold' : 'text-slate-600 hover:text-slate-900'"
+                            class="w-6 h-6 rounded flex items-center justify-center underline text-xs cursor-pointer"
+                            title="ขีดเส้นใต้ (Underline)">U</button>
+                </div>
+
+                <div class="h-4 w-px bg-slate-200"></div>
+
+                {{-- Alignment: Left, Center, Right, Justify --}}
+                <div class="flex items-center gap-0.5 bg-slate-100 p-0.5 rounded border border-slate-200">
+                    <button type="button" @click="setTextAlign('left')" :class="textAlign === 'left' ? 'bg-white shadow-2xs text-brand-600' : 'text-slate-600 hover:text-slate-900'" class="w-6 h-6 rounded flex items-center justify-center cursor-pointer" title="จัดชิดซ้าย">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h10.5m-10.5 5.25h16.5"/></svg>
+                    </button>
+                    <button type="button" @click="setTextAlign('center')" :class="textAlign === 'center' ? 'bg-white shadow-2xs text-brand-600' : 'text-slate-600 hover:text-slate-900'" class="w-6 h-6 rounded flex items-center justify-center cursor-pointer" title="จัดกึ่งกลาง">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M6.75 12h10.5m-13.5 5.25h16.5"/></svg>
+                    </button>
+                    <button type="button" @click="setTextAlign('right')" :class="textAlign === 'right' ? 'bg-white shadow-2xs text-brand-600' : 'text-slate-600 hover:text-slate-900'" class="w-6 h-6 rounded flex items-center justify-center cursor-pointer" title="จัดชิดขวา">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M9.75 12h10.5m-16.5 5.25h16.5"/></svg>
+                    </button>
+                </div>
+
+                {{-- Line Spacing --}}
+                <div class="flex items-center" title="ระยะห่างบรรทัด (Line Spacing)">
+                    <select x-model="textLineHeight" @change="updateSelectedTextProp('lineHeight', textLineHeight)" class="border border-slate-300 rounded px-1.5 py-1 text-xs bg-white text-slate-800 font-medium focus:ring-1 focus:ring-brand-500">
+                        <option value="1.15">บรรทัด 1.15</option>
+                        <option value="1.3">บรรทัด 1.30</option>
+                        <option value="1.45">บรรทัด 1.45</option>
+                        <option value="1.6">บรรทัด 1.60</option>
+                        <option value="1.8">บรรทัด 1.80</option>
+                        <option value="2.0">บรรทัด 2.00</option>
+                    </select>
+                </div>
+
+                <div class="h-4 w-px bg-slate-200"></div>
+
+                {{-- Text Color A --}}
+                <div class="flex items-center" title="สีตัวอักษร">
+                    <label class="flex items-center gap-1 cursor-pointer px-1.5 py-0.5 rounded border border-slate-200 hover:bg-slate-50">
+                        <span class="font-extrabold text-xs" :style="`color: ${textColor}`">A</span>
+                        <input type="color" x-model="textColor" @change="updateSelectedTextProp('color', textColor)" class="w-3.5 h-3.5 rounded border-0 p-0 cursor-pointer">
+                    </label>
+                </div>
+
+                {{-- Cover Original Text (Whiteout) Toggle --}}
+                <div class="flex items-center">
+                    <button type="button"
+                            @click="toggleTextCover()"
+                            :class="textBgColor === '#ffffff' ? 'bg-emerald-50 border-emerald-500 text-emerald-700 font-semibold' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'"
+                            class="px-2 py-1 rounded border text-[11px] flex items-center gap-1 cursor-pointer"
+                            title="ปิดทับข้อความเดิมด้านหลังอัตโนมัติด้วยสีขาว">
+                        <span class="w-2 h-2 rounded-xs" :class="textBgColor === '#ffffff' ? 'bg-emerald-500' : 'bg-slate-300'"></span>
+                        <span>ปิดทับข้อความเดิม</span>
+                    </button>
+                </div>
+
+                {{-- Block vs Line Mode Toggle --}}
+                <div class="flex items-center gap-0.5 bg-slate-100 p-0.5 rounded border border-slate-200" title="โหมดตรวจจับข้อความเดิม">
+                    <button type="button" @click="setTextGroupMode('block')" :class="textGroupMode === 'block' ? 'bg-white shadow-2xs text-brand-600 font-bold' : 'text-slate-600 hover:text-slate-900'" class="px-1.5 py-0.5 rounded text-[11px] cursor-pointer">
+                        กลุ่มย่อหน้า
+                    </button>
+                    <button type="button" @click="setTextGroupMode('line')" :class="textGroupMode === 'line' ? 'bg-white shadow-2xs text-brand-600 font-bold' : 'text-slate-600 hover:text-slate-900'" class="px-1.5 py-0.5 rounded text-[11px] cursor-pointer">
+                        ทีละบรรทัด
+                    </button>
+                </div>
+
+                <div class="h-4 w-px bg-slate-200"></div>
+
+                {{-- Undo / Redo in Ribbon --}}
+                <div class="flex items-center gap-0.5">
+                    <button type="button" @click="undo()" :disabled="!canUndo" class="p-1 rounded text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer" title="Undo (Ctrl+Z)">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"/></svg>
+                    </button>
+                    <button type="button" @click="redo()" :disabled="!canRedo" class="p-1 rounded text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer" title="Redo (Ctrl+Y)">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m15 15 6-6m0 0-6-6m6 6H9a6 6 0 0 0 0 12h3"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            {{-- ═══ RIBBON 2: DOCUMENT (เครื่องมือวาดเขียน ไฮไลท์ โน้ต ตราประทับ ไวท์เอาท์) ═══ --}}
+            <div x-show="activeRibbonTab === 'document'" class="flex items-center gap-1 sm:gap-2 flex-wrap" x-cloak>
+                {{-- 1. Pointer --}}
+                <button type="button" @click="setTool('pointer')" :class="activeTool === 'pointer' ? 'bg-brand-50 border-brand-500 text-brand-700 font-bold' : 'text-slate-700 hover:bg-slate-100 border-slate-200'" class="px-2 py-1 rounded text-xs border flex items-center gap-1 cursor-pointer" title="เลือกวัตถุและแก้ไข (Pointer)">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672 13.684 16.6m0 0-2.51 2.225.569-9.47 5.227 7.917-3.286-.672ZM12 2.25V4.5m5.834.166-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243-1.59-1.59"/></svg>
+                    <span>เลือก</span>
+                </button>
+
+                {{-- 2. Hand --}}
+                <button type="button" @click="setTool('hand')" :class="activeTool === 'hand' ? 'bg-brand-50 border-brand-500 text-brand-700 font-bold' : 'text-slate-700 hover:bg-slate-100 border-slate-200'" class="px-2 py-1 rounded text-xs border flex items-center gap-1 cursor-pointer" title="เลื่อนหน้าเอกสาร (Hand)">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.05 4.575a1.575 1.575 0 1 0-3.15 0v3m3.15-3v-1.5a1.575 1.575 0 0 1 3.15 0v1.5m-3.15 0 .075 5.925m3.075.075V4.575m0 0a1.575 1.575 0 0 1 3.15 0V15M6.9 7.575a1.575 1.575 0 1 0-3.15 0v8.175a6.75 6.75 0 0 0 6.75 6.75h2.018a5.25 5.25 0 0 0 3.712-1.538l1.732-1.732a5.25 5.25 0 0 0 1.538-3.712l.003-2.024a.66.66 0 0 1 .66-.66h.024a.66.66 0 0 0 .66-.66V9.75a1.575 1.575 0 0 0-3.15 0v2.25"/></svg>
+                    <span>เลื่อน</span>
+                </button>
+
+                {{-- 3. Whiteout --}}
+                <button type="button" @click="setTool('whiteout')" :class="activeTool === 'whiteout' ? 'bg-brand-50 border-brand-500 text-brand-700 font-bold' : 'text-slate-700 hover:bg-slate-100 border-slate-200'" class="px-2 py-1 rounded text-xs border flex items-center gap-1 cursor-pointer" title="ลบข้อความ / ไวท์เอาท์">
+                    <span class="w-3 h-3 rounded-xs bg-white border border-slate-400"></span>
+                    <span>ลบข้อความ</span>
+                </button>
+
+                {{-- 4. Draw --}}
+                <button type="button" @click="setTool('draw')" :class="activeTool === 'draw' ? 'bg-brand-50 border-brand-500 text-brand-700 font-bold' : 'text-slate-700 hover:bg-slate-100 border-slate-200'" class="px-2 py-1 rounded text-xs border flex items-center gap-1 cursor-pointer" title="วาดเขียนอิสระ">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125"/></svg>
+                    <span>วาดเขียน</span>
+                </button>
+
+                {{-- 5. Highlight --}}
+                <button type="button" @click="setTool('highlight')" :class="activeTool === 'highlight' ? 'bg-brand-50 border-brand-500 text-brand-700 font-bold' : 'text-slate-700 hover:bg-slate-100 border-slate-200'" class="px-2 py-1 rounded text-xs border flex items-center gap-1 cursor-pointer" title="ไฮไลท์เน้นข้อความ">
+                    <svg class="w-3.5 h-3.5 text-amber-500" fill="currentColor" viewBox="0 0 20 20"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
+                    <span>ไฮไลท์</span>
+                </button>
+
+                {{-- 6. Sticky Note --}}
+                <button type="button" @click="setTool('note')" :class="activeTool === 'note' ? 'bg-brand-50 border-brand-500 text-brand-700 font-bold' : 'text-slate-700 hover:bg-slate-100 border-slate-200'" class="px-2 py-1 rounded text-xs border flex items-center gap-1 cursor-pointer" title="แปะโน้ต / ความคิดเห็น">
+                    <span>💬</span>
+                    <span>แปะโน้ต</span>
+                </button>
+
+                {{-- 7. Stamp --}}
+                <button type="button" @click="setTool('stamp')" :class="activeTool === 'stamp' ? 'bg-brand-50 border-brand-500 text-brand-700 font-bold' : 'text-slate-700 hover:bg-slate-100 border-slate-200'" class="px-2 py-1 rounded text-xs border flex items-center gap-1 cursor-pointer" title="ประทับตรา">
+                    <span class="text-emerald-600 font-bold">✓</span>
+                    <span>ตราประทับ</span>
+                </button>
+
                 {{-- Draw Properties --}}
                 <template x-if="activeTool === 'draw'">
-                    <div class="flex items-center gap-3">
-                        <span class="text-slate-500 font-medium">สีหมึก:</span>
-                        <div class="flex items-center gap-1.5">
-                            <template x-for="c in ['#dc2626', '#2563eb', '#16a34a', '#111827', '#eab308', '#9333ea']" :key="c">
-                                <button type="button" @click="drawColor = c" class="w-5 h-5 rounded-full border-2 cursor-pointer transition-transform" :style="`background-color: ${c}`" :class="drawColor === c ? 'border-slate-800 scale-110 ring-1 ring-slate-300' : 'border-white'"></button>
-                            </template>
-                        </div>
-                        <div class="h-4 w-px bg-slate-200"></div>
-                        <span class="text-slate-500 font-medium">ขนาดเส้น:</span>
-                        <div class="flex items-center gap-1">
-                            <template x-for="sz in [2, 3, 5, 8]" :key="sz">
-                                <button type="button" @click="drawWidth = sz" :class="drawWidth === sz ? 'bg-slate-200 font-bold text-brand-600' : 'text-slate-600 hover:bg-slate-100'" class="px-2 py-0.5 rounded text-[11px] cursor-pointer" x-text="`${sz}px`"></button>
-                            </template>
-                        </div>
+                    <div class="flex items-center gap-2 pl-2 border-l border-slate-200">
+                        <span class="text-slate-500 text-[11px]">สี:</span>
+                        <template x-for="c in ['#dc2626', '#2563eb', '#16a34a', '#111827', '#eab308']" :key="c">
+                            <button type="button" @click="drawColor = c" class="w-4 h-4 rounded-full border" :style="`background-color: ${c}`" :class="drawColor === c ? 'ring-2 ring-brand-500' : ''"></button>
+                        </template>
+                        <span class="text-slate-500 text-[11px] ml-1">ขนาด:</span>
+                        <template x-for="sz in [2, 3, 5]" :key="sz">
+                            <button type="button" @click="drawWidth = sz" :class="drawWidth === sz ? 'bg-slate-200 font-bold text-brand-600' : 'text-slate-600 hover:bg-slate-100'" class="px-1.5 py-0.5 rounded text-[11px]" x-text="`${sz}px`"></button>
+                        </template>
                     </div>
                 </template>
 
                 {{-- Highlight Properties --}}
-                <template x-if="['highlight', 'underline', 'strikethrough'].includes(activeTool)">
-                    <div class="flex items-center gap-3">
-                        <span class="text-slate-500 font-medium">สีไฮไลท์:</span>
-                        <div class="flex items-center gap-1.5">
-                            <template x-for="c in ['#fde047', '#86efac', '#f9a8d4', '#93c5fd']" :key="c">
-                                <button type="button" @click="highlightColor = c" class="w-5 h-5 rounded-full border-2 cursor-pointer transition-transform" :style="`background-color: ${c}`" :class="highlightColor === c ? 'border-slate-800 scale-110 ring-1 ring-slate-300' : 'border-white'"></button>
-                            </template>
-                        </div>
-                        <span class="text-slate-400 text-[11px]">💡 คลิกแล้วลากคลุมบริเวณที่ต้องการเน้นข้อความ</span>
-                    </div>
-                </template>
-
-                {{-- Text Properties (either text tool active OR edit-text active OR a text annotation selected) --}}
-                <template x-if="activeTool === 'text' || activeTool === 'edit-text' || (selectedAnnotation && selectedAnnotation.type === 'text')">
-                    <div class="flex items-center gap-2 sm:gap-2.5 flex-wrap py-0.5">
-                        {{-- Font Family --}}
-                        <div class="flex items-center gap-1">
-                            <span class="text-slate-500 font-medium text-[11px]">แบบอักษร:</span>
-                            <select x-model="textFontFamily"
-                                    @change="if (selectedAnnotation && selectedAnnotation.type === 'text') selectedAnnotation.fontFamily = textFontFamily"
-                                    class="border border-slate-200 rounded px-1.5 py-0.5 text-xs bg-white text-slate-700">
-                                <option value="Sarabun">สารบัญ (Sarabun)</option>
-                                <option value="Kanit">คณิต (Kanit)</option>
-                                <option value="Prompt">พร้อมพ์ (Prompt)</option>
-                                <option value="sans-serif">Sans-serif มาตรฐาน</option>
-                            </select>
-                        </div>
-
-                        <div class="h-4 w-px bg-slate-200"></div>
-
-                        {{-- Font Size --}}
-                        <div class="flex items-center gap-1">
-                            <span class="text-slate-500 font-medium text-[11px]">ขนาด:</span>
-                            <select x-model.number="textSize"
-                                    @change="if (selectedAnnotation && selectedAnnotation.type === 'text') selectedAnnotation.fontSize = textSize"
-                                    class="border border-slate-200 rounded px-1.5 py-0.5 text-xs bg-white text-slate-700">
-                                <option value="10">10 pt</option>
-                                <option value="12">12 pt</option>
-                                <option value="14">14 pt</option>
-                                <option value="16">16 pt</option>
-                                <option value="18">18 pt</option>
-                                <option value="20">20 pt</option>
-                                <option value="24">24 pt</option>
-                                <option value="28">28 pt</option>
-                                <option value="32">32 pt</option>
-                                <option value="40">40 pt</option>
-                            </select>
-                        </div>
-
-                        {{-- Style: Bold / Italic / Underline --}}
-                        <div class="flex items-center gap-0.5">
-                            <button type="button"
-                                    @click="textBold = !textBold; if (selectedAnnotation && selectedAnnotation.type === 'text') selectedAnnotation.bold = textBold"
-                                    :class="(selectedAnnotation ? selectedAnnotation.bold : textBold) ? 'bg-slate-200 text-brand-600 font-bold' : 'text-slate-600 hover:bg-slate-100'"
-                                    class="px-2 py-0.5 rounded border border-slate-200 font-bold cursor-pointer"
-                                    title="ตัวหนา (Bold)">B</button>
-                            <button type="button"
-                                    @click="textItalic = !textItalic; if (selectedAnnotation && selectedAnnotation.type === 'text') selectedAnnotation.italic = textItalic"
-                                    :class="(selectedAnnotation ? selectedAnnotation.italic : textItalic) ? 'bg-slate-200 text-brand-600 font-bold' : 'text-slate-600 hover:bg-slate-100'"
-                                    class="px-2 py-0.5 rounded border border-slate-200 italic font-serif cursor-pointer"
-                                    title="ตัวเอียง (Italic)">I</button>
-                            <button type="button"
-                                    @click="textUnderline = !textUnderline; if (selectedAnnotation && selectedAnnotation.type === 'text') selectedAnnotation.underline = textUnderline"
-                                    :class="(selectedAnnotation ? selectedAnnotation.underline : textUnderline) ? 'bg-slate-200 text-brand-600 font-bold' : 'text-slate-600 hover:bg-slate-100'"
-                                    class="px-2 py-0.5 rounded border border-slate-200 underline font-semibold cursor-pointer"
-                                    title="ขีดเส้นใต้ (Underline)">U</button>
-                        </div>
-
-                        <div class="h-4 w-px bg-slate-200"></div>
-
-                        {{-- Align: Left, Center, Right --}}
-                        <div class="flex items-center gap-0.5">
-                            <button type="button"
-                                    @click="textAlign = 'left'; if (selectedAnnotation && selectedAnnotation.type === 'text') selectedAnnotation.align = 'left'"
-                                    :class="((selectedAnnotation ? selectedAnnotation.align : textAlign) || 'left') === 'left' ? 'bg-slate-200 text-brand-600' : 'text-slate-600 hover:bg-slate-100'"
-                                    class="p-1 rounded border border-slate-200 cursor-pointer"
-                                    title="ชิดซ้าย">
-                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h10.5m-10.5 5.25h16.5"/></svg>
-                            </button>
-                            <button type="button"
-                                    @click="textAlign = 'center'; if (selectedAnnotation && selectedAnnotation.type === 'text') selectedAnnotation.align = 'center'"
-                                    :class="(selectedAnnotation ? selectedAnnotation.align : textAlign) === 'center' ? 'bg-slate-200 text-brand-600' : 'text-slate-600 hover:bg-slate-100'"
-                                    class="p-1 rounded border border-slate-200 cursor-pointer"
-                                    title="กึ่งกลาง">
-                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M6.75 12h10.5m-13.5 5.25h16.5"/></svg>
-                            </button>
-                            <button type="button"
-                                    @click="textAlign = 'right'; if (selectedAnnotation && selectedAnnotation.type === 'text') selectedAnnotation.align = 'right'"
-                                    :class="(selectedAnnotation ? selectedAnnotation.align : textAlign) === 'right' ? 'bg-slate-200 text-brand-600' : 'text-slate-600 hover:bg-slate-100'"
-                                    class="p-1 rounded border border-slate-200 cursor-pointer"
-                                    title="ชิดขวา">
-                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M9.75 12h10.5m-16.5 5.25h16.5"/></svg>
-                            </button>
-                        </div>
-
-                        <div class="h-4 w-px bg-slate-200"></div>
-
-                        {{-- Color Palette --}}
-                        <div class="flex items-center gap-1">
-                            <span class="text-slate-500 font-medium text-[11px]">สี:</span>
-                            <template x-for="c in ['#111827', '#dc2626', '#2563eb', '#16a34a', '#4b5563']" :key="c">
-                                <button type="button" @click="textColor = c; if (selectedAnnotation && selectedAnnotation.type === 'text') selectedAnnotation.color = c" class="w-4 h-4 rounded-full border cursor-pointer" :style="`background-color: ${c}`" :class="(selectedAnnotation ? selectedAnnotation.color : textColor) === c ? 'ring-2 ring-brand-500' : ''"></button>
-                            </template>
-                        </div>
-
-                        <div class="h-4 w-px bg-slate-200"></div>
-
-                        {{-- Background Fill Mode (Cover old text vs Transparent) --}}
-                        <div class="flex items-center gap-1">
-                            <span class="text-slate-500 font-medium text-[11px]">พื้นหลัง:</span>
-                            <button type="button"
-                                    @click="textBgColor = '#ffffff'; if (selectedAnnotation && selectedAnnotation.type === 'text') selectedAnnotation.bgColor = '#ffffff'"
-                                    :class="((selectedAnnotation ? selectedAnnotation.bgColor : textBgColor) === '#ffffff') ? 'bg-brand-50 border-brand-500 text-brand-700 font-semibold' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'"
-                                    class="px-2 py-0.5 rounded border text-[11px] flex items-center gap-1 cursor-pointer"
-                                    title="ปิดทับข้อความเดิมด้านล่างด้วยสีขาว">
-                                <span class="w-2.5 h-2.5 bg-white border border-slate-300 rounded-xs"></span>
-                                <span>ปิดทับเดิม (ขาว)</span>
-                            </button>
-                            <button type="button"
-                                    @click="textBgColor = 'transparent'; if (selectedAnnotation && selectedAnnotation.type === 'text') selectedAnnotation.bgColor = 'transparent'"
-                                    :class="((selectedAnnotation ? selectedAnnotation.bgColor : textBgColor) === 'transparent') ? 'bg-brand-50 border-brand-500 text-brand-700 font-semibold' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'"
-                                    class="px-2 py-0.5 rounded border text-[11px] flex items-center gap-1 cursor-pointer"
-                                    title="โปร่งใส ไม่มีพื้นหลัง">
-                                <span class="w-2.5 h-2.5 border border-dashed border-slate-400 rounded-xs"></span>
-                                <span>โปร่งใส</span>
-                            </button>
-                        </div>
-                    </div>
-                </template>
-
-                {{-- Whiteout Properties --}}
-                <template x-if="activeTool === 'whiteout'">
-                    <div class="flex items-center gap-2 text-slate-500">
-                        <span class="w-3.5 h-3.5 rounded bg-white border border-slate-400 inline-block shadow-2xs"></span>
-                        <span class="font-medium text-slate-700">เครื่องมือลบข้อความ (ไวท์เอาท์):</span>
-                        <span class="text-slate-400">คลิกแล้วลากคลุมบริเวณข้อความหรือจุดที่ไม่ต้องการ เพื่อปิดทับด้วยพื้นหลังสีขาว</span>
+                <template x-if="activeTool === 'highlight'">
+                    <div class="flex items-center gap-2 pl-2 border-l border-slate-200">
+                        <span class="text-slate-500 text-[11px]">สีไฮไลท์:</span>
+                        <template x-for="c in ['#fde047', '#86efac', '#f9a8d4', '#93c5fd']" :key="c">
+                            <button type="button" @click="highlightColor = c" class="w-4 h-4 rounded-full border" :style="`background-color: ${c}`" :class="highlightColor === c ? 'ring-2 ring-brand-500' : ''"></button>
+                        </template>
                     </div>
                 </template>
 
                 {{-- Stamp Properties --}}
                 <template x-if="activeTool === 'stamp'">
-                    <div class="flex items-center gap-3">
-                        <span class="text-slate-500 font-medium">เลือกตราประทับ:</span>
-                        <select x-model="activeStampPreset" class="border border-slate-200 rounded px-2 py-0.5 text-xs bg-white text-slate-700">
+                    <div class="flex items-center gap-2 pl-2 border-l border-slate-200">
+                        <select x-model="activeStampPreset" class="border border-slate-200 rounded px-1.5 py-0.5 text-xs bg-white text-slate-700">
                             <option value="APPROVED">APPROVED (อนุมัติ)</option>
                             <option value="DRAFT">DRAFT (ร่าง)</option>
                             <option value="CONFIDENTIAL">CONFIDENTIAL (ลับเฉพาะ)</option>
@@ -443,24 +431,60 @@
                             <option value="CUSTOM">กำหนดข้อความเอง...</option>
                         </select>
                         <template x-if="activeStampPreset === 'CUSTOM'">
-                            <input type="text" x-model="customStampText" placeholder="พิมพ์ข้อความตราประทับ" class="border border-slate-200 rounded px-2 py-0.5 text-xs w-36">
+                            <input type="text" x-model="customStampText" placeholder="ข้อความตราประทับ" class="border border-slate-200 rounded px-1.5 py-0.5 text-xs w-28">
                         </template>
-                        <div class="flex items-center gap-1">
-                            <template x-for="c in ['#16a34a', '#dc2626', '#2563eb', '#ea580c', '#111827']" :key="c">
-                                <button type="button" @click="stampColor = c" class="w-4 h-4 rounded-full border" :style="`background-color: ${c}`" :class="stampColor === c ? 'ring-2 ring-slate-800' : ''"></button>
-                            </template>
-                        </div>
                     </div>
-                </template>
-
-                {{-- Default Pointer hint --}}
-                <template x-if="activeTool === 'pointer' && !selectedAnnotationId">
-                    <span class="text-slate-400">💡 คลิกเลือกวัตถุบนหน้าเพื่อลากย้าย ปรับขนาด หรือกดปุ่ม Delete เพื่อลบ</span>
                 </template>
             </div>
 
+            {{-- ═══ RIBBON 3: ORGANIZE PAGES ═══ --}}
+            <div x-show="activeRibbonTab === 'organize'" class="flex items-center gap-2 flex-wrap" x-cloak>
+                <button type="button" @click="addBlankPage('before')" class="px-2.5 py-1 rounded text-xs border border-slate-200 hover:bg-slate-100 text-slate-700 flex items-center gap-1 cursor-pointer">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                    <span>แทรกหน้าว่างก่อนหน้านี้</span>
+                </button>
+                <button type="button" @click="addBlankPage('after')" class="px-2.5 py-1 rounded text-xs border border-slate-200 hover:bg-slate-100 text-slate-700 flex items-center gap-1 cursor-pointer">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                    <span>แทรกหน้าว่างต่อท้าย</span>
+                </button>
+                <div class="h-4 w-px bg-slate-200"></div>
+                <button type="button" @click="rotateCurrentPage(90)" class="px-2.5 py-1 rounded text-xs border border-slate-200 hover:bg-slate-100 text-slate-700 flex items-center gap-1 cursor-pointer">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+                    <span>หมุน 90° ตามเข็ม</span>
+                </button>
+                <button type="button" @click="deleteCurrentPage()" class="px-2.5 py-1 rounded text-xs border border-red-200 text-red-600 hover:bg-red-50 flex items-center gap-1 cursor-pointer">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/></svg>
+                    <span>ลบหน้านี้</span>
+                </button>
+            </div>
+
+            {{-- ═══ RIBBON 4: SECURITY ═══ --}}
+            <div x-show="activeRibbonTab === 'security'" class="flex items-center gap-3 text-xs text-slate-600" x-cloak>
+                <div class="flex items-center gap-1.5 text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/></svg>
+                    <span>ความปลอดภัยระดับเบราว์เซอร์: ไฟล์ของคุณไม่ถูกอัปโหลดขึ้นเซิร์ฟเวอร์</span>
+                </div>
+                <a href="{{ route('protect-pdf') }}" class="text-brand-600 hover:underline flex items-center gap-1">
+                    <span>ต้องการตั้งรหัสผ่านล็อกไฟล์ PDF? คลิกที่นี่</span>
+                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                </a>
+            </div>
+
+            {{-- ═══ RIBBON 5: FORM EDITOR ═══ --}}
+            <div x-show="activeRibbonTab === 'form'" class="flex items-center gap-2 flex-wrap" x-cloak>
+                <button type="button" @click="addFormField('text')" class="px-2.5 py-1 rounded text-xs border border-slate-200 hover:bg-slate-100 text-slate-700 flex items-center gap-1 cursor-pointer">
+                    <span>🔲 เพิ่มช่องกรอกข้อความ</span>
+                </button>
+                <button type="button" @click="addFormField('checkbox')" class="px-2.5 py-1 rounded text-xs border border-slate-200 hover:bg-slate-100 text-slate-700 flex items-center gap-1 cursor-pointer">
+                    <span>☑️ เพิ่มช่องเช็คถูก</span>
+                </button>
+                <button type="button" @click="addFormField('signature')" class="px-2.5 py-1 rounded text-xs border border-slate-200 hover:bg-slate-100 text-slate-700 flex items-center gap-1 cursor-pointer">
+                    <span>✍️ เพิ่มช่องลายเซ็น</span>
+                </button>
+            </div>
+
             {{-- Right: Delete selected item button --}}
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 ml-auto">
                 <template x-if="selectedAnnotationId">
                     <button type="button"
                             @click="deleteSelectedAnnotation()"
@@ -753,25 +777,53 @@
                                  @mousedown.stop="startDragAnnotation($event, ann.id)"
                                  @click.stop="selectAnnotation(ann.id, $event)">
 
-                                {{-- Selection Box Border & Resize Handle --}}
+                                {{-- Selection Box Border & 8 Directional Square Handles (matching Foxit / Acrobat style in user screenshot) --}}
                                 <div x-show="selectedAnnotationId === ann.id"
-                                     class="absolute -inset-1 border-2 border-brand-500 rounded-xs pointer-events-none z-30">
-                                    {{-- Bottom-Right Resize Handle --}}
-                                    <div class="absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 bg-brand-600 rounded-full border border-white cursor-se-resize pointer-events-auto shadow-xs"
+                                     class="absolute -inset-1 border-2 border-[#0078d4] pointer-events-none z-30">
+                                    {{-- nw --}}
+                                    <div class="absolute -top-1.5 -left-1.5 w-2.5 h-2.5 bg-white border-2 border-[#0078d4] cursor-nwse-resize pointer-events-auto shadow-2xs"
+                                         @mousedown.stop="startResizeAnnotation($event, ann.id, 'nw')"></div>
+                                    {{-- n --}}
+                                    <div class="absolute -top-1.5 left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-white border-2 border-[#0078d4] cursor-ns-resize pointer-events-auto shadow-2xs"
+                                         @mousedown.stop="startResizeAnnotation($event, ann.id, 'n')"></div>
+                                    {{-- ne --}}
+                                    <div class="absolute -top-1.5 -right-1.5 w-2.5 h-2.5 bg-white border-2 border-[#0078d4] cursor-nesw-resize pointer-events-auto shadow-2xs"
+                                         @mousedown.stop="startResizeAnnotation($event, ann.id, 'ne')"></div>
+                                    {{-- e --}}
+                                    <div class="absolute top-1/2 -translate-y-1/2 -right-1.5 w-2.5 h-2.5 bg-white border-2 border-[#0078d4] cursor-ew-resize pointer-events-auto shadow-2xs"
+                                         @mousedown.stop="startResizeAnnotation($event, ann.id, 'e')"></div>
+                                    {{-- se --}}
+                                    <div class="absolute -bottom-1.5 -right-1.5 w-2.5 h-2.5 bg-white border-2 border-[#0078d4] cursor-nwse-resize pointer-events-auto shadow-2xs"
                                          @mousedown.stop="startResizeAnnotation($event, ann.id, 'se')"></div>
+                                    {{-- s --}}
+                                    <div class="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-white border-2 border-[#0078d4] cursor-ns-resize pointer-events-auto shadow-2xs"
+                                         @mousedown.stop="startResizeAnnotation($event, ann.id, 's')"></div>
+                                    {{-- sw --}}
+                                    <div class="absolute -bottom-1.5 -left-1.5 w-2.5 h-2.5 bg-white border-2 border-[#0078d4] cursor-nesw-resize pointer-events-auto shadow-2xs"
+                                         @mousedown.stop="startResizeAnnotation($event, ann.id, 'sw')"></div>
+                                    {{-- w --}}
+                                    <div class="absolute top-1/2 -translate-y-1/2 -left-1.5 w-2.5 h-2.5 bg-white border-2 border-[#0078d4] cursor-ew-resize pointer-events-auto shadow-2xs"
+                                         @mousedown.stop="startResizeAnnotation($event, ann.id, 'w')"></div>
                                 </div>
+
+                                {{-- ── TYPE 0: IMAGE / PICTURE ── --}}
+                                <template x-if="ann.type === 'image'">
+                                    <div class="w-full h-full cursor-move rounded-xs overflow-hidden flex items-center justify-center select-none bg-transparent">
+                                        <img :src="ann.dataUrl" class="w-full h-full object-contain pointer-events-none select-none">
+                                    </div>
+                                </template>
 
                                 {{-- ── TYPE 1: TEXT BOX (Supports background fill for covering original text) ── --}}
                                 <template x-if="ann.type === 'text'">
-                                    <div class="w-full h-full p-0.5 cursor-move rounded-xs transition-colors overflow-hidden flex flex-col"
-                                         :style="`background-color: ${ann.bgColor || 'transparent'}; color: ${ann.color || '#111827'}; font-size: ${(ann.fontSize || 16) * (zoom / 100)}px; font-family: ${ann.fontFamily || 'Sarabun'}, sans-serif; font-weight: ${ann.bold ? 'bold' : 'normal'}; font-style: ${ann.italic ? 'italic' : 'normal'}; text-decoration: ${ann.underline ? 'underline' : 'none'}; line-height: 1.35;`">
+                                    <div class="w-full h-full p-1 cursor-move rounded-xs transition-colors overflow-hidden flex flex-col"
+                                         :style="`background-color: ${ann.bgColor || 'transparent'}; color: ${ann.color || '#111827'}; font-size: ${(ann.fontSize || 12) * (zoom / 100)}px; font-family: '${ann.fontFamily || 'TH Niramit AS'}', 'Niramit', 'TH Sarabun PSK', 'Sarabun', sans-serif; font-weight: ${ann.bold ? 'bold' : 'normal'}; font-style: ${ann.italic ? 'italic' : 'normal'}; text-decoration: ${ann.underline ? 'underline' : 'none'}; line-height: ${ann.lineHeight || 1.45};`">
                                         <textarea x-model="ann.text"
                                                   :data-ann-id="ann.id"
                                                   @mousedown.stop
                                                   @click.stop
-                                                  class="w-full h-full flex-1 bg-transparent resize-none border-none outline-none leading-tight font-inherit text-inherit p-0 m-0 block"
+                                                  class="w-full h-full flex-1 bg-transparent resize-none border-none outline-none leading-normal font-inherit text-inherit p-0 m-0 block"
                                                   :style="`text-align: ${ann.align || 'left'};`"
-                                                  placeholder="พิมพ์ข้อความ..."></textarea>
+                                                  placeholder="พิมพ์หรือแก้ไขข้อความ..."></textarea>
                                     </div>
                                 </template>
 

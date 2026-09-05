@@ -4075,10 +4075,15 @@ Alpine.data('pdfEditor', () => ({
     isHighlighting: false,
     highlightStart: null,
 
-    // Text tool & edit-text settings
-    textFontFamily: 'Sarabun',
+    // Ribbon tab state: 'edit-content' (default pro ribbon) | 'document' | 'organize' | 'security' | 'form'
+    activeRibbonTab: 'edit-content',
+    textGroupMode: 'block', // 'block' (กลุ่มย่อหน้า/ส่วนข้อความ) | 'line' (ทีละบรรทัด)
+
+    // Text tool & edit-text settings (default TH Niramit AS, 12pt matching user's document)
+    textFontFamily: 'TH Niramit AS',
     textColor: '#111827',
-    textSize: 16,
+    textSize: 12,
+    textLineHeight: 1.45,
     textBold: false,
     textItalic: false,
     textUnderline: false,
@@ -4537,23 +4542,82 @@ Alpine.data('pdfEditor', () => ({
                 lines.push(currentLine);
             }
 
-            // Map grouped lines to percentage coordinates on page
-            this.currentOriginalTextBlocks = lines.map((line, idx) => {
-                const fontH = line.fontSize;
-                const topY = Math.max(0, line.baselineY - fontH * 0.95);
-                const totalH = fontH * 1.35;
-                const totalW = Math.max(line.maxX - line.minX, 20);
+            if (this.textGroupMode === 'block' && lines.length > 0) {
+                // Group contiguous lines into paragraphs / sections
+                const blocks = [];
+                let currentBlock = null;
 
-                return {
-                    id: `orig_${this.currentPage}_${idx}`,
-                    text: line.text,
-                    pctX: Math.max(0, Math.min(96, (line.minX / viewport.width) * 100)),
-                    pctY: Math.max(0, Math.min(96, (topY / viewport.height) * 100)),
-                    pctW: Math.min(100, ((totalW + 6) / viewport.width) * 100),
-                    pctH: Math.min(100, ((totalH + 4) / viewport.height) * 100),
-                    fontSize: line.fontSize
-                };
-            });
+                for (const line of lines) {
+                    if (!currentBlock) {
+                        currentBlock = {
+                            text: line.text,
+                            minX: line.minX,
+                            maxX: line.maxX,
+                            topY: Math.max(0, line.baselineY - line.fontSize * 0.95),
+                            bottomY: line.baselineY + line.fontSize * 0.4,
+                            fontSize: line.fontSize,
+                            lastBaselineY: line.baselineY
+                        };
+                    } else {
+                        const yGap = line.baselineY - currentBlock.lastBaselineY;
+                        const maxAllowedGap = Math.max(30, currentBlock.fontSize * 2.8);
+                        const fontDiff = Math.abs(line.fontSize - currentBlock.fontSize);
+
+                        // If line is below previous line and within reasonable section distance
+                        if (yGap > 0 && yGap <= maxAllowedGap && fontDiff <= 6) {
+                            currentBlock.text += '\n' + line.text;
+                            currentBlock.minX = Math.min(currentBlock.minX, line.minX);
+                            currentBlock.maxX = Math.max(currentBlock.maxX, line.maxX);
+                            currentBlock.bottomY = Math.max(currentBlock.bottomY, line.baselineY + line.fontSize * 0.4);
+                            currentBlock.lastBaselineY = line.baselineY;
+                        } else {
+                            blocks.push(currentBlock);
+                            currentBlock = {
+                                text: line.text,
+                                minX: line.minX,
+                                maxX: line.maxX,
+                                topY: Math.max(0, line.baselineY - line.fontSize * 0.95),
+                                bottomY: line.baselineY + line.fontSize * 0.4,
+                                fontSize: line.fontSize,
+                                lastBaselineY: line.baselineY
+                            };
+                        }
+                    }
+                }
+                if (currentBlock) blocks.push(currentBlock);
+
+                this.currentOriginalTextBlocks = blocks.map((blk, idx) => {
+                    const totalW = Math.max(blk.maxX - blk.minX, 30);
+                    const totalH = Math.max(blk.bottomY - blk.topY, blk.fontSize * 1.5);
+                    return {
+                        id: `orig_blk_${this.currentPage}_${idx}`,
+                        text: blk.text,
+                        pctX: Math.max(0, Math.min(96, (blk.minX / viewport.width) * 100)),
+                        pctY: Math.max(0, Math.min(96, (blk.topY / viewport.height) * 100)),
+                        pctW: Math.min(100 - (blk.minX / viewport.width) * 100, ((totalW + 10) / viewport.width) * 100),
+                        pctH: Math.min(100 - (blk.topY / viewport.height) * 100, ((totalH + 8) / viewport.height) * 100),
+                        fontSize: blk.fontSize
+                    };
+                });
+            } else {
+                // Line mode
+                this.currentOriginalTextBlocks = lines.map((line, idx) => {
+                    const fontH = line.fontSize;
+                    const topY = Math.max(0, line.baselineY - fontH * 0.95);
+                    const totalH = fontH * 1.35;
+                    const totalW = Math.max(line.maxX - line.minX, 20);
+
+                    return {
+                        id: `orig_line_${this.currentPage}_${idx}`,
+                        text: line.text,
+                        pctX: Math.max(0, Math.min(96, (line.minX / viewport.width) * 100)),
+                        pctY: Math.max(0, Math.min(96, (topY / viewport.height) * 100)),
+                        pctW: Math.min(100, ((totalW + 6) / viewport.width) * 100),
+                        pctH: Math.min(100, ((totalH + 4) / viewport.height) * 100),
+                        fontSize: line.fontSize
+                    };
+                });
+            }
         } catch (err) {
             console.warn('Error extracting page text blocks:', err);
             this.currentOriginalTextBlocks = [];
@@ -4584,25 +4648,26 @@ Alpine.data('pdfEditor', () => ({
             id: newId,
             type: 'text',
             page: this.currentPage,
-            pctX: Math.max(0, block.pctX - 0.3),
-            pctY: Math.max(0, block.pctY - 0.3),
-            pctW: Math.min(100 - block.pctX, Math.max(block.pctW + 2.5, 20)),
-            pctH: Math.min(100 - block.pctY, Math.max(block.pctH + 1.2, 4.2)),
+            pctX: Math.max(0, block.pctX - 0.2),
+            pctY: Math.max(0, block.pctY - 0.2),
+            pctW: Math.min(100 - block.pctX, Math.max(block.pctW + 2, 25)),
+            pctH: Math.min(100 - block.pctY, Math.max(block.pctH + 1.5, 4.5)),
             text: block.text,
-            fontSize: block.fontSize || this.textSize || 16,
-            fontFamily: this.textFontFamily || 'Sarabun',
+            fontSize: block.fontSize || this.textSize || 12,
+            fontFamily: this.textFontFamily || 'TH Niramit AS',
             color: this.textColor || '#111827',
-            bgColor: '#ffffff', // Opaque white to cover original PDF text!
-            bold: false,
-            italic: false,
-            underline: false,
-            align: 'left'
+            bgColor: this.textBgColor || '#ffffff', // Opaque white to cover original PDF text!
+            bold: this.textBold || false,
+            italic: this.textItalic || false,
+            underline: this.textUnderline || false,
+            align: this.textAlign || 'left',
+            lineHeight: this.textLineHeight || 1.45
         };
 
         this.annotations.push(newAnn);
         this.selectedAnnotationId = newId;
         this.textSize = newAnn.fontSize;
-        this.textBgColor = '#ffffff';
+        this.textFontFamily = newAnn.fontFamily;
 
         // Remove block from currentOriginalTextBlocks so it doesn't overlay the active edit box
         this.currentOriginalTextBlocks = this.currentOriginalTextBlocks.filter(b => b.id !== block.id);
@@ -4616,6 +4681,189 @@ Alpine.data('pdfEditor', () => ({
                 ta.select();
             }
         }, 60);
+    },
+
+    // ─── RIBBON TABS & TOOLS ───
+    setRibbonTab(tab) {
+        this.activeRibbonTab = tab;
+        if (tab === 'edit-content') {
+            this.setTool('pointer');
+            this.extractPageTextBlocks();
+        } else if (tab === 'document') {
+            this.setTool('pointer');
+        }
+    },
+
+    triggerImageDialog() {
+        const input = document.getElementById('pdfEditorImageInput');
+        if (input) input.click();
+    },
+
+    handleImageInput(e) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            const dataUrl = evt.target.result;
+            const newId = 'img_' + Date.now();
+            this.annotations.push({
+                id: newId,
+                type: 'image',
+                page: this.currentPage,
+                pctX: 25,
+                pctY: 25,
+                pctW: 30,
+                pctH: 20,
+                dataUrl: dataUrl
+            });
+            this.selectedAnnotationId = newId;
+            this.pushHistory('แทรกรูปภาพ');
+        };
+        reader.readAsDataURL(file);
+        e.target.value = '';
+    },
+
+    increaseFontSize() {
+        this.textSize = Math.min(72, (this.textSize || 12) + 2);
+        this.updateSelectedTextProp('fontSize', this.textSize);
+    },
+
+    decreaseFontSize() {
+        this.textSize = Math.max(6, (this.textSize || 12) - 2);
+        this.updateSelectedTextProp('fontSize', this.textSize);
+    },
+
+    toggleTextProp(prop) {
+        if (prop === 'bold') {
+            this.textBold = !this.textBold;
+            this.updateSelectedTextProp('bold', this.textBold);
+        } else if (prop === 'italic') {
+            this.textItalic = !this.textItalic;
+            this.updateSelectedTextProp('italic', this.textItalic);
+        } else if (prop === 'underline') {
+            this.textUnderline = !this.textUnderline;
+            this.updateSelectedTextProp('underline', this.textUnderline);
+        }
+    },
+
+    setTextAlign(align) {
+        this.textAlign = align;
+        this.updateSelectedTextProp('align', align);
+    },
+
+    toggleTextCover() {
+        this.textBgColor = this.textBgColor === '#ffffff' ? 'transparent' : '#ffffff';
+        this.updateSelectedTextProp('bgColor', this.textBgColor);
+    },
+
+    setTextGroupMode(mode) {
+        this.textGroupMode = mode;
+        this.extractPageTextBlocks();
+    },
+
+    updateSelectedTextProp(prop, val) {
+        const ann = this.selectedAnnotation;
+        if (ann && ann.type === 'text') {
+            ann[prop] = val;
+        }
+    },
+
+    addHeaderFooterText(type) {
+        const newId = (type === 'header' ? 'hdr_' : 'ftr_') + Date.now();
+        const isHdr = type === 'header';
+        this.annotations.push({
+            id: newId,
+            type: 'text',
+            page: this.currentPage,
+            pctX: 10,
+            pctY: isHdr ? 2.5 : 95.5,
+            pctW: 80,
+            pctH: 3.5,
+            text: isHdr ? 'หัวกระดาษ (Header)' : 'ท้ายกระดาษ (Footer) - หน้า ' + this.currentPage,
+            fontSize: 10,
+            fontFamily: this.textFontFamily || 'TH Niramit AS',
+            color: '#64748b',
+            bgColor: 'transparent',
+            bold: false,
+            italic: true,
+            underline: false,
+            align: 'center',
+            lineHeight: 1.2
+        });
+        this.selectedAnnotationId = newId;
+        this.pushHistory(isHdr ? 'เพิ่มหัวกระดาษ' : 'เพิ่มท้ายกระดาษ');
+    },
+
+    addFormField(type) {
+        const newId = 'form_' + type + '_' + Date.now();
+        if (type === 'checkbox') {
+            this.annotations.push({
+                id: newId,
+                type: 'text',
+                page: this.currentPage,
+                pctX: 30,
+                pctY: 30,
+                pctW: 4,
+                pctH: 3,
+                text: '☑',
+                fontSize: 16,
+                fontFamily: 'TH Niramit AS',
+                color: '#1e293b',
+                bgColor: '#ffffff',
+                bold: true,
+                align: 'center'
+            });
+        } else if (type === 'signature') {
+            this.annotations.push({
+                id: newId,
+                type: 'stamp',
+                page: this.currentPage,
+                pctX: 30,
+                pctY: 30,
+                pctW: 22,
+                pctH: 8,
+                preset: 'VERIFIED',
+                color: '#2563eb'
+            });
+        } else {
+            this.annotations.push({
+                id: newId,
+                type: 'text',
+                page: this.currentPage,
+                pctX: 30,
+                pctY: 30,
+                pctW: 30,
+                pctH: 4.5,
+                text: '[ กรอกข้อมูลที่นี่ ]',
+                fontSize: 12,
+                fontFamily: 'TH Niramit AS',
+                color: '#64748b',
+                bgColor: '#f8fafc',
+                align: 'left'
+            });
+        }
+        this.selectedAnnotationId = newId;
+        this.pushHistory('เพิ่มฟิลด์ฟอร์ม');
+    },
+
+    async rotateCurrentPage(deg = 90) {
+        if (!this.pdfBytes) return;
+        try {
+            this.isLoading = true;
+            this.loadingMessage = 'กำลังหมุนหน้าเอกสาร...';
+            const pdfDoc = await PDFLib.PDFDocument.load(this.pdfBytes.slice(0));
+            const page = pdfDoc.getPage(this.currentPage - 1);
+            const currentRot = page.getRotation().angle;
+            page.setRotation(PDFLib.degrees((currentRot + deg) % 360));
+            this.pdfBytes = await pdfDoc.save();
+            editorThumbnailsCache = {};
+            await this.loadPdfFromBytes(this.pdfBytes);
+            this.pushHistory('หมุนหน้าเอกสาร');
+        } catch (err) {
+            console.error('Error rotating page:', err);
+        } finally {
+            this.isLoading = false;
+        }
     },
 
     // ─── TOOLS & INTERACTIONS ───
@@ -4725,14 +4973,15 @@ Alpine.data('pdfEditor', () => ({
                 pctW: 30,
                 pctH: 5.5,
                 text: 'พิมพ์ข้อความที่นี่',
-                fontSize: this.textSize,
-                fontFamily: this.textFontFamily || 'Sarabun',
-                color: this.textColor,
+                fontSize: this.textSize || 12,
+                fontFamily: this.textFontFamily || 'TH Niramit AS',
+                color: this.textColor || '#111827',
                 bgColor: this.textBgColor === '#ffffff' ? '#ffffff' : 'transparent',
                 bold: this.textBold,
                 italic: this.textItalic,
                 underline: this.textUnderline,
-                align: this.textAlign || 'left'
+                align: this.textAlign || 'left',
+                lineHeight: this.textLineHeight || 1.45
             });
             this.selectedAnnotationId = newId;
             this.activeTool = 'pointer';
@@ -4789,6 +5038,10 @@ Alpine.data('pdfEditor', () => ({
         const overlay = document.getElementById('pdfEditorOverlay');
         if (!overlay) return;
 
+        const rect = overlay.getBoundingClientRect();
+        const pctX = ((e.clientX - rect.left) / rect.width) * 100;
+        const pctY = ((e.clientY - rect.top) / rect.height) * 100;
+
         if (this.isPanning) {
             const ws = document.getElementById('pdfEditorWorkspace');
             if (ws) {
@@ -4810,15 +5063,11 @@ Alpine.data('pdfEditor', () => ({
         }
 
         if (this.isDrawing) {
-            const rect = overlay.getBoundingClientRect();
-            const pctX = ((e.clientX - rect.left) / rect.width) * 100;
-            const pctY = ((e.clientY - rect.top) / rect.height) * 100;
             this.currentDrawPoints.push({ x: pctX, y: pctY });
             return;
         }
 
         if (this.isDraggingAnnotation && this.selectedAnnotationId) {
-            const rect = overlay.getBoundingClientRect();
             const dx = ((e.clientX - this.dragStart.x) / rect.width) * 100;
             const dy = ((e.clientY - this.dragStart.y) / rect.height) * 100;
             const ann = this.annotations.find(a => a.id === this.selectedAnnotationId);
@@ -4830,13 +5079,33 @@ Alpine.data('pdfEditor', () => ({
         }
 
         if (this.isResizingAnnotation && this.selectedAnnotationId) {
-            const rect = overlay.getBoundingClientRect();
             const dx = ((e.clientX - this.resizeStart.x) / rect.width) * 100;
             const dy = ((e.clientY - this.resizeStart.y) / rect.height) * 100;
             const ann = this.annotations.find(a => a.id === this.selectedAnnotationId);
             if (ann) {
-                ann.pctW = Math.max(5, Math.min(100 - ann.pctX, this.resizeStart.origPctW + dx));
-                ann.pctH = Math.max(3, Math.min(100 - ann.pctY, this.resizeStart.origPctH + dy));
+                const hdl = this.resizeStart.handle || 'se';
+                // Horizontal resizing
+                if (hdl.includes('e')) {
+                    ann.pctW = Math.max(3, Math.min(100 - ann.pctX, this.resizeStart.origPctW + dx));
+                } else if (hdl.includes('w')) {
+                    const newW = Math.max(3, this.resizeStart.origPctW - dx);
+                    const newX = this.resizeStart.origPctX + (this.resizeStart.origPctW - newW);
+                    if (newX >= 0) {
+                        ann.pctX = newX;
+                        ann.pctW = newW;
+                    }
+                }
+                // Vertical resizing
+                if (hdl.includes('s')) {
+                    ann.pctH = Math.max(2, Math.min(100 - ann.pctY, this.resizeStart.origPctH + dy));
+                } else if (hdl.includes('n')) {
+                    const newH = Math.max(2, this.resizeStart.origPctH - dy);
+                    const newY = this.resizeStart.origPctY + (this.resizeStart.origPctH - newH);
+                    if (newY >= 0) {
+                        ann.pctY = newY;
+                        ann.pctH = newH;
+                    }
+                }
             }
             return;
         }
@@ -4973,6 +5242,8 @@ Alpine.data('pdfEditor', () => ({
         this.resizeStart = {
             x: e.clientX,
             y: e.clientY,
+            origPctX: ann.pctX,
+            origPctY: ann.pctY,
             origPctW: ann.pctW || 20,
             origPctH: ann.pctH || 10,
             handle: handle
@@ -5133,6 +5404,10 @@ Alpine.data('pdfEditor', () => ({
             this.isExporting = true;
             this.exportError = '';
 
+            if (document.fonts) {
+                try { await document.fonts.ready; } catch (_) {}
+            }
+
             const pdfDoc = await PDFLib.PDFDocument.load(this.pdfBytes.slice(0));
             const pages = pdfDoc.getPages();
 
@@ -5160,7 +5435,20 @@ Alpine.data('pdfEditor', () => ({
                     const w = ((ann.pctW || 10) / 100) * pw;
                     const h = ((ann.pctH || 5) / 100) * ph;
 
-                    if (ann.type === 'draw') {
+                    if (ann.type === 'image' && ann.dataUrl) {
+                        ctx.save();
+                        const img = new Image();
+                        img.crossOrigin = 'anonymous';
+                        await new Promise((resolve) => {
+                            img.onload = resolve;
+                            img.onerror = resolve;
+                            img.src = ann.dataUrl;
+                        });
+                        if (img.width && img.height) {
+                            ctx.drawImage(img, x, y, w, h);
+                        }
+                        ctx.restore();
+                    } else if (ann.type === 'draw') {
                         ctx.save();
                         ctx.strokeStyle = ann.color || '#dc2626';
                         ctx.lineWidth = ann.strokeWidth || 3;
@@ -5216,9 +5504,9 @@ Alpine.data('pdfEditor', () => ({
                             ctx.fillRect(x, y, w, h);
                         }
                         const fontStyle = `${ann.italic ? 'italic ' : ''}${ann.bold ? 'bold ' : ''}`;
-                        const fontFam = ann.fontFamily || 'Sarabun';
-                        const fSize = ann.fontSize || 16;
-                        ctx.font = `${fontStyle}${fSize}px '${fontFam}', sans-serif`;
+                        const fontFam = ann.fontFamily || 'TH Niramit AS';
+                        const fSize = ann.fontSize || 12;
+                        ctx.font = `${fontStyle}${fSize}px '${fontFam}', 'Niramit', 'TH Sarabun PSK', 'Sarabun', sans-serif`;
                         ctx.fillStyle = ann.color || '#111827';
                         ctx.textBaseline = 'top';
                         ctx.textAlign = ann.align || 'left';
@@ -5232,7 +5520,7 @@ Alpine.data('pdfEditor', () => ({
 
                         const lines = (ann.text || '').split('\n');
                         let lineY = y + 1;
-                        const lineHeight = fSize * 1.3;
+                        const lineHeight = fSize * (ann.lineHeight || 1.45);
                         lines.forEach(line => {
                             ctx.fillText(line, drawX, lineY);
                             if (ann.underline) {
