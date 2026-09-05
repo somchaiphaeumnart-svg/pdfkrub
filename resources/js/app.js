@@ -159,6 +159,11 @@ Alpine.data('fileUpload', (config = {}) => ({
     showProtectPasswordConfirm: false,
     unlockPassword: '',
     showUnlockPassword: false,
+    isVerifyingUnlock: false,
+    unlockVerified: false,
+    unlockCheckMessage: '',
+    unlockPreviewUrl: null,
+    isPdfEncrypted: null,
 
     // Processing state
     isUploading: false,
@@ -195,6 +200,9 @@ Alpine.data('fileUpload', (config = {}) => ({
         }
         if (this.tool === 'watermark-pdf' && this.files.length > 0) {
             this.loadWatermarkPdfPreview();
+        }
+        if (this.tool === 'unlock-pdf' && this.files.length > 0) {
+            this.detectPdfEncryption();
         }
     },
 
@@ -295,6 +303,10 @@ Alpine.data('fileUpload', (config = {}) => ({
         if (this.tool === 'watermark-pdf' && this.files.length > 0) {
             setTimeout(() => this.loadWatermarkPdfPreview(), 60);
         }
+        // If unlock-pdf, check if encrypted
+        if (this.tool === 'unlock-pdf' && this.files.length > 0) {
+            setTimeout(() => this.detectPdfEncryption(), 60);
+        }
     },
 
     removeFile(id) {
@@ -336,6 +348,12 @@ Alpine.data('fileUpload', (config = {}) => ({
                 setTimeout(() => this.loadWatermarkPdfPreview(), 60);
             }
         }
+        if (this.tool === 'unlock-pdf') {
+            this.clearUnlockState();
+            if (this.files.length > 0) {
+                setTimeout(() => this.detectPdfEncryption(), 60);
+            }
+        }
     },
 
     clearAll() {
@@ -357,12 +375,11 @@ Alpine.data('fileUpload', (config = {}) => ({
         this.pdfRenderError = null;
         this.clearDeletePagesState();
         this.clearWatermarkState();
+        this.clearUnlockState();
         this.protectPassword = '';
         this.protectPasswordConfirm = '';
         this.showProtectPassword = false;
         this.showProtectPasswordConfirm = false;
-        this.unlockPassword = '';
-        this.showUnlockPassword = false;
         clearStagedFiles();
     },
 
@@ -1488,6 +1505,104 @@ Alpine.data('fileUpload', (config = {}) => ({
         }
     },
 
+    // =====================================================
+    // Unlock PDF Methods & Live Preview
+    // =====================================================
+    clearUnlockState() {
+        this.unlockPassword = '';
+        this.showUnlockPassword = false;
+        this.isVerifyingUnlock = false;
+        this.unlockVerified = false;
+        this.unlockCheckMessage = '';
+        this.unlockPreviewUrl = null;
+        this.isPdfEncrypted = null;
+    },
+
+    async detectPdfEncryption() {
+        if (!this.files.length || !this.files[0].file) {
+            this.clearUnlockState();
+            return;
+        }
+        const file = this.files[0].file;
+        try {
+            await this.ensurePdfJs();
+            const arrayBuffer = await file.arrayBuffer();
+            const loadingTask = window.pdfjsLib.getDocument({
+                data: arrayBuffer.slice(0),
+            });
+            const doc = await loadingTask.promise;
+            // If loaded without password, PDF is not encrypted!
+            this.isPdfEncrypted = false;
+            this.unlockVerified = true;
+            this.unlockCheckMessage = 'ไฟล์นี้ไม่ได้ตั้งรหัสผ่านป้องกันไว้ สามารถเปิดใช้งานได้ทันที';
+            try {
+                const page = await doc.getPage(1);
+                const vp = page.getViewport({ scale: 0.5 });
+                const offCanvas = document.createElement('canvas');
+                offCanvas.width = vp.width;
+                offCanvas.height = vp.height;
+                const ctx = offCanvas.getContext('2d');
+                await page.render({ canvasContext: ctx, viewport: vp }).promise;
+                this.unlockPreviewUrl = offCanvas.toDataURL('image/jpeg', 0.85);
+            } catch (err) {}
+        } catch (err) {
+            if (err.name === 'PasswordException') {
+                this.isPdfEncrypted = true;
+                this.unlockVerified = false;
+                this.unlockCheckMessage = '';
+                this.unlockPreviewUrl = null;
+            } else {
+                console.warn('PDF detect encryption notice:', err);
+            }
+        }
+    },
+
+    async verifyUnlockPassword() {
+        if (!this.files.length || !this.files[0].file || !this.unlockPassword) {
+            return;
+        }
+        const file = this.files[0].file;
+        this.isVerifyingUnlock = true;
+        this.unlockCheckMessage = 'กำลังตรวจสอบรหัสผ่าน...';
+        this.unlockVerified = false;
+
+        try {
+            await this.ensurePdfJs();
+            const arrayBuffer = await file.arrayBuffer();
+            const loadingTask = window.pdfjsLib.getDocument({
+                data: arrayBuffer.slice(0),
+                password: this.unlockPassword,
+                cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+                cMapPacked: true,
+            });
+            const doc = await loadingTask.promise;
+            this.unlockVerified = true;
+            this.unlockCheckMessage = '✓ รหัสผ่านถูกต้อง! พร้อมปลดล็อกเอกสาร';
+
+            // Render page 1 preview
+            try {
+                const page = await doc.getPage(1);
+                const vp = page.getViewport({ scale: 0.5 });
+                const offCanvas = document.createElement('canvas');
+                offCanvas.width = vp.width;
+                offCanvas.height = vp.height;
+                const ctx = offCanvas.getContext('2d');
+                await page.render({ canvasContext: ctx, viewport: vp }).promise;
+                this.unlockPreviewUrl = offCanvas.toDataURL('image/jpeg', 0.85);
+            } catch (err) {}
+        } catch (err) {
+            this.unlockVerified = false;
+            this.unlockPreviewUrl = null;
+            if (err.name === 'PasswordException') {
+                this.unlockCheckMessage = 'รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง';
+            } else {
+                this.unlockCheckMessage = 'ไม่สามารถตรวจสอบรหัสผ่านได้: ' + (err.message || '');
+            }
+        } finally {
+            this.isVerifyingUnlock = false;
+        }
+    },
+
     get canSubmitWatermark() {
         if (this.watermarkType === 'image') {
             return !!this.watermarkImageDataUrl;
@@ -1500,7 +1615,8 @@ Alpine.data('fileUpload', (config = {}) => ({
     },
 
     get canSubmitUnlockPdf() {
-        return this.unlockPassword.length > 0;
+        if (this.isPdfEncrypted === false) return true;
+        return this.unlockPassword.trim().length > 0;
     },
 
     get hasFiles() { return this.files.length > 0; },

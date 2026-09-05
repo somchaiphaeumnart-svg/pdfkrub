@@ -824,39 +824,94 @@
                     @if($tool['slug'] === 'unlock-pdf')
                     {{-- Unlock PDF Password Settings Card --}}
                     <div class="mt-5 pt-5 border-t border-gray-100 text-left" @click.stop>
-                        <div class="bg-gradient-to-br from-slate-50 to-amber-50/40 border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-xs">
-                            <div class="flex items-center gap-3 mb-4">
+                        <div class="bg-gradient-to-br from-slate-50 to-amber-50/40 border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
+                            <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200 shadow-2xs shrink-0">
                                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 class="text-sm font-bold text-gray-900">กรอกรหัสผ่านเพื่อปลดล็อก PDF</h3>
-                                    <p class="text-xs text-gray-500">ระบบจะทำการถอดรหัสผ่านออกจากไฟล์ PDF เพื่อให้เปิดอ่าน แก้ไข และพิมพ์ได้โดยไม่ต้องใส่รหัสผ่านอีก</p>
+                                    <h3 class="text-sm font-bold text-gray-900">ปลดล็อกรหัสผ่านเอกสาร PDF (Unlock PDF)</h3>
+                                    <p class="text-xs text-gray-500">ถอดรหัสผ่านออกจากไฟล์ PDF เพื่อให้สามารถเปิดอ่าน พิมพ์ และแก้ไขได้โดยไม่ต้องใส่รหัสผ่านอีกต่อไป</p>
                                 </div>
                             </div>
 
-                            <div class="max-w-md">
-                                <label class="block text-xs font-semibold text-gray-700 mb-1.5">
-                                    รหัสผ่านปัจจุบันของไฟล์ PDF <span class="text-red-500">*</span>
-                                </label>
-                                <div class="relative">
-                                    <input :type="showUnlockPassword ? 'text' : 'password'"
-                                           x-model="unlockPassword"
-                                           placeholder="ระบุรหัสผ่านของไฟล์ PDF"
-                                           class="w-full px-3.5 py-2.5 pr-10 text-sm rounded-xl border border-gray-300 focus:outline-hidden focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white text-gray-800 transition-all shadow-2xs">
-                                    <button type="button"
-                                            @click="showUnlockPassword = !showUnlockPassword"
-                                            class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer">
-                                        <svg x-show="!showUnlockPassword" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                                        </svg>
-                                        <svg x-show="showUnlockPassword" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
-                                        </svg>
-                                    </button>
+                            {{-- Notice if file is not encrypted --}}
+                            <div x-show="isPdfEncrypted === false" class="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
+                                <svg class="w-4 h-4 shrink-0 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+                                <span>ไฟล์ PDF นี้ไม่มีรหัสผ่านป้องกันอยู่แล้ว คุณสามารถนำไปใช้งานได้ทันที</span>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
+                                {{-- Left: Password Input & Verification --}}
+                                <div class="md:col-span-7 space-y-3">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-700 mb-1.5">
+                                            รหัสผ่านของไฟล์ PDF <span class="text-red-500">*</span>
+                                        </label>
+                                        <div class="relative">
+                                            <input :type="showUnlockPassword ? 'text' : 'password'"
+                                                   x-model="unlockPassword"
+                                                   @input="unlockVerified = false; unlockCheckMessage = ''"
+                                                   @keydown.enter="verifyUnlockPassword()"
+                                                   placeholder="กรอกรหัสผ่านที่ใช้เปิดไฟล์นี้"
+                                                   class="w-full px-3.5 py-2.5 pr-20 text-sm rounded-xl border border-gray-300 focus:outline-hidden focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white text-gray-800 transition-all shadow-2xs">
+                                            
+                                            <div class="absolute inset-y-0 right-0 flex items-center pr-2 gap-1">
+                                                <button type="button"
+                                                        @click="showUnlockPassword = !showUnlockPassword"
+                                                        class="p-1.5 text-gray-400 hover:text-gray-600 cursor-pointer transition-colors"
+                                                        title="แสดง/ซ่อนรหัสผ่าน">
+                                                    <svg x-show="!showUnlockPassword" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                                    </svg>
+                                                    <svg x-show="showUnlockPassword" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- Quick Verify Button --}}
+                                    <div class="flex items-center gap-2">
+                                        <button type="button"
+                                                @click="verifyUnlockPassword()"
+                                                :disabled="!unlockPassword || isVerifyingUnlock"
+                                                class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-100 hover:bg-amber-200 text-amber-900 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all flex items-center gap-1.5 shadow-2xs">
+                                            <svg x-show="isVerifyingUnlock" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                            <span x-text="isVerifyingUnlock ? 'กำลังตรวจสอบ...' : 'ตรวจสอบรหัสผ่าน'"></span>
+                                        </button>
+                                        <span class="text-[11px] text-gray-400">กด Enter เพื่อตรวจสอบทันที</span>
+                                    </div>
+
+                                    {{-- Status / Error Message --}}
+                                    <div x-show="unlockCheckMessage" class="text-xs transition-all">
+                                        <p :class="unlockVerified ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-red-700 bg-red-50 border-red-200'"
+                                           class="px-3 py-2 rounded-xl border flex items-center gap-1.5 shadow-2xs font-medium"
+                                           x-text="unlockCheckMessage">
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {{-- Right: Live Preview Box --}}
+                                <div class="md:col-span-5 flex flex-col items-center justify-center">
+                                    <div class="w-full h-44 bg-slate-100 border border-slate-200 rounded-xl p-2 flex flex-col items-center justify-center overflow-hidden relative shadow-2xs">
+                                        <template x-if="unlockPreviewUrl">
+                                            <div class="w-full h-full flex flex-col items-center justify-center">
+                                                <img :src="unlockPreviewUrl" class="max-h-full max-w-full object-contain bg-white rounded shadow-sm">
+                                            </div>
+                                        </template>
+                                        <template x-if="!unlockPreviewUrl">
+                                            <div class="flex flex-col items-center justify-center text-center p-3 text-slate-400">
+                                                <svg class="w-8 h-8 text-slate-300 mb-1" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/></svg>
+                                                <span class="text-[11px]">ตัวอย่างเอกสารจะปรากฏเมื่อระบุรหัสผ่านถูกต้อง</span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                    <span class="text-[10px] text-slate-400 mt-1">หน้าแรกของเอกสาร</span>
                                 </div>
                             </div>
                         </div>
