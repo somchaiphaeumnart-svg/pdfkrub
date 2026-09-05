@@ -500,6 +500,203 @@
                             </div>
                         </div>
                     </div>
+                    @endif
+
+                    @if($tool['slug'] === 'pdf-to-excel')
+                    {{-- Visual Table Extraction Settings & Smart Detector for PDF to Excel --}}
+                    <div class="mt-5 pt-5 border-t border-gray-100" @click.stop>
+                        {{-- Smart Detection Badge & Quick Summary --}}
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-gray-800 font-bold text-base">ตัวเลือกการแปลงเป็น Excel (.xlsx)</span>
+                                    <template x-if="isAnalyzingExcelPdf">
+                                        <span class="inline-flex items-center gap-1.5 bg-slate-100 text-slate-600 text-xs px-2.5 py-0.5 rounded-full font-medium animate-pulse">
+                                            <svg class="w-3 h-3 animate-spin text-emerald-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                            กำลังวิเคราะห์โครงสร้างตาราง...
+                                        </span>
+                                    </template>
+                                    <template x-if="!isAnalyzingExcelPdf && excelDetectedTableType === 'lattice'">
+                                        <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-emerald-200">
+                                            <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                                            ตรวจพบตารางมีเส้นขอบ (Grid Table)
+                                        </span>
+                                    </template>
+                                    <template x-if="!isAnalyzingExcelPdf && excelDetectedTableType === 'stream'">
+                                        <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-800 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-amber-200">
+                                            <svg class="w-3.5 h-3.5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"/></svg>
+                                            ตรวจพบตารางเว้นวรรค/ไม่มีเส้นขอบ (Whitespace Columns)
+                                        </span>
+                                    </template>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-0.5">เลือกรูปแบบการตรวจจับตาราง และการจัดระเบียบแผ่นงาน Excel ตามต้องการ</p>
+                            </div>
+                            <div class="text-xs text-slate-500 font-mono bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200 self-start sm:self-center" x-show="excelTotalPages > 0">
+                                ทั้งหมด <strong class="text-slate-800" x-text="excelTotalPages"></strong> หน้า
+                            </div>
+                        </div>
+
+                        {{-- Main Grid: Left Options (7 cols), Right Live Document Preview (5 cols) --}}
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+                            {{-- Left Column: Settings & Modes --}}
+                            <div class="lg:col-span-7 space-y-4">
+                                {{-- 1. Table Detection Strategy --}}
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">1. โหมดการตรวจจับตาราง (Table Detection Engine)</label>
+                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                        {{-- Mode: Auto --}}
+                                        <div @click="excelTableMode = 'auto'"
+                                             class="p-3 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between"
+                                             :class="excelTableMode === 'auto' ? 'border-emerald-600 bg-emerald-50/50 shadow-2xs ring-2 ring-emerald-500/20' : 'border-gray-200 bg-white hover:border-emerald-300'">
+                                            <div>
+                                                <div class="flex items-center justify-between mb-1.5">
+                                                    <span class="text-xs font-bold text-gray-900">ตรวจจับอัตโนมัติ</span>
+                                                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800">แนะนำ</span>
+                                                </div>
+                                                <p class="text-[11px] text-gray-500 leading-relaxed">วิเคราะห์เส้นตารางและระยะเว้นวรรคอัตโนมัติ</p>
+                                            </div>
+                                        </div>
+
+                                        {{-- Mode: Lattice (Grid lines) --}}
+                                        <div @click="excelTableMode = 'lattice'"
+                                             class="p-3 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between"
+                                             :class="excelTableMode === 'lattice' ? 'border-emerald-600 bg-emerald-50/50 shadow-2xs ring-2 ring-emerald-500/20' : 'border-gray-200 bg-white hover:border-emerald-300'">
+                                            <div>
+                                                <div class="flex items-center justify-between mb-1.5">
+                                                    <span class="text-xs font-bold text-gray-900">ตารางมีเส้นขอบ</span>
+                                                    <span class="text-[9px] font-medium text-slate-400">Lattice</span>
+                                                </div>
+                                                <p class="text-[11px] text-gray-500 leading-relaxed">ตรวจจับเส้นตารางจริง เหมาะกับใบเสร็จ งบการเงิน</p>
+                                            </div>
+                                        </div>
+
+                                        {{-- Mode: Stream (Whitespace) --}}
+                                        <div @click="excelTableMode = 'stream'"
+                                             class="p-3 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between"
+                                             :class="excelTableMode === 'stream' ? 'border-emerald-600 bg-emerald-50/50 shadow-2xs ring-2 ring-emerald-500/20' : 'border-gray-200 bg-white hover:border-emerald-300'">
+                                            <div>
+                                                <div class="flex items-center justify-between mb-1.5">
+                                                    <span class="text-xs font-bold text-gray-900">ตารางไม่มีเส้น</span>
+                                                    <span class="text-[9px] font-medium text-slate-400">Stream</span>
+                                                </div>
+                                                <p class="text-[11px] text-gray-500 leading-relaxed">วิเคราะห์ช่องว่างคอลัมน์ เหมาะกับสลิป รายงานสรุป</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- 2. Worksheet Layout Mode --}}
+                                <div class="bg-slate-50/80 border border-slate-200/90 rounded-2xl p-3.5 sm:p-4">
+                                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2.5">2. การจัดแผ่นงาน Excel (Worksheet Layout)</label>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                        <label @click="excelSheetMode = 'single'"
+                                               class="flex items-start gap-2.5 p-3 rounded-xl bg-white border cursor-pointer transition-all"
+                                               :class="excelSheetMode === 'single' ? 'border-emerald-600 ring-1 ring-emerald-500 bg-emerald-50/20' : 'border-gray-200 hover:border-gray-300'">
+                                            <input type="radio" name="excel_sheet_mode" value="single" x-model="excelSheetMode" class="mt-0.5 text-emerald-600 focus:ring-emerald-500">
+                                            <div>
+                                                <span class="text-xs font-bold text-gray-900 block">รวมทุกหน้าในชีตเดียว (Single Sheet)</span>
+                                                <span class="text-[11px] text-gray-500 leading-relaxed block mt-0.5">รวมแถวข้อมูลต่อเนื่อง เหมาะสำหรับทำ Pivot Table, VLOOKUP, หรือกรองข้อมูล</span>
+                                            </div>
+                                        </label>
+
+                                        <label @click="excelSheetMode = 'multiple'"
+                                               class="flex items-start gap-2.5 p-3 rounded-xl bg-white border cursor-pointer transition-all"
+                                               :class="excelSheetMode === 'multiple' ? 'border-emerald-600 ring-1 ring-emerald-500 bg-emerald-50/20' : 'border-gray-200 hover:border-gray-300'">
+                                            <input type="radio" name="excel_sheet_mode" value="multiple" x-model="excelSheetMode" class="mt-0.5 text-emerald-600 focus:ring-emerald-500">
+                                            <div>
+                                                <span class="text-xs font-bold text-gray-900 block">แยกหนึ่งหน้าต่อหนึ่งชีต (Multi-Sheet)</span>
+                                                <span class="text-[11px] text-gray-500 leading-relaxed block mt-0.5">สร้างแท็บแยกตามหน้า เช่น Page 1, Page 2 รักษาหน้ากระดาษเดิม</span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {{-- 3. Page Selection --}}
+                                <div class="bg-slate-50/80 border border-slate-200/90 rounded-2xl p-3.5 sm:p-4">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider">3. หน้าที่ต้องการแปลง</label>
+                                        <div class="flex items-center gap-1.5">
+                                            <button type="button" @click="excelPagesMode = 'all'"
+                                                    :class="excelPagesMode === 'all' ? 'bg-emerald-600 text-white font-semibold shadow-xs' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'"
+                                                    class="px-2.5 py-1 rounded-lg text-xs transition-all cursor-pointer">
+                                                ทุกหน้า
+                                            </button>
+                                            <button type="button" @click="excelPagesMode = 'custom'"
+                                                    :class="excelPagesMode === 'custom' ? 'bg-emerald-600 text-white font-semibold shadow-xs' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'"
+                                                    class="px-2.5 py-1 rounded-lg text-xs transition-all cursor-pointer">
+                                                กำหนดหน้า
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div x-show="excelPagesMode === 'custom'" class="pt-1.5">
+                                        <input type="text"
+                                               x-model="excelCustomPages"
+                                               placeholder="ระบุเลขหน้า เช่น 1-3, 5, 8"
+                                               class="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-700 bg-white font-mono">
+                                        <p class="text-[11px] text-gray-400 mt-1">คั่นด้วยเครื่องหมายจุลภาค เช่น 1, 3-5, 8</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Right Column: Live Document First-Page Preview (5 cols) --}}
+                            <div class="lg:col-span-5 flex flex-col items-center justify-center">
+                                <div class="w-full bg-slate-100/90 rounded-2xl border border-slate-200/90 p-4 sm:p-5 flex flex-col items-center justify-center min-h-[340px]">
+                                    <div class="w-full flex items-center justify-between mb-3 px-1">
+                                        <span class="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                                            <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"/></svg>
+                                            ตัวอย่างหน้าเอกสารจริง
+                                        </span>
+                                        {{-- Pagination --}}
+                                        <div class="flex items-center gap-1.5" x-show="excelTotalPages > 1">
+                                            <button type="button"
+                                                    @click="if (excelCurrentPage > 1) { excelCurrentPage--; loadExcelPdfPreview(); }"
+                                                    :disabled="excelCurrentPage <= 1"
+                                                    class="p-1 rounded bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
+                                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+                                            </button>
+                                            <span class="text-[11px] text-gray-600 font-semibold" x-text="`หน้า ${excelCurrentPage || 1} / ${excelTotalPages || 1}`"></span>
+                                            <button type="button"
+                                                    @click="if (excelCurrentPage < excelTotalPages) { excelCurrentPage++; loadExcelPdfPreview(); }"
+                                                    :disabled="excelCurrentPage >= excelTotalPages"
+                                                    class="p-1 rounded bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
+                                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {{-- Preview Card --}}
+                                    <div class="relative max-w-[240px] sm:max-w-[260px] w-full aspect-[1/1.414] bg-white rounded-xl shadow-lg border border-slate-300 overflow-hidden flex items-center justify-center">
+                                        <template x-if="excelPreviewUrl">
+                                            <img :src="excelPreviewUrl" class="w-full h-full object-contain pointer-events-none select-none">
+                                        </template>
+                                        <template x-if="!excelPreviewUrl">
+                                            <div class="flex flex-col items-center justify-center text-slate-400 p-4 text-center">
+                                                <svg class="w-10 h-10 text-emerald-300 animate-pulse mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"/>
+                                                </svg>
+                                                <span class="text-xs text-slate-500 font-medium">กำลังโหลดตัวอย่าง...</span>
+                                            </div>
+                                        </template>
+
+                                        {{-- Simulated Spreadsheet Grid Overlay at the bottom --}}
+                                        <div class="absolute bottom-0 inset-x-0 bg-white/95 border-t border-emerald-200/80 px-2 py-1 flex items-center justify-between text-[10px] text-emerald-800 font-mono shadow-xs backdrop-blur-xs">
+                                            <span class="font-bold flex items-center gap-1">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                <span x-text="excelSheetMode === 'single' ? 'Sheet1 (ตารางรวม)' : `Page ${excelCurrentPage || 1}`"></span>
+                                            </span>
+                                            <span class="text-slate-400">OpenXML .xlsx</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-3 text-center">
+                                        <span class="text-[11px] text-slate-500">ผลลัพธ์: ตาราง <strong>Microsoft Excel (.xlsx)</strong> พร้อมตัวเลขคำนวณได้</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
                     @if(in_array($tool['slug'], ['pdf-to-jpg', 'pdf-to-png']))
                     {{-- Visual Page Selector & Quality Settings for PDF to Images --}}
                     <div class="mt-5 pt-5 border-t border-gray-100" @click.stop>
@@ -2586,7 +2783,7 @@
 </div>
 @endsection
 
-@if(in_array($tool['slug'], ['rotate-pdf', 'delete-pages', 'watermark-pdf', 'unlock-pdf', 'merge-pdf', 'compress-pdf', 'split-pdf', 'pdf-to-word', 'pdf-to-jpg', 'pdf-to-png', 'page-numbers', 'crop-pdf', 'organize-pdf']))
+@if(in_array($tool['slug'], ['rotate-pdf', 'delete-pages', 'watermark-pdf', 'unlock-pdf', 'merge-pdf', 'compress-pdf', 'split-pdf', 'pdf-to-word', 'pdf-to-excel', 'pdf-to-jpg', 'pdf-to-png', 'page-numbers', 'crop-pdf', 'organize-pdf']))
 @push('scripts')
 <script src="{{ asset('vendor/pdfjs/pdf.min.js') }}"></script>
 <script>

@@ -243,6 +243,17 @@ Alpine.data('fileUpload', (config = {}) => ({
     isRenderingOrgPages: false,
     draggedOrgPageIndex: null,
 
+    // PDF to Excel State
+    excelTableMode: 'auto', // 'auto', 'lattice', 'stream'
+    excelSheetMode: 'single', // 'single', 'multiple'
+    excelPagesMode: 'all', // 'all', 'custom'
+    excelCustomPages: '',
+    excelPreviewUrl: null,
+    excelTotalPages: 0,
+    excelCurrentPage: 1,
+    isAnalyzingExcelPdf: false,
+    excelDetectedTableType: 'checking', // 'checking', 'lattice', 'stream'
+
     // Processing state
     isUploading: false,
     uploadProgress: 0,
@@ -308,6 +319,9 @@ Alpine.data('fileUpload', (config = {}) => ({
         }
         if (this.tool === 'organize-pdf' && this.files.length > 0) {
             this.loadOrganizePreview();
+        }
+        if (this.tool === 'pdf-to-excel' && this.files.length > 0) {
+            this.loadExcelPdfPreview();
         }
     },
 
@@ -448,6 +462,10 @@ Alpine.data('fileUpload', (config = {}) => ({
         if (this.tool === 'organize-pdf' && this.files.length > 0) {
             setTimeout(() => this.loadOrganizePreview(), 60);
         }
+        // If pdf-to-excel, load preview
+        if (this.tool === 'pdf-to-excel' && this.files.length > 0) {
+            setTimeout(() => this.loadExcelPdfPreview(), 60);
+        }
     },
 
     removeFile(id) {
@@ -525,6 +543,12 @@ Alpine.data('fileUpload', (config = {}) => ({
                 setTimeout(() => this.loadOrganizePreview(), 60);
             }
         }
+        if (this.tool === 'pdf-to-excel') {
+            this.clearExcelState();
+            if (this.files.length > 0) {
+                setTimeout(() => this.loadExcelPdfPreview(), 60);
+            }
+        }
     },
 
     clearAll() {
@@ -557,6 +581,7 @@ Alpine.data('fileUpload', (config = {}) => ({
         this.clearPageNumbersState();
         this.clearCropState();
         this.clearOrganizeState();
+        this.clearExcelState();
         this.protectPassword = '';
         this.protectPasswordConfirm = '';
         this.showProtectPassword = false;
@@ -787,6 +812,17 @@ Alpine.data('fileUpload', (config = {}) => ({
             const jsonStr = JSON.stringify(pagesPayload);
             formData.append('organize_pages_data', jsonStr);
             formData.append('config[organize_pages_data]', jsonStr);
+        }
+        if (activeTool === 'pdf-to-excel') {
+            formData.append('excel_table_mode', this.excelTableMode);
+            formData.append('config[excel_table_mode]', this.excelTableMode);
+            formData.append('excel_sheet_mode', this.excelSheetMode);
+            formData.append('config[excel_sheet_mode]', this.excelSheetMode);
+            formData.append('excel_pages_mode', this.excelPagesMode);
+            formData.append('config[excel_pages_mode]', this.excelPagesMode);
+            const pVal = this.excelPagesMode === 'custom' && this.excelCustomPages.trim() ? this.excelCustomPages.trim() : 'all';
+            formData.append('excel_custom_pages', pVal);
+            formData.append('config[excel_custom_pages]', pVal);
         }
         const tokenMeta = document.querySelector('meta[name="csrf-token"]');
         if (tokenMeta) {
@@ -1671,6 +1707,17 @@ Alpine.data('fileUpload', (config = {}) => ({
         if (this.tool === 'organize-pdf' && this.hasFiles) {
             const count = this.orgPagesList ? this.orgPagesList.length : (this.orgTotalPages || 1);
             return `บันทึกและดาวน์โหลด PDF ที่จัดเรียงใหม่ (${count} หน้า)`;
+        }
+        if (this.tool === 'pdf-to-excel' && this.hasFiles) {
+            const modeMap = {
+                'auto': 'ตรวจจับอัตโนมัติ',
+                'lattice': 'ตารางมีเส้น',
+                'stream': 'ตารางไม่มีเส้น'
+            };
+            const modeLabel = modeMap[this.excelTableMode] || 'ตรวจจับอัตโนมัติ';
+            const sheetLabel = this.excelSheetMode === 'single' ? 'รวมชีตเดียว' : 'แยกหน้าละชีต';
+            const pCount = this.excelPagesMode === 'custom' && this.excelCustomPages ? ` (หน้า ${this.excelCustomPages})` : (this.excelTotalPages ? ` (${this.excelTotalPages} หน้า)` : '');
+            return `แปลงเป็น Excel .xlsx [${modeLabel} · ${sheetLabel}]${pCount}`;
         }
         return null;
     },
@@ -2835,6 +2882,79 @@ Alpine.data('fileUpload', (config = {}) => ({
     resetOrgPages() {
         this.orgPagesList = [...this.orgPagesList].sort((a, b) => a.origPageNum - b.origPageNum);
         this.orgPagesList.forEach(p => p.rotation = 0);
+    },
+
+    // =====================================================
+    // PDF to Excel Methods & Preview
+    // =====================================================
+    clearExcelState() {
+        this.excelPreviewUrl = null;
+        this.excelTotalPages = 0;
+        this.excelCurrentPage = 1;
+        this.isAnalyzingExcelPdf = false;
+        this.excelDetectedTableType = 'checking';
+    },
+
+    async loadExcelPdfPreview() {
+        if (this.tool !== 'pdf-to-excel' || !this.files.length) return;
+        const targetFile = this.files[0]?.file;
+        if (!targetFile) return;
+
+        this.isAnalyzingExcelPdf = true;
+        this.excelDetectedTableType = 'checking';
+
+        try {
+            await this.ensurePdfJs();
+            const arrayBuffer = await targetFile.arrayBuffer();
+            const doc = await window.pdfjsLib.getDocument({ data: arrayBuffer.slice(0) }).promise;
+            this.excelTotalPages = doc.numPages;
+
+            const pNum = Math.max(1, Math.min(this.excelTotalPages, this.excelCurrentPage || 1));
+            const page = await doc.getPage(pNum);
+
+            // Quick table structure inspection
+            try {
+                const opList = await page.getOperatorList();
+                const drawOps = [window.pdfjsLib.OPS.stroke, window.pdfjsLib.OPS.fill, window.pdfjsLib.OPS.constructPath];
+                let vectorLinesCount = 0;
+                if (opList && opList.fnArray) {
+                    for (let i = 0; i < opList.fnArray.length; i++) {
+                        if (drawOps.includes(opList.fnArray[i])) {
+                            vectorLinesCount++;
+                        }
+                    }
+                }
+                if (vectorLinesCount > 25) {
+                    this.excelDetectedTableType = 'lattice';
+                } else {
+                    this.excelDetectedTableType = 'stream';
+                }
+            } catch (inspectErr) {
+                this.excelDetectedTableType = 'lattice';
+            }
+
+            const baseViewport = page.getViewport({ scale: 1.0 });
+            const targetDim = 520;
+            const maxDim = Math.max(baseViewport.width, baseViewport.height);
+            const scale = Math.min(1.2, Math.max(0.45, targetDim / maxDim));
+            const viewport = page.getViewport({ scale });
+
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            const ctx = canvas.getContext('2d');
+
+            await page.render({
+                canvasContext: ctx,
+                viewport: viewport
+            }).promise;
+
+            this.excelPreviewUrl = canvas.toDataURL('image/jpeg', 0.88);
+        } catch (err) {
+            console.warn('PDF to Excel preview error:', err);
+        } finally {
+            this.isAnalyzingExcelPdf = false;
+        }
     },
 
     get hasFiles() { return this.files.length > 0; },
