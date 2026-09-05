@@ -536,14 +536,71 @@
                             </div>
                         </div>
 
+                        {{-- Warning Banner for Corrupted Thai / CID Fonts --}}
+                        <div x-show="excelDetectedCorruptedThai" x-transition class="mb-4 p-3.5 bg-amber-50 border border-amber-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg>
+                                </div>
+                                <div>
+                                    <h4 class="text-xs font-bold text-amber-900">ตรวจพบฟอนต์ใน PDF เข้ารหัสแบบพิเศษ (CID Font) หรือสลับลำดับตัวอักษร</h4>
+                                    <p class="text-[11px] text-amber-700 mt-0.5">อาจทำให้แปลงเป็น Excel แล้วภาษาไทยเพี้ยนหรือตัวเลขกลับหลัง ระบบได้ปรับไปใช้ <strong>โหมดสแกนข้อความ OCR ภาษาไทย</strong> ให้ท่านโดยอัตโนมัติ</p>
+                                </div>
+                            </div>
+                            <button type="button" @click="excelMode = 'ocr'" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors shrink-0 flex items-center gap-1.5 self-start sm:self-center">
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                                ยืนยันใช้โหมด OCR
+                            </button>
+                        </div>
+
                         {{-- Main Grid: Left Options (7 cols), Right Live Document Preview (5 cols) --}}
                         <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
 
                             {{-- Left Column: Settings & Modes --}}
                             <div class="lg:col-span-7 space-y-4">
-                                {{-- 1. Table Detection Strategy --}}
+                                {{-- 1. Conversion Engine: Standard vs OCR --}}
                                 <div>
-                                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">1. โหมดการตรวจจับตาราง (Table Detection Engine)</label>
+                                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">1. โหมดเครื่องยนต์แปลงข้อมูล (Conversion Engine)</label>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                        {{-- Mode: Standard --}}
+                                        <div @click="excelMode = 'standard'"
+                                             class="p-3 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-3"
+                                             :class="excelMode === 'standard' ? 'border-emerald-600 bg-emerald-50/50 shadow-2xs ring-2 ring-emerald-500/20' : 'border-gray-200 bg-white hover:border-emerald-300'">
+                                            <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                                                 :class="excelMode === 'standard' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-600'">
+                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"/></svg>
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="flex items-center justify-between mb-1">
+                                                    <span class="text-xs font-bold text-gray-900">แปลงตารางปกติ</span>
+                                                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800">เร็ว & คมชัด</span>
+                                                </div>
+                                                <p class="text-[11px] text-gray-500 leading-relaxed">ดึงโครงสร้างตารางและตัวเลขโดยตรง เหมาะกับ PDF ดิจิทัลทั่วไป</p>
+                                            </div>
+                                        </div>
+
+                                        {{-- Mode: Thai OCR --}}
+                                        <div @click="excelMode = 'ocr'"
+                                             class="p-3 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-3"
+                                             :class="excelMode === 'ocr' ? 'border-amber-600 bg-amber-50/50 shadow-2xs ring-2 ring-amber-500/20' : 'border-gray-200 bg-white hover:border-amber-300'">
+                                            <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                                                 :class="excelMode === 'ocr' ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-600'">
+                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" /></svg>
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="flex items-center justify-between mb-1">
+                                                    <span class="text-xs font-bold text-gray-900">สแกน OCR ภาษาไทย</span>
+                                                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800">แก้ฟอนต์เพี้ยน</span>
+                                                </div>
+                                                <p class="text-[11px] text-gray-500 leading-relaxed">แก้ปัญหาภาษาไทยเพี้ยน/CID/ตัวเลขกลับหลัง โดยสแกนภาพจริงทีละช่อง</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- 2. Table Detection Strategy (Standard Mode) --}}
+                                <div x-show="excelMode === 'standard'">
+                                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">2. รูปแบบการตรวจจับตาราง (Table Detection)</label>
                                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                                         {{-- Mode: Auto --}}
                                         <div @click="excelTableMode = 'auto'"
@@ -586,9 +643,9 @@
                                     </div>
                                 </div>
 
-                                {{-- 2. Worksheet Layout Mode --}}
+                                {{-- 3. Worksheet Layout Mode --}}
                                 <div class="bg-slate-50/80 border border-slate-200/90 rounded-2xl p-3.5 sm:p-4">
-                                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2.5">2. การจัดแผ่นงาน Excel (Worksheet Layout)</label>
+                                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2.5">3. การจัดแผ่นงาน Excel (Worksheet Layout)</label>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                                         <label @click="excelSheetMode = 'single'"
                                                class="flex items-start gap-2.5 p-3 rounded-xl bg-white border cursor-pointer transition-all"
@@ -612,10 +669,10 @@
                                     </div>
                                 </div>
 
-                                {{-- 3. Page Selection --}}
+                                {{-- 4. Page Selection --}}
                                 <div class="bg-slate-50/80 border border-slate-200/90 rounded-2xl p-3.5 sm:p-4">
                                     <div class="flex items-center justify-between mb-2">
-                                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider">3. หน้าที่ต้องการแปลง</label>
+                                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider">4. หน้าที่ต้องการแปลง</label>
                                         <div class="flex items-center gap-1.5">
                                             <button type="button" @click="excelPagesMode = 'all'"
                                                     :class="excelPagesMode === 'all' ? 'bg-emerald-600 text-white font-semibold shadow-xs' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'"

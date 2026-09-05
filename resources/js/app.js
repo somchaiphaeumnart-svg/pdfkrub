@@ -244,6 +244,7 @@ Alpine.data('fileUpload', (config = {}) => ({
     draggedOrgPageIndex: null,
 
     // PDF to Excel State
+    excelMode: 'standard', // 'standard', 'ocr'
     excelTableMode: 'auto', // 'auto', 'lattice', 'stream'
     excelSheetMode: 'single', // 'single', 'multiple'
     excelPagesMode: 'all', // 'all', 'custom'
@@ -253,6 +254,7 @@ Alpine.data('fileUpload', (config = {}) => ({
     excelCurrentPage: 1,
     isAnalyzingExcelPdf: false,
     excelDetectedTableType: 'checking', // 'checking', 'lattice', 'stream'
+    excelDetectedCorruptedThai: false,
 
     // Processing state
     isUploading: false,
@@ -814,6 +816,10 @@ Alpine.data('fileUpload', (config = {}) => ({
             formData.append('config[organize_pages_data]', jsonStr);
         }
         if (activeTool === 'pdf-to-excel') {
+            formData.append('excel_mode', this.excelMode);
+            formData.append('config[excel_mode]', this.excelMode);
+            formData.append('excel_ocr_mode', this.excelMode);
+            formData.append('config[excel_ocr_mode]', this.excelMode);
             formData.append('excel_table_mode', this.excelTableMode);
             formData.append('config[excel_table_mode]', this.excelTableMode);
             formData.append('excel_sheet_mode', this.excelSheetMode);
@@ -2931,6 +2937,27 @@ Alpine.data('fileUpload', (config = {}) => ({
                 }
             } catch (inspectErr) {
                 this.excelDetectedTableType = 'lattice';
+            }
+
+            // Quick check for CID / corrupted font encoding in text content
+            try {
+                const textContent = await page.getTextContent();
+                let hasCidOrCorrupt = false;
+                if (textContent && textContent.items) {
+                    for (const item of textContent.items) {
+                        const str = item.str || '';
+                        if (str.includes('(cid:') || str.includes('\ufffd') || /\b(6202|5202|4202|7652|6652|5652|4652)\/\d+/.test(str)) {
+                            hasCidOrCorrupt = true;
+                            break;
+                        }
+                    }
+                }
+                this.excelDetectedCorruptedThai = hasCidOrCorrupt;
+                if (this.excelDetectedCorruptedThai) {
+                    this.excelMode = 'ocr';
+                }
+            } catch (textErr) {
+                // ignore
             }
 
             const baseViewport = page.getViewport({ scale: 1.0 });

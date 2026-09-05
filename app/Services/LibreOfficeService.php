@@ -478,12 +478,18 @@ class LibreOfficeService
         $pages = ($options['excel_pages_mode'] ?? '') === 'custom' && !empty($options['excel_custom_pages'])
             ? (string)$options['excel_custom_pages']
             : 'all';
+        $isOcr = ($options['excel_mode'] ?? '') === 'ocr'
+            || ($options['excel_ocr_mode'] ?? '') === 'ocr';
 
         $cliArgs = [
             '--table-mode', $tableMode,
             '--sheet-mode', $sheetMode,
             '--pages', $pages,
         ];
+
+        if ($isOcr) {
+            $cliArgs[] = '--ocr';
+        }
 
         if (file_exists($scriptPath)) {
             $cmd = array_merge([$pythonCmd, $scriptPath, $inputPdf, $outputPath], $cliArgs);

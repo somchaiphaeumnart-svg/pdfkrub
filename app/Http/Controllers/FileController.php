@@ -153,7 +153,7 @@ class FileController extends Controller
         if ($request->has('organize_pages_data')) {
             $config['organize_pages_data'] = $request->input('organize_pages_data');
         }
-        foreach (['excel_table_mode', 'excel_sheet_mode', 'excel_pages_mode', 'excel_custom_pages'] as $exParam) {
+        foreach (['excel_table_mode', 'excel_sheet_mode', 'excel_pages_mode', 'excel_custom_pages', 'excel_mode', 'excel_ocr_mode'] as $exParam) {
             if ($request->has($exParam)) {
                 $config[$exParam] = (string) $request->input($exParam);
             }

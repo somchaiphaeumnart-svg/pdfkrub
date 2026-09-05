@@ -29,13 +29,28 @@ def col_to_letter(col_idx):
         result = chr(65 + remainder) + result
     return result
 
+import unicodedata
+import tempfile
+import csv
+
+def clean_thai_text(text):
+    """Normalize Thai Unicode and remove corrupt CID glyph placeholders."""
+    if not text:
+        return ""
+    # Unicode normalize NFC
+    text = unicodedata.normalize('NFC', str(text))
+    # Remove CID glyph artifacts like (cid:123)
+    text = re.sub(r'\(cid:\d+\)', '', text)
+    # Fix Thai sara am: nikhahit (U+0E4D) + sara aa (U+0E32) -> sara am (U+0E33)
+    text = text.replace('\u0e4d\u0e32', '\u0e33')
+    # Strip non-printable ASCII control characters except newline and tab, and replacement char
+    text = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F\ufffd]', '', text)
+    return text.strip()
+
 def clean_cell_value(val):
     if val is None:
         return ""
-    s = str(val).strip()
-    # Strip non-printable ASCII control characters except newline and tab
-    s = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F]', '', s)
-    return s
+    return clean_thai_text(val)
 
 def parse_page_ranges(page_spec, total_pages):
     """
@@ -301,12 +316,292 @@ def save_to_excel(pages_data, output_path, sheet_mode="single"):
 
     return write_xlsx_builtin(pages_data, output_path, sheet_mode=sheet_mode)
 
-def extract_from_pdf(input_path, table_mode="auto", page_indices=None):
+def is_text_corrupted(pages_data):
+    """
+    Check if extracted text suffers from font encoding corruption,
+    missing ToUnicode maps ((cid:X)), or scrambled glyphs.
+    """
+    total_cells = 0
+    corrupted_count = 0
+
+    for page in pages_data:
+        for row in page:
+            for cell in row:
+                s = str(cell).strip()
+                if not s:
+                    continue
+                total_cells += 1
+                # 1. Direct CID glyph placeholder check
+                if '(cid:' in s or '\ufffd' in s:
+                    corrupted_count += 3
+                    continue
+                # 2. Check for reversed date like 6202/ or 5202/ or 4652/ (reversed 2564)
+                if re.search(r'\b(6202|5202|4202|7652|6652|5652|4652)/\d+', s):
+                    corrupted_count += 3
+                    continue
+                # 3. Check for Thai combining characters out of place (floating tone marks or sara)
+                if re.match(r'^[\u0e30-\u0e3a\u0e47-\u0e4e]', s):
+                    corrupted_count += 1
+                    continue
+
+    if total_cells == 0:
+        return False
+
+    return corrupted_count >= 2 or (corrupted_count / max(1, total_cells)) > 0.02
+
+def extract_tables_with_ocr(input_path, page_indices=None, ocr_lang="tha+eng"):
+    """
+    Extracts tabular data using PyMuPDF high-DPI page rendering and Tesseract OCR with TSV coordinates.
+    Reconstructs tables even when PDF fonts lack /ToUnicode or contain backwards stream characters.
+    """
+    try:
+        import fitz
+    except ImportError:
+        sys.stderr.write("fitz (PyMuPDF) required for OCR table extraction.\n")
+        return []
+
+    try:
+        doc = fitz.open(input_path)
+    except Exception as e:
+        sys.stderr.write(f"Cannot open PDF with fitz: {e}\n")
+        return []
+
+    total = len(doc)
+    target_indices = page_indices if page_indices is not None else list(range(total))
+    target_indices = [p for p in target_indices if 0 <= p < total]
+
+    pages_data = []
+    dpi = 200
+    scale = dpi / 72.0  # 200 / 72 = 2.777778
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        for p_idx in target_indices:
+            page = doc[p_idx]
+            pix = page.get_pixmap(dpi=dpi)
+            img_path = os.path.join(tmp_dir, f"page_{p_idx}.png")
+            pix.save(img_path)
+
+            out_base = os.path.join(tmp_dir, f"ocr_{p_idx}")
+            cmd = ['tesseract', img_path, out_base, '-l', ocr_lang, '--psm', '6', 'tsv']
+            try:
+                subprocess.run(cmd, capture_output=True, timeout=90)
+            except Exception as e:
+                sys.stderr.write(f"Tesseract OCR psm 6 error: {e}\n")
+
+            tsv_path = f"{out_base}.tsv"
+            words = []
+            if os.path.exists(tsv_path):
+                with open(tsv_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    reader = csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE)
+                    for row in reader:
+                        if row.get('level') == '5':
+                            txt = clean_thai_text(row.get('text', ''))
+                            if txt:
+                                try:
+                                    left = int(row.get('left', 0))
+                                    top = int(row.get('top', 0))
+                                    width = int(row.get('width', 0))
+                                    height = int(row.get('height', 0))
+                                    conf = float(row.get('conf', 0))
+                                    if conf >= 0:
+                                        words.append({
+                                            'left': left,
+                                            'top': top,
+                                            'width': width,
+                                            'height': height,
+                                            'cx': left + width / 2.0,
+                                            'cy': top + height / 2.0,
+                                            'conf': conf,
+                                            'text': txt
+                                        })
+                                except (ValueError, TypeError):
+                                    pass
+
+            # If psm 6 didn't find words, fallback to psm 3
+            if not words:
+                cmd3 = ['tesseract', img_path, out_base, '-l', ocr_lang, '--psm', '3', 'tsv']
+                try:
+                    subprocess.run(cmd3, capture_output=True, timeout=90)
+                    if os.path.exists(tsv_path):
+                        with open(tsv_path, 'r', encoding='utf-8', errors='ignore') as f:
+                            reader = csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE)
+                            for row in reader:
+                                if row.get('level') == '5':
+                                    txt = clean_thai_text(row.get('text', ''))
+                                    if txt:
+                                        try:
+                                            left = int(row.get('left', 0))
+                                            top = int(row.get('top', 0))
+                                            width = int(row.get('width', 0))
+                                            height = int(row.get('height', 0))
+                                            conf = float(row.get('conf', 0))
+                                            if conf >= 0:
+                                                words.append({
+                                                    'left': left,
+                                                    'top': top,
+                                                    'width': width,
+                                                    'height': height,
+                                                    'cx': left + width / 2.0,
+                                                    'cy': top + height / 2.0,
+                                                    'conf': conf,
+                                                    'text': txt
+                                                })
+                                        except (ValueError, TypeError):
+                                            pass
+                except Exception:
+                    pass
+
+            if not words:
+                pages_data.append([])
+                continue
+
+            page_rows = []
+            table_handled = False
+
+            # Method A: Check if page has vector table cells detected by PyMuPDF
+            try:
+                tabs = page.find_tables()
+                if tabs and tabs.tables:
+                    for tab in tabs:
+                        if hasattr(tab, 'cells') and tab.cells and hasattr(tab, 'row_count') and hasattr(tab, 'col_count'):
+                            num_rows = tab.row_count
+                            num_cols = tab.col_count
+                            grid = [["" for _ in range(num_cols)] for _ in range(num_rows)]
+                            for cell_idx, cell_bbox in enumerate(tab.cells):
+                                if cell_bbox:
+                                    r = cell_idx // num_cols
+                                    c = cell_idx % num_cols
+                                    if r < num_rows and c < num_cols:
+                                        x0, y0, x1, y1 = cell_bbox
+                                        img_x0, img_y0, img_x1, img_y1 = x0 * scale, y0 * scale, x1 * scale, y1 * scale
+                                        in_cell = [w for w in words if img_x0 - 6 <= w['cx'] <= img_x1 + 6 and img_y0 - 6 <= w['cy'] <= img_y1 + 6]
+                                        if in_cell:
+                                            in_cell.sort(key=lambda w: (w['top'], w['left']))
+                                            grid[r][c] = " ".join(w['text'] for w in in_cell)
+                            if any(any(c.strip() for c in row) for row in grid):
+                                page_rows.extend(grid)
+                                page_rows.append([])
+                                table_handled = True
+            except Exception as e:
+                sys.stderr.write(f"PyMuPDF vector table cell mapping notice: {e}\n")
+
+            if table_handled and page_rows:
+                pages_data.append(page_rows)
+                continue
+
+            # Method B: Coordinate & Gap Clustering
+            words.sort(key=lambda w: (w['top'], w['left']))
+            lines = []
+            for w in words:
+                w_cy = w['cy']
+                placed = False
+                for line in lines:
+                    if abs(w_cy - line['cy']) <= max(12.0, line['height'] * 0.45):
+                        line['words'].append(w)
+                        line['top'] = min(line['top'], w['top'])
+                        line['bottom'] = max(line['bottom'], w['top'] + w['height'])
+                        line['height'] = line['bottom'] - line['top']
+                        line['cy'] = (line['top'] + line['bottom']) / 2.0
+                        placed = True
+                        break
+                if not placed:
+                    lines.append({
+                        'top': w['top'],
+                        'bottom': w['top'] + w['height'],
+                        'height': w['height'],
+                        'cy': w['cy'],
+                        'words': [w]
+                    })
+
+            lines.sort(key=lambda l: l['top'])
+
+            line_segments = []
+            for line in lines:
+                line['words'].sort(key=lambda w: w['left'])
+                segments = []
+                curr = []
+                for w in line['words']:
+                    if not curr:
+                        curr.append(w)
+                    else:
+                        prev = curr[-1]
+                        gap = w['left'] - (prev['left'] + prev['width'])
+                        if gap > 24:
+                            seg_text = " ".join(cw['text'] for cw in curr).strip()
+                            segments.append({
+                                'text': seg_text,
+                                'x0': curr[0]['left'],
+                                'x1': prev['left'] + prev['width'],
+                                'cx': (curr[0]['left'] + prev['left'] + prev['width']) / 2.0
+                            })
+                            curr = [w]
+                        else:
+                            curr.append(w)
+                if curr:
+                    seg_text = " ".join(cw['text'] for cw in curr).strip()
+                    segments.append({
+                        'text': seg_text,
+                        'x0': curr[0]['left'],
+                        'x1': curr[-1]['left'] + curr[-1]['width'],
+                        'cx': (curr[0]['left'] + curr[-1]['left'] + curr[-1]['width']) / 2.0
+                    })
+                line_segments.append(segments)
+
+            all_x0 = sorted([seg['x0'] for segs in line_segments for seg in segs])
+            col_anchors = []
+            if all_x0:
+                for x in all_x0:
+                    matched = False
+                    for col in col_anchors:
+                        if abs(x - col['mean']) < 35:
+                            col['vals'].append(x)
+                            col['mean'] = sum(col['vals']) / len(col['vals'])
+                            matched = True
+                            break
+                    if not matched:
+                        col_anchors.append({'mean': x, 'vals': [x]})
+
+                col_anchors.sort(key=lambda c: c['mean'])
+                min_freq = max(1, int(len(line_segments) * 0.08)) if len(line_segments) >= 10 else 1
+                valid_cols = [c['mean'] for c in col_anchors if len(c['vals']) >= min_freq]
+                valid_cols.sort()
+            else:
+                valid_cols = []
+
+            for segs in line_segments:
+                if not segs:
+                    continue
+                if not valid_cols or len(valid_cols) <= 1:
+                    page_rows.append([s['text'] for s in segs])
+                else:
+                    row_data = ["" for _ in range(len(valid_cols))]
+                    for s in segs:
+                        best_col = min(range(len(valid_cols)), key=lambda i: abs(s['x0'] - valid_cols[i]))
+                        if row_data[best_col]:
+                            row_data[best_col] += " " + s['text']
+                        else:
+                            row_data[best_col] = s['text']
+                    while row_data and not row_data[-1].strip():
+                        row_data.pop()
+                    if row_data:
+                        page_rows.append(row_data)
+
+            pages_data.append(page_rows)
+
+    doc.close()
+    return pages_data
+
+def extract_from_pdf(input_path, table_mode="auto", page_indices=None, force_ocr=False):
     """
     Extract tabular structures from PDF using pdfplumber, PyMuPDF, or pdftotext.
     table_mode: 'auto' | 'lattice' | 'stream'
     page_indices: list of 0-based page numbers to extract
+    force_ocr: if True, directly use Thai OCR Table extraction
     """
+    if force_ocr:
+        sys.stderr.write("Running Thai OCR Table Engine...\n")
+        return extract_tables_with_ocr(input_path, page_indices=page_indices)
+
     pages_data = []
 
     # Method 1: pdfplumber (highest quality table detection)
@@ -356,6 +651,11 @@ def extract_from_pdf(input_path, table_mode="auto", page_indices=None):
                 pages_data.append(page_rows)
 
         if any(len(p) > 0 for p in pages_data):
+            if is_text_corrupted(pages_data):
+                sys.stderr.write("Detected corrupted Thai font / (cid:) encoding. Switching to Thai OCR Table Engine...\n")
+                ocr_data = extract_tables_with_ocr(input_path, page_indices=page_indices)
+                if ocr_data and any(len(p) > 0 for p in ocr_data):
+                    return ocr_data
             return pages_data
     except ImportError:
         pass
@@ -396,6 +696,11 @@ def extract_from_pdf(input_path, table_mode="auto", page_indices=None):
             pages_data.append(page_rows)
 
         if any(len(p) > 0 for p in pages_data):
+            if is_text_corrupted(pages_data):
+                sys.stderr.write("Detected corrupted Thai font / (cid:) encoding in fitz output. Switching to Thai OCR Table Engine...\n")
+                ocr_data = extract_tables_with_ocr(input_path, page_indices=page_indices)
+                if ocr_data and any(len(p) > 0 for p in ocr_data):
+                    return ocr_data
             return pages_data
     except ImportError:
         pass
@@ -422,11 +727,18 @@ def extract_from_pdf(input_path, table_mode="auto", page_indices=None):
                 if page_rows:
                     pages_data.append(page_rows)
             if pages_data:
+                if is_text_corrupted(pages_data):
+                    sys.stderr.write("Detected corrupted Thai font / (cid:) encoding in pdftotext output. Switching to Thai OCR Table Engine...\n")
+                    ocr_data = extract_tables_with_ocr(input_path, page_indices=page_indices)
+                    if ocr_data and any(len(p) > 0 for p in ocr_data):
+                        return ocr_data
                 return pages_data
     except Exception as e:
         sys.stderr.write(f"pdftotext notice: {e}\n")
 
-    return pages_data
+    # Final fallback if vector extraction failed completely
+    sys.stderr.write("Vector table extraction yielded no content. Running Thai OCR Table Engine...\n")
+    return extract_tables_with_ocr(input_path, page_indices=page_indices)
 
 def get_pdf_total_pages(input_path):
     try:
@@ -453,6 +765,7 @@ def main():
                         help="Sheet structure: single (one continuous sheet) or multiple (sheet per page)")
     parser.add_argument("--pages", dest="pages", default="all",
                         help="Pages to convert: 'all' or comma/range (e.g. '1,3-5')")
+    parser.add_argument("--ocr", action="store_true", help="Force Thai OCR table extraction engine")
 
     args = parser.parse_args()
 
@@ -463,7 +776,7 @@ def main():
     total_pages = get_pdf_total_pages(args.input_pdf)
     target_page_indices = parse_page_ranges(args.pages, total_pages)
 
-    pages_data = extract_from_pdf(args.input_pdf, table_mode=args.table_mode, page_indices=target_page_indices)
+    pages_data = extract_from_pdf(args.input_pdf, table_mode=args.table_mode, page_indices=target_page_indices, force_ocr=args.ocr)
     if not pages_data:
         pages_data = [[["ไม่พบข้อมูลตารางในเอกสาร PDF หรือเป็นไฟล์รูปภาพสแกน"]]]
 
