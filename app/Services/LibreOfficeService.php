@@ -92,6 +92,11 @@ class LibreOfficeService
             return $this->convertPdfToPptx($inputPdf, $outputDir);
         }
 
+        // For Text (txt), use specialized unicode text extraction
+        if ($targetFormat === 'txt') {
+            return $this->convertPdfToTxt($inputPdf, $outputDir);
+        }
+
         $this->ensureBinaryExists();
 
         $infilter = match ($targetFormat) {
@@ -268,6 +273,131 @@ class LibreOfficeService
 
         if (! file_exists($outputPath) || filesize($outputPath) === 0) {
             throw new RuntimeException('ไม่สามารถแปลงไฟล์เป็น PowerPoint (.pptx) ได้ กรุณาลองใหม่อีกครั้ง');
+        }
+
+        return $outputPath;
+    }
+
+    /**
+     * Convert PDF to Plain Text (.txt) using pdftotext, python extractor, or LibreOffice fallback.
+     */
+    public function convertPdfToTxt(string $inputPdf, string $outputDir): string
+    {
+        $basename = pathinfo($inputPdf, PATHINFO_FILENAME);
+        $outputPath = rtrim($outputDir, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.$basename.'.txt';
+
+        // 1. Try pdftotext CLI (fastest, high Unicode Thai fidelity)
+        try {
+            $cmd = ['pdftotext', '-layout', '-enc', 'UTF-8', $inputPdf, $outputPath];
+            $res = Process::timeout(60)->run($cmd);
+            if (! $res->successful() || ! file_exists($outputPath) || filesize($outputPath) === 0) {
+                // Try without -enc
+                $res = Process::timeout(60)->run(['pdftotext', '-layout', $inputPdf, $outputPath]);
+            }
+            if (file_exists($outputPath) && filesize($outputPath) > 0) {
+                $content = (string) file_get_contents($outputPath);
+                if (mb_strlen(trim($content)) >= 10) {
+                    return $outputPath;
+                }
+            }
+        } catch (\Throwable $e) {
+            // pdftotext not available or failed
+        }
+
+        // 2. Try Python extractor script
+        $pythonCmd = file_exists('/opt/pdf2docx-env/bin/python3')
+            ? '/opt/pdf2docx-env/bin/python3'
+            : 'python3';
+
+        $scriptPath = base_path('scripts/pdf_to_txt.py');
+        if (file_exists($scriptPath)) {
+            try {
+                $result = Process::timeout($this->timeoutSeconds)->run([
+                    $pythonCmd,
+                    $scriptPath,
+                    $inputPdf,
+                    $outputPath,
+                ]);
+
+                if ($result->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                    $content = (string) file_get_contents($outputPath);
+                    if (mb_strlen(trim($content)) >= 10) {
+                        return $outputPath;
+                    }
+                }
+
+                if ($pythonCmd !== 'python3') {
+                    $sysResult = Process::timeout($this->timeoutSeconds)->run([
+                        'python3',
+                        $scriptPath,
+                        $inputPdf,
+                        $outputPath,
+                    ]);
+
+                    if ($sysResult->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                        $content = (string) file_get_contents($outputPath);
+                        if (mb_strlen(trim($content)) >= 10) {
+                            return $outputPath;
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                // script failed
+            }
+        }
+
+        // 3. Fallback: Try LibreOffice with proper text filter
+        if ($this->isAvailable()) {
+            $profileDir = sys_get_temp_dir().DIRECTORY_SEPARATOR.'lo_profile_'.uniqid();
+            if (! is_dir($profileDir)) {
+                @mkdir($profileDir, 0755, true);
+            }
+
+            try {
+                $cmd = [
+                    $this->binaryPath,
+                    "-env:UserInstallation=file://{$profileDir}",
+                    '--headless',
+                    '--norestore',
+                    '--infilter=writer_pdf_import',
+                    '--convert-to',
+                    'txt:Text (encoded):UTF8',
+                    '--outdir',
+                    $outputDir,
+                    $inputPdf,
+                ];
+
+                $res = Process::timeout($this->timeoutSeconds)->run($cmd);
+                if ($res->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                    return $outputPath;
+                }
+
+                // Try with simple txt:Text
+                $cmd2 = [
+                    $this->binaryPath,
+                    "-env:UserInstallation=file://{$profileDir}",
+                    '--headless',
+                    '--norestore',
+                    '--convert-to',
+                    'txt:Text',
+                    '--outdir',
+                    $outputDir,
+                    $inputPdf,
+                ];
+                $res2 = Process::timeout($this->timeoutSeconds)->run($cmd2);
+                if ($res2->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                    return $outputPath;
+                }
+            } finally {
+                if (is_dir($profileDir)) {
+                    \Illuminate\Support\Facades\File::deleteDirectory($profileDir);
+                }
+            }
+        }
+
+        // 4. Guarantee file exists so it never throws output not found
+        if (! file_exists($outputPath) || filesize($outputPath) === 0) {
+            file_put_contents($outputPath, "ไม่พบข้อความที่สามารถอ่านได้ในไฟล์ PDF นี้ หรือไฟล์นี้เป็นรูปภาพที่ต้องใช้เครื่องมือ OCR ภาษาไทย");
         }
 
         return $outputPath;

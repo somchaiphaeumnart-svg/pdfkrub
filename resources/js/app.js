@@ -368,6 +368,7 @@ Alpine.data('fileUpload', (config = {}) => ({
             'watermark-pdf': 'กำลังใส่ลายน้ำเอกสาร PDF...',
             'protect-pdf': 'กำลังตั้งรหัสผ่านป้องกัน PDF...',
             'unlock-pdf': 'กำลังปลดล็อครหัสผ่าน PDF...',
+            'pdf-to-txt': 'กำลังดึงข้อความภาษาไทยออกจาก PDF (.txt)...',
         };
         const detail = toolLabels[toolName] || 'เซิร์ฟเวอร์กำลังประมวลผลไฟล์...';
         this.processingDetail = detail;
