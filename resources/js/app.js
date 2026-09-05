@@ -105,6 +105,7 @@ Alpine.data('fileUpload', (config = {}) => ({
     pdfTotalPages: 0,
     pdfCurrentPage: 1,
     pdfRenderError: null,
+    currentRenderTask: null,
 
     // Processing state
     isUploading: false,
@@ -609,16 +610,16 @@ Alpine.data('fileUpload', (config = {}) => ({
     async ensurePdfJs() {
         if (window.pdfjsLib) {
             if (window.pdfjsLib.GlobalWorkerOptions && !window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
-                window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                window.pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.js';
             }
             return;
         }
         return new Promise((resolve, reject) => {
             const script = document.createElement('script');
-            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+            script.src = '/vendor/pdfjs/pdf.min.js';
             script.onload = () => {
-                if (window.pdfjsLib) {
-                    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                if (window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions) {
+                    window.pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.js';
                 }
                 resolve();
             };
@@ -645,14 +646,19 @@ Alpine.data('fileUpload', (config = {}) => ({
         try {
             await this.ensurePdfJs();
             const arrayBuffer = await file.arrayBuffer();
-            const loadingTask = window.pdfjsLib.getDocument({ data: arrayBuffer });
+            const loadingTask = window.pdfjsLib.getDocument({
+                data: arrayBuffer,
+                cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+                cMapPacked: true,
+                standardFontDataUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/standard_fonts/',
+            });
             this.pdfDoc = await loadingTask.promise;
             this.pdfTotalPages = this.pdfDoc.numPages || 1;
             this.pdfCurrentPage = 1;
             await this.renderCurrentPage();
         } catch (e) {
             console.warn('PDF preview error:', e);
-            this.pdfRenderError = 'ไม่สามารถสร้างตัวอย่างหน้าเอกสารได้ (ท่านยังสามารถกดหมุนและดาวน์โหลดไฟล์ได้)';
+            this.pdfRenderError = 'ไม่สามารถสร้างตัวอย่างหน้าเอกสารได้: ' + (e.message || '');
         } finally {
             this.isRenderingPdf = false;
         }
@@ -662,26 +668,55 @@ Alpine.data('fileUpload', (config = {}) => ({
         if (!this.pdfDoc) return;
         this.isRenderingPdf = true;
         try {
+            if (this.currentRenderTask) {
+                try {
+                    this.currentRenderTask.cancel();
+                } catch (err) {}
+                this.currentRenderTask = null;
+            }
+
             const page = await this.pdfDoc.getPage(this.pdfCurrentPage);
             const canvas = document.getElementById('pdfRotatePreviewCanvas');
             if (!canvas) return;
 
             const ctx = canvas.getContext('2d');
-            const unscaledViewport = page.getViewport({ scale: 1.0 });
-            const targetWidth = 260;
-            const scale = Math.max(0.5, targetWidth / unscaledViewport.width);
-            const viewport = page.getViewport({ scale: Math.min(scale, 2.0) });
 
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
+            // Determine render resolution
+            const baseViewport = page.getViewport({ scale: 1.0 });
+            const maxDim = Math.max(baseViewport.width, baseViewport.height);
+            // Render at crisp resolution (up to 2x for retina displays)
+            const scale = Math.min(2.0, Math.max(0.6, 480 / maxDim));
+            const viewport = page.getViewport({ scale: scale });
+
+            canvas.width = Math.floor(viewport.width);
+            canvas.height = Math.floor(viewport.height);
+
+            // Display size constraints in CSS
+            const displayScale = Math.min(250 / viewport.width, 270 / viewport.height, 1);
+            const dispW = Math.max(120, Math.floor(viewport.width * displayScale));
+            const dispH = Math.max(120, Math.floor(viewport.height * displayScale));
+            canvas.style.width = `${dispW}px`;
+            canvas.style.height = `${dispH}px`;
+
+            // Clear with solid white background
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             const renderContext = {
                 canvasContext: ctx,
                 viewport: viewport
             };
-            await page.render(renderContext).promise;
+
+            this.currentRenderTask = page.render(renderContext);
+            await this.currentRenderTask.promise;
+            this.currentRenderTask = null;
+            this.pdfRenderError = null;
         } catch (e) {
+            if (e && e.name === 'RenderingCancelledException') {
+                return;
+            }
             console.warn('renderCurrentPage error:', e);
+            this.pdfRenderError = 'ไม่สามารถวาดหน้าเอกสารได้: ' + (e.message || '');
         } finally {
             this.isRenderingPdf = false;
         }

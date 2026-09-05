@@ -198,17 +198,22 @@
                                 </span>
                             </div>
 
-                            {{-- Loading Spinner --}}
-                            <div x-show="isRenderingPdf" class="flex flex-col items-center justify-center py-16 gap-2.5 text-slate-500">
-                                <svg class="w-8 h-8 animate-spin text-brand-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
-                                <span class="text-xs font-medium">กำลังโหลดตัวอย่างเอกสาร PDF...</span>
-                            </div>
+                            {{-- Canvas Preview Screen with Loading Overlay --}}
+                            <div class="relative w-full flex items-center justify-center py-4 min-h-[310px]">
+                                {{-- Loading Spinner Overlay --}}
+                                <div x-show="isRenderingPdf"
+                                     class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-100/80 backdrop-blur-xs rounded-xl transition-opacity">
+                                    <svg class="w-8 h-8 animate-spin text-brand-600 mb-2" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                    </svg>
+                                    <span class="text-xs font-semibold text-slate-600">กำลังโหลดตัวอย่างเอกสาร PDF...</span>
+                                </div>
 
-                            {{-- Canvas Preview with CSS Rotate Animation --}}
-                            <div x-show="!isRenderingPdf" class="w-full flex items-center justify-center py-3">
+                                {{-- Canvas Preview with CSS Rotate Animation (Never display:none) --}}
                                 <div class="relative max-w-[280px] max-h-[300px] flex items-center justify-center">
                                     <canvas id="pdfRotatePreviewCanvas"
-                                            class="max-w-[250px] max-h-[290px] w-auto h-auto rounded-lg shadow-xl border border-slate-300 bg-white transition-transform duration-300 ease-out origin-center"
+                                            class="rounded-lg shadow-xl border border-slate-300 bg-white transition-transform duration-300 ease-out origin-center"
                                             :style="`transform: rotate(${rotationAngle}deg);`"></canvas>
                                 </div>
                             </div>
@@ -384,10 +389,10 @@
 
 @if($tool['slug'] === 'rotate-pdf')
 @push('scripts')
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="{{ asset('vendor/pdfjs/pdf.min.js') }}"></script>
 <script>
     if (window.pdfjsLib) {
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = "{{ asset('vendor/pdfjs/pdf.worker.min.js') }}";
     }
 </script>
 @endpush
