@@ -36,39 +36,63 @@ class LibreOfficeService
     {
         $this->ensureBinaryExists();
 
-        $profileDir = rtrim($outputDir, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.'lo_profile';
+        $profileDir = sys_get_temp_dir().DIRECTORY_SEPARATOR.'lo_profile_'.uniqid();
         if (! is_dir($profileDir)) {
             @mkdir($profileDir, 0755, true);
         }
 
-        $result = Process::timeout($this->timeoutSeconds)->run([
-            $this->binaryPath,
-            "-env:UserInstallation=file://{$profileDir}",
-            '--headless',
-            '--norestore',
-            '--convert-to', 'pdf',
-            '--outdir', $outputDir,
-            $inputPath,
-        ]);
+        try {
+            $ext = strtolower(pathinfo($inputPath, PATHINFO_EXTENSION));
+            $convertArg = 'pdf';
+            if (in_array($ext, ['ppt', 'pptx'])) {
+                $convertArg = 'pdf:impress_pdf_Export';
+            } elseif (in_array($ext, ['doc', 'docx'])) {
+                $convertArg = 'pdf:writer_pdf_Export';
+            } elseif (in_array($ext, ['xls', 'xlsx'])) {
+                $convertArg = 'pdf:calc_pdf_Export';
+            }
 
-        if (! $result->successful()) {
-            Log::error('LibreOffice convert-to-pdf failed', [
-                'input' => $inputPath,
-                'stderr' => $result->errorOutput(),
-                'exit_code' => $result->exitCode(),
+            $result = Process::timeout($this->timeoutSeconds)->run([
+                $this->binaryPath,
+                "-env:UserInstallation=file://{$profileDir}",
+                '--headless',
+                '--norestore',
+                '--convert-to', $convertArg,
+                '--outdir', $outputDir,
+                $inputPath,
             ]);
-            throw new RuntimeException('LibreOffice failed: '.$result->errorOutput());
+
+            $basename = pathinfo($inputPath, PATHINFO_FILENAME);
+            $outputPath = rtrim($outputDir, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.$basename.'.pdf';
+
+            // If format-specific export filter didn't produce the file, try standard '--convert-to pdf'
+            if (! file_exists($outputPath) || filesize($outputPath) === 0) {
+                $result2 = Process::timeout($this->timeoutSeconds)->run([
+                    $this->binaryPath,
+                    "-env:UserInstallation=file://{$profileDir}",
+                    '--headless',
+                    '--norestore',
+                    '--convert-to', 'pdf',
+                    '--outdir', $outputDir,
+                    $inputPath,
+                ]);
+            }
+
+            if (! file_exists($outputPath) || filesize($outputPath) === 0) {
+                Log::error('LibreOffice convert-to-pdf failed', [
+                    'input' => $inputPath,
+                    'stderr' => $result->errorOutput(),
+                    'exit_code' => $result->exitCode(),
+                ]);
+                throw new RuntimeException('ไม่สามารถแปลงไฟล์เป็น PDF ได้ กรุณาตรวจสอบว่าไฟล์ไม่เสียหายและไม่มีรหัสผ่าน');
+            }
+
+            return $outputPath;
+        } finally {
+            if (is_dir($profileDir)) {
+                \Illuminate\Support\Facades\File::deleteDirectory($profileDir);
+            }
         }
-
-        // LibreOffice names the output file the same as input, with .pdf extension
-        $basename = pathinfo($inputPath, PATHINFO_FILENAME);
-        $outputPath = rtrim($outputDir, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.$basename.'.pdf';
-
-        if (! file_exists($outputPath)) {
-            throw new RuntimeException("LibreOffice output not found: {$outputPath}");
-        }
-
-        return $outputPath;
     }
 
     /**

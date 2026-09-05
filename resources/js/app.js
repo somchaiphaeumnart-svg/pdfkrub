@@ -369,6 +369,10 @@ Alpine.data('fileUpload', (config = {}) => ({
             'protect-pdf': 'กำลังตั้งรหัสผ่านป้องกัน PDF...',
             'unlock-pdf': 'กำลังปลดล็อครหัสผ่าน PDF...',
             'pdf-to-txt': 'กำลังดึงข้อความภาษาไทยออกจาก PDF (.txt)...',
+            'pptx-to-pdf': 'กำลังแปลงสไลด์ PowerPoint เป็นเอกสาร PDF...',
+            'word-to-pdf': 'กำลังแปลงเอกสาร Word เป็นเอกสาร PDF...',
+            'excel-to-pdf': 'กำลังแปลงเอกสาร Excel เป็นเอกสาร PDF...',
+            'image-to-pdf': 'กำลังแปลงรูปภาพเป็นเอกสาร PDF...',
         };
         const detail = toolLabels[toolName] || 'เซิร์ฟเวอร์กำลังประมวลผลไฟล์...';
         this.processingDetail = detail;
