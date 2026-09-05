@@ -136,24 +136,55 @@
             </div>
 
             {{-- Processing state: progress --}}
-            <div x-show="isProcessing && !isDone && !isFailed" class="space-y-4 max-w-md mx-auto">
-                <div class="flex items-center justify-between">
+            <div x-show="isProcessing && !isDone && !isFailed" class="space-y-4 max-w-lg mx-auto bg-gray-50/80 border border-gray-200/80 rounded-2xl p-5 shadow-xs">
+                {{-- 2-Step Indicator --}}
+                <div class="flex items-center justify-between text-xs font-medium pb-2.5 border-b border-gray-200/60">
+                    <div class="flex items-center gap-1.5" :class="isUploading ? 'text-brand-600 font-bold' : (isProcessingServer || isDone ? 'text-green-600' : 'text-gray-400')">
+                        <template x-if="isUploading">
+                            <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                        </template>
+                        <template x-if="!isUploading && (isProcessingServer || isDone)">
+                            <svg class="w-3.5 h-3.5 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                        </template>
+                        <span>1. อัปโหลดไฟล์</span>
+                    </div>
+                    <div class="h-0.5 flex-1 mx-3 bg-gray-200 rounded-full" :class="(isProcessingServer || isDone) ? 'bg-green-500' : ''"></div>
+                    <div class="flex items-center gap-1.5" :class="isProcessingServer ? 'text-brand-600 font-bold' : (isDone ? 'text-green-600' : 'text-gray-400')">
+                        <template x-if="isProcessingServer">
+                            <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                        </template>
+                        <template x-if="isDone">
+                            <svg class="w-3.5 h-3.5 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                        </template>
+                        <span>2. ประมวลผลแปลงไฟล์</span>
+                    </div>
+                </div>
+
+                {{-- Status title & percentage --}}
+                <div class="flex items-center justify-between pt-0.5">
                     <div class="flex items-center gap-2.5">
                         <svg class="w-5 h-5 text-brand-600 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        <span class="text-gray-700 font-medium text-sm" x-text="jobStatus === 'queued' ? 'กำลังจัดคิวและเตรียมไฟล์...' : 'กำลังประมวลผลไฟล์...'"></span>
+                        <span class="text-gray-800 font-semibold text-sm" x-text="progressTitle"></span>
                     </div>
-                    <span class="text-brand-600 font-bold text-sm bg-brand-50 border border-brand-100 px-2.5 py-0.5 rounded-full" x-text="`${Math.min(100, Math.max(10, jobProgress))}%`"></span>
+                    <span class="text-brand-600 font-bold text-sm bg-white border border-brand-200 px-2.5 py-0.5 rounded-full shadow-xs" x-text="`${currentProgress}%`"></span>
                 </div>
-                <div class="h-3 bg-gray-100 rounded-full overflow-hidden p-0.5 border border-gray-200">
-                    <div class="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-brand-600 to-indigo-500 shadow-sm"
-                         :style="`width: ${Math.min(100, Math.max(10, jobProgress))}%`"></div>
+
+                {{-- Progress bar --}}
+                <div class="h-3 bg-gray-200/80 rounded-full overflow-hidden p-0.5 border border-gray-300/60 shadow-inner">
+                    <div class="h-full rounded-full transition-all duration-300 shadow-sm"
+                         :class="isUploading ? 'bg-gradient-to-r from-sky-500 to-brand-600' : 'bg-gradient-to-r from-brand-600 to-indigo-600'"
+                         :style="`width: ${currentProgress}%`"></div>
                 </div>
-                <div class="flex items-center justify-between text-xs text-gray-400">
-                    <span>ระบบกำลังประมวลผล กรุณารอสักครู่</span>
-                    <button type="button" @click="clearAll()" class="text-brand-600 hover:text-red-500 underline font-medium">ยกเลิก / เริ่มใหม่</button>
+
+                {{-- Subtitle info & cancel button --}}
+                <div class="flex items-center justify-between text-xs text-gray-500 pt-0.5">
+                    <span class="truncate pr-2" x-text="progressSubtitle"></span>
+                    <button type="button" @click="clearAll()" class="text-gray-400 hover:text-red-500 transition-colors font-medium underline flex-shrink-0">
+                        ยกเลิก / เริ่มใหม่
+                    </button>
                 </div>
             </div>
 

@@ -101,14 +101,24 @@ Alpine.data('fileUpload', (config = {}) => ({
     // Processing state
     isUploading: false,
     uploadProgress: 0,
+    uploadBytesLoaded: 0,
+    uploadBytesTotal: 0,
+
+    isProcessingServer: false,
+    serverProgress: 0,
+    processingStep: '',
+    processingDetail: '',
+
     jobId: null,
     jobStatus: null,      // queued|processing|done|failed
-    jobProgress: 0,
     downloadUrl: null,
     downloadFileName: null,
     downloadFileSize: null,
     errorMessage: null,
+
+    activeXhr: null,
     pollTimer: null,
+    serverTickTimer: null,
 
     async init() {
         // If on a tool page, auto-restore staged files from the homepage
@@ -215,104 +225,223 @@ Alpine.data('fileUpload', (config = {}) => ({
     },
 
     clearAll() {
+        this.cancelConversion();
         this.files = [];
         this.error = null;
-        this.reset();
         clearStagedFiles();
     },
 
-    reset() {
-        this.jobId = null;
-        this.jobStatus = null;
-        this.jobProgress = 0;
-        this.downloadUrl = null;
-        this.downloadFileName = null;
-        this.errorMessage = null;
+    cancelConversion() {
+        if (this.activeXhr) {
+            try { this.activeXhr.abort(); } catch (e) {}
+            this.activeXhr = null;
+        }
+        this.stopServerProgressTicker();
+        if (this.pollTimer) {
+            clearInterval(this.pollTimer);
+            this.pollTimer = null;
+        }
         this.isUploading = false;
-        if (this.pollTimer) clearInterval(this.pollTimer);
+        this.isProcessingServer = false;
+        this.uploadProgress = 0;
+        this.uploadBytesLoaded = 0;
+        this.uploadBytesTotal = 0;
+        this.serverProgress = 0;
+        this.processingStep = '';
+        this.processingDetail = '';
+        this.jobStatus = null;
+        this.jobId = null;
+        this.errorMessage = null;
     },
 
-    // Upload files and start processing
-    async startConversion(toolName) {
-        if (!this.hasFiles || this.isUploading) return;
+    reset() {
+        this.cancelConversion();
+        this.downloadUrl = null;
+        this.downloadFileName = null;
+        this.downloadFileSize = null;
+    },
 
-        this.isUploading = true;
+    // Upload files with real progress and start server processing
+    async startConversion(toolName) {
+        if (!this.hasFiles || this.isUploading || this.isProcessingServer) return;
+
+        this.cancelConversion();
         this.error = null;
+        this.isUploading = true;
+        this.uploadProgress = 0;
+
+        const totalBytes = this.files.reduce((sum, f) => sum + (f.file ? f.file.size : (f.size || 0)), 0);
+        this.uploadBytesTotal = totalBytes;
+        this.uploadBytesLoaded = 0;
 
         const formData = new FormData();
         this.files.forEach(f => formData.append('files[]', f.file));
         formData.append('tool', toolName || this.tool || 'unknown');
-        formData.append('_token', document.querySelector('meta[name="csrf-token"]').content);
+        const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+        if (tokenMeta) {
+            formData.append('_token', tokenMeta.content);
+        }
 
-        try {
-            const response = await fetch('/files/upload', {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                body: formData,
-            });
+        const xhr = new XMLHttpRequest();
+        this.activeXhr = xhr;
 
-            let data = {};
-            const contentType = response.headers.get('content-type') || '';
-            if (contentType.includes('application/json')) {
-                data = await response.json();
-            } else {
-                if (response.status === 413) {
-                    throw new Error('ไฟล์มีขนาดรวมใหญ่เกินกว่าที่เซิร์ฟเวอร์รองรับ (เกินขีดจำกัด)');
-                }
-                throw new Error(`เกิดข้อผิดพลาด (${response.status}) กรุณาลองใหม่อีกครั้ง`);
+        // 1. Real Upload Progress via XMLHttpRequest
+        xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable && e.total > 0) {
+                const pct = Math.round((e.loaded / e.total) * 100);
+                this.uploadProgress = Math.min(99, Math.max(1, pct));
+                this.uploadBytesLoaded = e.loaded;
             }
+        };
 
-            if (!response.ok) {
-                let msg = data.error || data.message;
-                if (!msg && data.errors) {
-                    msg = Object.values(data.errors).flat().join(' | ');
-                }
-                if (msg && msg.toLowerCase().includes('post data is too large')) {
-                    msg = 'ไฟล์ที่อัปโหลดมีขนาดรวมใหญ่เกินกว่าที่เซิร์ฟเวอร์กำหนด (กรุณาลดขนาดไฟล์ หรือแบ่งรวมทีละชุด)';
-                } else if (msg && msg.toLowerCase().includes('upload failed')) {
-                    msg = 'อัปโหลดไฟล์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง';
-                }
-                throw new Error(msg || `การอัปโหลดขัดข้อง (${response.status})`);
-            }
-
-            this.jobId = data.job_id;
-            this.jobStatus = data.status;
-
-            if (data.status === 'done' && data.download_url) {
-                this.jobProgress = 100;
-                this.isUploading = false;
-                this.downloadUrl = data.download_url;
-                this.downloadFileName = data.file_name || 'merged.pdf';
-                this.downloadFileSize = data.file_size || '';
-            } else {
-                this.startPolling(data.status_url);
-            }
-        } catch (err) {
-            this.error = err.message;
+        // When bytes finish transmitting to server
+        xhr.upload.onload = () => {
+            this.uploadProgress = 100;
+            this.uploadBytesLoaded = this.uploadBytesTotal;
             this.isUploading = false;
+            this.isProcessingServer = true;
+            this.startServerProgressTicker(toolName);
+        };
+
+        xhr.onload = () => {
+            this.activeXhr = null;
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    const data = JSON.parse(xhr.responseText);
+                    this.jobId = data.job_id;
+                    this.jobStatus = data.status;
+
+                    if (data.status === 'done' && data.download_url) {
+                        this.finishSuccess(data);
+                    } else if (data.status_url) {
+                        this.startPolling(data.status_url);
+                    } else if (data.status === 'failed') {
+                        this.handleFailure(data.error || 'เกิดข้อผิดพลาดในการประมวลผลไฟล์');
+                    }
+                } catch (err) {
+                    this.handleFailure('ไม่สามารถอ่านข้อมูลผลลัพธ์จากเซิร์ฟเวอร์');
+                }
+            } else {
+                let errorMsg = `เกิดข้อผิดพลาด (${xhr.status})`;
+                try {
+                    const errData = JSON.parse(xhr.responseText);
+                    errorMsg = errData.error || errData.message || (errData.errors ? Object.values(errData.errors).flat().join(' | ') : errorMsg);
+                } catch {}
+                if (xhr.status === 413 || (errorMsg && errorMsg.toLowerCase().includes('post data is too large'))) {
+                    errorMsg = 'ไฟล์มีขนาดใหญ่เกินกว่าที่เซิร์ฟเวอร์รองรับ (กรุณาลดขนาดไฟล์)';
+                }
+                this.handleFailure(errorMsg);
+            }
+        };
+
+        xhr.onerror = () => {
+            this.activeXhr = null;
+            this.handleFailure('การเชื่อมต่อไปยังเซิร์ฟเวอร์ขัดข้อง กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่');
+        };
+
+        xhr.onabort = () => {
+            this.activeXhr = null;
+        };
+
+        xhr.open('POST', '/files/upload');
+        xhr.setRequestHeader('Accept', 'application/json');
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.send(formData);
+    },
+
+    startServerProgressTicker(toolName) {
+        this.stopServerProgressTicker();
+        this.serverProgress = 15;
+
+        const toolLabels = {
+            'pdf-to-pptx': 'กำลังแปลงหน้า PDF เป็นสไลด์ PowerPoint (.pptx)...',
+            'pdf-to-word': 'กำลังแปลงหน้าเอกสารเป็น Word (.docx)...',
+            'pdf-to-excel': 'กำลังวิเคราะห์ตารางและแปลงเป็น Excel (.xlsx)...',
+            'ocr-pdf': 'กำลังตรวจจับข้อความภาษาไทย (OCR)...',
+            'ai-summary': 'กำลังส่งให้ AI วิเคราะห์และสรุปสาระสำคัญ...',
+            'merge-pdf': 'กำลังรวมไฟล์เอกสาร PDF ทั้งหมด...',
+            'split-pdf': 'กำลังแยกหน้าเอกสาร PDF...',
+            'compress-pdf': 'กำลังบีบอัดลดขนาดเอกสาร PDF...',
+            'pdf-to-jpg': 'กำลังแปลงหน้าเอกสารเป็นภาพ JPG...',
+            'pdf-to-png': 'กำลังแปลงหน้าเอกสารเป็นภาพ PNG...',
+            'rotate-pdf': 'กำลังหมุนหน้าเอกสาร PDF...',
+            'watermark-pdf': 'กำลังใส่ลายน้ำเอกสาร PDF...',
+            'protect-pdf': 'กำลังตั้งรหัสผ่านป้องกัน PDF...',
+            'unlock-pdf': 'กำลังปลดล็อครหัสผ่าน PDF...',
+        };
+        const detail = toolLabels[toolName] || 'เซิร์ฟเวอร์กำลังประมวลผลไฟล์...';
+        this.processingDetail = detail;
+        this.processingStep = 'กำลังเริ่มประมวลผลหน้าเอกสาร...';
+
+        this.serverTickTimer = setInterval(() => {
+            if (this.serverProgress < 35) {
+                this.serverProgress += 5;
+                this.processingStep = 'กำลังอ่านและตรวจสอบโครงสร้างเอกสาร...';
+            } else if (this.serverProgress < 65) {
+                this.serverProgress += 3;
+                this.processingStep = detail;
+            } else if (this.serverProgress < 85) {
+                this.serverProgress += 2;
+                this.processingStep = 'กำลังจัดฟอนต์ รูปภาพ และเนื้อหา...';
+            } else if (this.serverProgress < 94) {
+                this.serverProgress += 1;
+                this.processingStep = 'กำลังจัดเตรียมไฟล์สำหรับดาวน์โหลด...';
+            }
+        }, 700);
+    },
+
+    stopServerProgressTicker() {
+        if (this.serverTickTimer) {
+            clearInterval(this.serverTickTimer);
+            this.serverTickTimer = null;
         }
     },
 
+    finishSuccess(data) {
+        this.stopServerProgressTicker();
+        if (this.pollTimer) {
+            clearInterval(this.pollTimer);
+            this.pollTimer = null;
+        }
+
+        this.serverProgress = 100;
+        this.uploadProgress = 100;
+        this.processingStep = 'ประมวลผลเสร็จสิ้น! 🎉';
+        this.processingDetail = 'พร้อมดาวน์โหลดไฟล์แล้ว';
+
+        setTimeout(() => {
+            this.isUploading = false;
+            this.isProcessingServer = false;
+            this.jobStatus = 'done';
+            this.downloadUrl = data.download_url;
+            this.downloadFileName = data.file_name || 'converted_document';
+            this.downloadFileSize = data.file_size || '';
+        }, 350);
+    },
+
+    handleFailure(message) {
+        this.stopServerProgressTicker();
+        if (this.pollTimer) {
+            clearInterval(this.pollTimer);
+            this.pollTimer = null;
+        }
+        this.isUploading = false;
+        this.isProcessingServer = false;
+        this.jobStatus = 'failed';
+        this.errorMessage = message || 'เกิดข้อผิดพลาดในการประมวลผลไฟล์';
+    },
+
     startPolling(statusUrl) {
-        this.jobProgress = 20;
         let pollCount = 0;
+        if (this.pollTimer) clearInterval(this.pollTimer);
+
         this.pollTimer = setInterval(async () => {
             try {
                 pollCount++;
-                if (pollCount > 45) { // 45 * 1.2s ≈ 50 seconds timeout
+                if (pollCount > 180) { // 180 * 1.5s = 270 seconds (4.5 minutes)
                     clearInterval(this.pollTimer);
-                    this.isUploading = false;
-                    this.jobStatus = 'failed';
-                    this.errorMessage = 'การประมวลผลใช้เวลานานเกินไป กรุณากดปุ่ม "ลองใหม่อีกครั้ง" ด้านล่าง';
+                    this.handleFailure('การประมวลผลใช้เวลานานเกินไป กรุณากดปุ่มลองใหม่อีกครั้ง');
                     return;
-                }
-
-                if (this.jobProgress < 90) {
-                    this.jobProgress += Math.floor(Math.random() * 8) + 6;
-                    if (this.jobProgress > 90) this.jobProgress = 90;
                 }
 
                 const res = await fetch(statusUrl, {
@@ -322,36 +451,27 @@ Alpine.data('fileUpload', (config = {}) => ({
                 if (!res.ok) {
                     if (res.status === 403) {
                         clearInterval(this.pollTimer);
-                        this.isUploading = false;
-                        this.jobStatus = 'failed';
-                        this.errorMessage = 'เซสชันหมดอายุ กรุณารีเฟรชหน้าเว็บแล้วลองใหม่อีกครั้ง';
+                        this.handleFailure('เซสชันหมดอายุ กรุณารีเฟรชหน้าเว็บแล้วลองใหม่อีกครั้ง');
                     }
                     return;
                 }
 
                 const data = await res.json();
-
                 this.jobStatus = data.status;
-                if (data.progress && data.progress > this.jobProgress) {
-                    this.jobProgress = data.progress;
+
+                if (data.progress && data.progress > this.serverProgress) {
+                    this.serverProgress = data.progress;
                 }
 
                 if (data.status === 'done') {
-                    this.jobProgress = 100;
-                    clearInterval(this.pollTimer);
-                    this.isUploading = false;
-                    this.downloadUrl = data.download_url;
-                    this.downloadFileName = data.file_name;
-                    this.downloadFileSize = data.file_size;
+                    this.finishSuccess(data);
                 } else if (data.status === 'failed') {
-                    clearInterval(this.pollTimer);
-                    this.isUploading = false;
-                    this.errorMessage = data.error_message || 'เกิดข้อผิดพลาดในการประมวลผล';
+                    this.handleFailure(data.error_message || 'เกิดข้อผิดพลาดในการประมวลผล');
                 }
             } catch (e) {
-                console.error('Poll error:', e);
+                console.warn('Poll error:', e);
             }
-        }, 1200);
+        }, 1500);
     },
 
     formatSize(bytes) {
@@ -361,9 +481,50 @@ Alpine.data('fileUpload', (config = {}) => ({
         return `${size.toFixed(1)} ${units[unit]}`;
     },
 
+    get currentProgress() {
+        if (this.isUploading) {
+            return Math.max(1, Math.min(100, this.uploadProgress));
+        }
+        if (this.isProcessingServer || ['queued', 'processing'].includes(this.jobStatus)) {
+            return Math.max(10, Math.min(98, this.serverProgress));
+        }
+        if (this.jobStatus === 'done') return 100;
+        return 0;
+    },
+
+    get jobProgress() {
+        return this.currentProgress;
+    },
+
+    get progressTitle() {
+        if (this.isUploading) {
+            return `กำลังอัปโหลดไฟล์... (${this.uploadProgress}%)`;
+        }
+        if (this.processingStep) {
+            return this.processingStep;
+        }
+        if (this.jobStatus === 'queued') {
+            return 'กำลังจัดคิวและเตรียมไฟล์...';
+        }
+        return 'กำลังประมวลผลไฟล์...';
+    },
+
+    get progressSubtitle() {
+        if (this.isUploading) {
+            if (this.uploadBytesTotal > 0) {
+                return `ส่งแล้ว ${this.formatSize(this.uploadBytesLoaded)} จาก ${this.formatSize(this.uploadBytesTotal)}`;
+            }
+            return 'กำลังส่งข้อมูลไฟล์ไปยังเซิร์ฟเวอร์...';
+        }
+        if (this.processingDetail) {
+            return `${this.processingDetail} (ขนาด ${this.totalSize})`;
+        }
+        return 'ระบบกำลังประมวลผล กรุณารอสักครู่';
+    },
+
     get hasFiles() { return this.files.length > 0; },
-    get totalSize() { return this.formatSize(this.files.reduce((s, f) => s + f.file.size, 0)); },
-    get isProcessing() { return this.isUploading || ['queued', 'processing'].includes(this.jobStatus); },
+    get totalSize() { return this.formatSize(this.files.reduce((s, f) => s + (f.file ? f.file.size : (f.size || 0)), 0)); },
+    get isProcessing() { return this.isUploading || this.isProcessingServer || ['queued', 'processing'].includes(this.jobStatus); },
     get isDone() { return this.jobStatus === 'done'; },
     get isFailed() { return this.jobStatus === 'failed'; },
 }));
