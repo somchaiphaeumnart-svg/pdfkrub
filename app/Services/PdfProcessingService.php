@@ -279,19 +279,76 @@ class PdfProcessingService
             ->values()
             ->toArray();
 
-        try {
-            // Use Ghostscript to merge images into PDF
-            $result = Process::timeout(120)->run(array_merge(
-                ['gs', '-dBATCH', '-dNOPAUSE', '-q', '-sDEVICE=pdfwrite',
-                    "-sOutputFile={$outputPath}"],
-                $inputPaths
-            ));
+        if (empty($inputPaths)) {
+            throw new RuntimeException('ไม่พบไฟล์รูปภาพที่ต้องการแปลง');
+        }
 
-            if (! $result->successful()) {
-                throw new RuntimeException('Image to PDF conversion failed: '.$result->errorOutput());
+        try {
+            $converted = false;
+            $scriptPath = base_path('scripts/image_to_pdf.py');
+            $pythonCmd = file_exists('/opt/pdf2docx-env/bin/python3')
+                ? '/opt/pdf2docx-env/bin/python3'
+                : 'python3';
+
+            // 1. Try Python image_to_pdf script (Pillow / PyMuPDF / img2pdf / pure-python)
+            if (file_exists($scriptPath)) {
+                $pyResult = Process::timeout(120)->run(array_merge(
+                    [$pythonCmd, $scriptPath, $outputPath],
+                    $inputPaths
+                ));
+
+                if ($pyResult->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                    $converted = true;
+                } elseif ($pythonCmd !== 'python3') {
+                    $sysResult = Process::timeout(120)->run(array_merge(
+                        ['python3', $scriptPath, $outputPath],
+                        $inputPaths
+                    ));
+                    if ($sysResult->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                        $converted = true;
+                    }
+                }
             }
 
-            return $this->storeOutput($job, $outputPath, 'images.pdf', 'application/pdf');
+            // 2. Try ImageMagick CLI (convert / magick / gm)
+            if (! $converted) {
+                foreach (['magick', 'convert', 'gm'] as $bin) {
+                    $which = Process::run(['which', $bin]);
+                    if ($which->successful()) {
+                        $cmd = $bin === 'gm' ? ['gm', 'convert'] : [$bin];
+                        $cmd = array_merge($cmd, $inputPaths, [$outputPath]);
+                        $imRes = Process::timeout(120)->run($cmd);
+                        if ($imRes->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                            $converted = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // 3. Try LibreOffice Writer fallback
+            if (! $converted && $this->libreOffice->isAvailable()) {
+                try {
+                    $loPdf = $this->libreOffice->convertToPdf($inputPaths[0], $tmpDir);
+                    if (file_exists($loPdf) && filesize($loPdf) > 0) {
+                        $outputPath = $loPdf;
+                        $converted = true;
+                    }
+                } catch (\Throwable $e) {
+                    // ignore
+                }
+            }
+
+            if (! $converted || ! file_exists($outputPath) || filesize($outputPath) === 0) {
+                throw new RuntimeException('ไม่สามารถแปลงรูปภาพเป็น PDF ได้ กรุณาลองใหม่อีกครั้ง');
+            }
+
+            $firstFile = $inputFiles->first();
+            $outName = (count($inputPaths) === 1 && $firstFile)
+                ? pathinfo($firstFile->original_name, PATHINFO_FILENAME).'.pdf'
+                : 'images.pdf';
+
+            return $this->storeOutput($job, $outputPath, $outName, 'application/pdf');
         } finally {
             $this->cleanTmpDir($tmpDir);
         }
