@@ -65,7 +65,7 @@ class PdfProcessingService
         $tmpDir = $this->makeTmpDir();
 
         try {
-            $outputPath = $this->libreOffice->convertFromPdf($inputPath, $format, $tmpDir);
+            $outputPath = $this->libreOffice->convertFromPdf($inputPath, $format, $tmpDir, $job->tool_config ?? []);
             $originalName = pathinfo($inputFile->original_name, PATHINFO_FILENAME).'.'.$format;
 
             return $this->storeOutput($job, $outputPath, $originalName, $this->mimeFor($format));

@@ -130,6 +130,11 @@ class FileController extends Controller
                 $config[$imgParam] = (string) $request->input($imgParam);
             }
         }
+        foreach (['word_mode', 'word_pages', 'word_tables', 'word_keep_images'] as $wparam) {
+            if ($request->has($wparam)) {
+                $config[$wparam] = (string) $request->input($wparam);
+            }
+        }
 
         // Create the processing job record
         $pdfJob = PdfJob::create([

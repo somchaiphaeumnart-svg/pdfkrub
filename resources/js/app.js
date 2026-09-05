@@ -193,6 +193,17 @@ Alpine.data('fileUpload', (config = {}) => ({
     imageMargin: 'none', // 'none', 'small', 'big'
     imageThumbnailsCache: {},
 
+    // PDF to Word State
+    wordMode: 'standard', // 'standard' (High-Fidelity Layout) or 'ocr' (Thai OCR)
+    wordPagesMode: 'all', // 'all' or 'custom'
+    wordCustomPages: '',
+    wordDetectTables: true,
+    wordKeepImages: true,
+    wordDetectedType: 'checking', // 'checking', 'digital', 'scanned'
+    wordPreviewPageUrl: null,
+    wordTotalPages: 0,
+    isAnalyzingWordPdf: false,
+
     // Processing state
     isUploading: false,
     uploadProgress: 0,
@@ -243,6 +254,9 @@ Alpine.data('fileUpload', (config = {}) => ({
         }
         if (this.tool === 'image-to-pdf' && this.files.length > 0) {
             this.loadImageThumbnails();
+        }
+        if (this.tool === 'pdf-to-word' && this.files.length > 0) {
+            this.analyzePdfForWord();
         }
     },
 
@@ -363,6 +377,10 @@ Alpine.data('fileUpload', (config = {}) => ({
         if (this.tool === 'image-to-pdf' && this.files.length > 0) {
             this.loadImageThumbnails();
         }
+        // If pdf-to-word, analyze document
+        if (this.tool === 'pdf-to-word' && this.files.length > 0) {
+            setTimeout(() => this.analyzePdfForWord(), 60);
+        }
     },
 
     removeFile(id) {
@@ -449,6 +467,7 @@ Alpine.data('fileUpload', (config = {}) => ({
         this.clearCompressState();
         this.clearSplitPagesState();
         this.clearImageToPdfState();
+        this.clearWordState();
         this.protectPassword = '';
         this.protectPasswordConfirm = '';
         this.showProtectPassword = false;
@@ -614,6 +633,17 @@ Alpine.data('fileUpload', (config = {}) => ({
             formData.append('config[page_size]', this.imagePageSize);
             formData.append('margin', this.imageMargin);
             formData.append('config[margin]', this.imageMargin);
+        }
+        if (activeTool === 'pdf-to-word') {
+            formData.append('word_mode', this.wordMode);
+            formData.append('config[word_mode]', this.wordMode);
+            const pagesVal = this.wordPagesMode === 'custom' && this.wordCustomPages.trim() ? this.wordCustomPages.trim() : 'all';
+            formData.append('word_pages', pagesVal);
+            formData.append('config[word_pages]', pagesVal);
+            formData.append('word_tables', this.wordDetectTables ? '1' : '0');
+            formData.append('config[word_tables]', this.wordDetectTables ? '1' : '0');
+            formData.append('word_keep_images', this.wordKeepImages ? '1' : '0');
+            formData.append('config[word_keep_images]', this.wordKeepImages ? '1' : '0');
         }
         const tokenMeta = document.querySelector('meta[name="csrf-token"]');
         if (tokenMeta) {
@@ -1458,6 +1488,12 @@ Alpine.data('fileUpload', (config = {}) => ({
         if (this.tool === 'image-to-pdf' && this.hasFiles) {
             return `แปลง ${this.files.length} รูปภาพเป็น PDF`;
         }
+        if (this.tool === 'pdf-to-word' && this.hasFiles) {
+            if (this.wordMode === 'ocr') {
+                return 'แปลงเป็น Word (ถอดข้อความ OCR)';
+            }
+            return 'แปลงเป็น Word (รักษา Layout & ฟอนต์)';
+        }
         return null;
     },
 
@@ -2106,6 +2142,64 @@ Alpine.data('fileUpload', (config = {}) => ({
                     this.imageThumbnailsCache[f.id] = URL.createObjectURL(f.file);
                 } catch (e) {}
             }
+        }
+    },
+
+    clearWordState() {
+        this.wordMode = 'standard';
+        this.wordPagesMode = 'all';
+        this.wordCustomPages = '';
+        this.wordDetectTables = true;
+        this.wordKeepImages = true;
+        this.wordDetectedType = 'checking';
+        this.wordPreviewPageUrl = null;
+        this.wordTotalPages = 0;
+        this.isAnalyzingWordPdf = false;
+    },
+
+    async analyzePdfForWord() {
+        if (this.tool !== 'pdf-to-word' || !this.files.length) return;
+        const fileObj = this.files[0]?.file;
+        if (!fileObj) return;
+
+        this.isAnalyzingWordPdf = true;
+        this.wordDetectedType = 'checking';
+
+        try {
+            await this.ensurePdfJs();
+            const arrayBuffer = await fileObj.arrayBuffer();
+            const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer.slice(0) }).promise;
+            this.wordTotalPages = pdf.numPages;
+
+            // Render Page 1 Preview
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale: 0.5 });
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            const ctx = canvas.getContext('2d');
+            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+            this.wordPreviewPageUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+            // Check if page 1 has selectable text
+            const textContent = await page.getTextContent();
+            let textLen = 0;
+            if (textContent && textContent.items) {
+                textLen = textContent.items.map(item => item.str || '').join('').trim().length;
+            }
+
+            if (textLen > 25) {
+                this.wordDetectedType = 'digital';
+                this.wordMode = 'standard';
+            } else {
+                this.wordDetectedType = 'scanned';
+                this.wordMode = 'ocr';
+            }
+        } catch (e) {
+            console.warn('analyzePdfForWord notice:', e);
+            this.wordDetectedType = 'digital';
+        } finally {
+            this.isAnalyzingWordPdf = false;
         }
     },
 

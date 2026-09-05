@@ -103,7 +103,7 @@ class LibreOfficeService
      * @param  string  $outputDir  Directory to write the result
      * @return string Path to the generated file
      */
-    public function convertFromPdf(string $inputPdf, string $targetFormat, string $outputDir): string
+    public function convertFromPdf(string $inputPdf, string $targetFormat, string $outputDir, array $options = []): string
     {
         // For Excel (xlsx), use specialized table extraction (Python / pdftotext)
         // LibreOffice does NOT natively support converting PDF to XLSX directly
@@ -128,23 +128,55 @@ class LibreOfficeService
             default => null,
         };
 
-        // Try pdf2docx first for DOCX if available (highest quality layout & font retention)
+        // Try pdf_to_word.py script first for DOCX (standard layout or OCR mode)
         if ($targetFormat === 'docx') {
             $basename = pathinfo($inputPdf, PATHINFO_FILENAME);
             $outputPath = rtrim($outputDir, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.$basename.'.docx';
-            
+
             $pythonCmd = file_exists('/opt/pdf2docx-env/bin/python3') 
                 ? '/opt/pdf2docx-env/bin/python3' 
                 : 'python3';
 
-            $pyResult = Process::timeout($this->timeoutSeconds)->run([
-                $pythonCmd,
-                '-c',
-                "from pdf2docx import Converter; cv = Converter('{$inputPdf}'); cv.convert('{$outputPath}'); cv.close()"
-            ]);
+            $scriptPath = base_path('scripts/pdf_to_word.py');
+            if (file_exists($scriptPath)) {
+                $mode = ($options['word_mode'] ?? '') === 'ocr' ? 'ocr' : 'standard';
+                $pages = !empty($options['word_pages']) ? (string)$options['word_pages'] : 'all';
+                $tables = ($options['word_tables'] ?? '1') === '0' ? '0' : '1';
+                $keepImages = ($options['word_keep_images'] ?? '1') === '0' ? '0' : '1';
 
-            if ($pyResult->successful() && file_exists($outputPath)) {
-                return $outputPath;
+                $cmd = [
+                    $pythonCmd,
+                    $scriptPath,
+                    $inputPdf,
+                    $outputPath,
+                    '--mode', $mode,
+                    '--pages', $pages,
+                    '--detect-tables', $tables,
+                    '--keep-images', $keepImages,
+                ];
+
+                $pyResult = Process::timeout($this->timeoutSeconds)->run($cmd);
+                if ($pyResult->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                    return $outputPath;
+                }
+
+                if ($pythonCmd !== 'python3') {
+                    $cmd[0] = 'python3';
+                    $pyResult = Process::timeout($this->timeoutSeconds)->run($cmd);
+                    if ($pyResult->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                        return $outputPath;
+                    }
+                }
+            } else {
+                $pyResult = Process::timeout($this->timeoutSeconds)->run([
+                    $pythonCmd,
+                    '-c',
+                    "from pdf2docx import Converter; cv = Converter('{$inputPdf}'); cv.convert('{$outputPath}'); cv.close()"
+                ]);
+
+                if ($pyResult->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                    return $outputPath;
+                }
             }
         }
 

@@ -321,6 +321,185 @@
                         </button>
                         @endif
                     </div>
+                    @if($tool['slug'] === 'pdf-to-word')
+                    {{-- Visual Conversion Settings & Smart Scanner for PDF to Word --}}
+                    <div class="mt-5 pt-5 border-t border-gray-100" @click.stop>
+
+                        {{-- Smart Detection Badge & Quick Summary --}}
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-gray-800 font-bold text-base">ตัวเลือกการแปลงเป็น Word</span>
+                                    <template x-if="isAnalyzingWordPdf">
+                                        <span class="inline-flex items-center gap-1.5 bg-slate-100 text-slate-600 text-xs px-2.5 py-0.5 rounded-full font-medium animate-pulse">
+                                            <svg class="w-3 h-3 animate-spin text-brand-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                            กำลังวิเคราะห์เอกสาร...
+                                        </span>
+                                    </template>
+                                    <template x-if="!isAnalyzingWordPdf && wordDetectedType === 'digital'">
+                                        <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-emerald-200">
+                                            <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                                            เอกสารข้อความดิจิทัล (Digital Text)
+                                        </span>
+                                    </template>
+                                    <template x-if="!isAnalyzingWordPdf && wordDetectedType === 'scanned'">
+                                        <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-800 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-amber-200">
+                                            <svg class="w-3.5 h-3.5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"/></svg>
+                                            เอกสารสแกน/รูปภาพ (Scanned PDF)
+                                        </span>
+                                    </template>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-0.5">เลือกโหมดการแปลงที่เหมาะสมกับเอกสารเพื่อผลลัพธ์ที่ดีที่สุด</p>
+                            </div>
+                            <div class="text-xs text-slate-500 font-mono bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200 self-start sm:self-center" x-show="wordTotalPages > 0">
+                                ทั้งหมด <strong class="text-slate-800" x-text="wordTotalPages"></strong> หน้า
+                            </div>
+                        </div>
+
+                        {{-- Main Grid: Left Options & Mode Selector, Right Live Document Preview --}}
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+                            {{-- Left Side: Engine & Layout Mode (7 cols) --}}
+                            <div class="lg:col-span-7 space-y-4">
+                                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider">โหมดการแปลงเอกสาร (Conversion Engine)</label>
+
+                                {{-- Mode Card 1: Standard High-Fidelity --}}
+                                <div @click="wordMode = 'standard'"
+                                     class="p-4 rounded-2xl border-2 transition-all cursor-pointer relative"
+                                     :class="wordMode === 'standard' ? 'border-brand-600 bg-brand-50/40 shadow-xs ring-2 ring-brand-500/20' : 'border-gray-200 bg-white hover:border-brand-300 hover:bg-slate-50/50'">
+                                    <div class="flex items-start gap-3.5">
+                                        <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                                             :class="wordMode === 'standard' ? 'bg-brand-600 text-white' : 'bg-brand-50 text-brand-600'">
+                                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                                            </svg>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center gap-2 mb-1">
+                                                <h4 class="text-sm font-bold text-gray-900">รักษา Layout & ฟอนต์ไทยดั้งเดิม</h4>
+                                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">แนะนำ</span>
+                                            </div>
+                                            <p class="text-xs text-gray-600 leading-relaxed">
+                                                แปลงแบบคงโครงสร้างหน้า ย่อหน้า ตาราง รูปภาพประกอบ สีตัวอักษร และฟอนต์ไทยเดิมให้ตรงกับต้นฉบับมากที่สุด
+                                            </p>
+                                        </div>
+                                        <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5"
+                                             :class="wordMode === 'standard' ? 'border-brand-600 bg-brand-600 text-white' : 'border-gray-300'">
+                                            <template x-if="wordMode === 'standard'">
+                                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Mode Card 2: Thai OCR Mode --}}
+                                <div @click="wordMode = 'ocr'"
+                                     class="p-4 rounded-2xl border-2 transition-all cursor-pointer relative"
+                                     :class="wordMode === 'ocr' ? 'border-brand-600 bg-brand-50/40 shadow-xs ring-2 ring-brand-500/20' : 'border-gray-200 bg-white hover:border-brand-300 hover:bg-slate-50/50'">
+                                    <div class="flex items-start gap-3.5">
+                                        <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                                             :class="wordMode === 'ocr' ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-600'">
+                                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
+                                            </svg>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center gap-2 mb-1">
+                                                <h4 class="text-sm font-bold text-gray-900">สแกนข้อความ OCR ภาษาไทย</h4>
+                                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">สำหรับเอกสารสแกน</span>
+                                            </div>
+                                            <p class="text-xs text-gray-600 leading-relaxed">
+                                                อ่านข้อความภาษาไทยและอังกฤษจากภาพถ่ายหรือไฟล์สแกน แล้วแปลงเป็นข้อความ Word ที่แก้ไขได้จริง
+                                            </p>
+                                        </div>
+                                        <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5"
+                                             :class="wordMode === 'ocr' ? 'border-brand-600 bg-brand-600 text-white' : 'border-gray-300'">
+                                            <template x-if="wordMode === 'ocr'">
+                                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Advanced Options Panel --}}
+                                <div class="bg-slate-50/80 border border-slate-200/90 rounded-2xl p-4 space-y-3">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">ตัวเลือกเสริม (Additional Settings)</span>
+                                    </div>
+
+                                    {{-- Page Range Selection --}}
+                                    <div class="bg-white p-3 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                                        <div>
+                                            <span class="text-xs font-semibold text-gray-800">หน้าที่ต้องการแปลง:</span>
+                                            <p class="text-[11px] text-gray-500">แปลงทั้งหมด หรือเลือกเฉพาะบางหน้า</p>
+                                        </div>
+                                        <div class="flex items-center gap-1.5">
+                                            <button type="button" @click="wordPagesMode = 'all'"
+                                                :class="wordPagesMode === 'all' ? 'bg-brand-600 text-white font-semibold shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                                                class="px-2.5 py-1 rounded-lg text-xs transition-all cursor-pointer">
+                                                ทุกหน้า
+                                            </button>
+                                            <button type="button" @click="wordPagesMode = 'custom'"
+                                                :class="wordPagesMode === 'custom' ? 'bg-brand-600 text-white font-semibold shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                                                class="px-2.5 py-1 rounded-lg text-xs transition-all cursor-pointer">
+                                                กำหนดหน้า
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div x-show="wordPagesMode === 'custom'" class="pt-1">
+                                        <input type="text"
+                                               x-model="wordCustomPages"
+                                               placeholder="ระบุเลขหน้า เช่น 1-3, 5, 8"
+                                               class="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-brand-500 text-slate-700 bg-white font-mono">
+                                    </div>
+
+                                    {{-- Checkbox Toggles: Table & Images --}}
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                                        <label class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200 cursor-pointer select-none">
+                                            <input type="checkbox" x-model="wordDetectTables" class="rounded text-brand-600 focus:ring-brand-500 w-4 h-4">
+                                            <span class="text-xs text-gray-700 font-medium">ตรวจจับและรักษาตาราง</span>
+                                        </label>
+                                        <label class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200 cursor-pointer select-none">
+                                            <input type="checkbox" x-model="wordKeepImages" class="rounded text-brand-600 focus:ring-brand-500 w-4 h-4">
+                                            <span class="text-xs text-gray-700 font-medium">คงรูปภาพประกอบเดิม</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Right Side: Live Document First-Page Preview (5 cols) --}}
+                            <div class="lg:col-span-5 flex flex-col items-center justify-center">
+                                <div class="w-full bg-slate-100/90 rounded-2xl border border-slate-200/90 p-4 sm:p-5 flex flex-col items-center justify-center min-h-[340px]">
+                                    <div class="w-full flex items-center justify-between mb-3 px-1">
+                                        <span class="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                                            <svg class="w-4 h-4 text-brand-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+                                            ตัวอย่างหน้าเอกสารจริง
+                                        </span>
+                                        <span class="text-[11px] text-gray-400 font-mono">หน้า 1</span>
+                                    </div>
+
+                                    {{-- Preview Card --}}
+                                    <div class="relative max-w-[240px] sm:max-w-[260px] w-full aspect-[1/1.414] bg-white rounded-xl shadow-lg border border-slate-300 overflow-hidden flex items-center justify-center">
+                                        <template x-if="wordPreviewPageUrl">
+                                            <img :src="wordPreviewPageUrl" class="w-full h-full object-contain pointer-events-none select-none">
+                                        </template>
+                                        <template x-if="!wordPreviewPageUrl">
+                                            <div class="flex flex-col items-center justify-center text-slate-400 p-4 text-center">
+                                                <svg class="w-10 h-10 text-brand-300 animate-pulse mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                </svg>
+                                                <span class="text-xs text-slate-500 font-medium">กำลังโหลดตัวอย่าง...</span>
+                                            </div>
+                                        </template>
+                                    </div>
+
+                                    <div class="mt-3 text-center">
+                                        <span class="text-[11px] text-slate-500">ผลลัพธ์: เอกสาร <strong>Microsoft Word (.docx)</strong></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     @endif
 
                     @if($tool['slug'] === 'rotate-pdf')
