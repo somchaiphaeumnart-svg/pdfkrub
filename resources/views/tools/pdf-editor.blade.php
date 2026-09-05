@@ -88,14 +88,14 @@
             
             {{-- Left: Tool Selection Strip --}}
             <div class="flex items-center gap-1 overflow-x-auto custom-scrollbar py-0.5">
-                {{-- 1. Pointer / Select --}}
+                {{-- 1. Pointer / Select & In-place Edit --}}
                 <button type="button"
                         @click="setTool('pointer')"
                         :class="activeTool === 'pointer' ? 'bg-brand-600 text-white shadow-xs font-semibold' : 'text-slate-700 hover:bg-slate-200/70'"
                         class="px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
-                        title="เครื่องมือเลือก / ชี้ตำแหน่ง (Select)">
+                        title="เครื่องมือเลือก / คลิกข้อความเดิมเพื่อแก้ไขได้ทันที (Select & Edit)">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672 13.684 16.6m0 0-2.51 2.225.569-9.47 5.227 7.917-3.286-.672ZM12 2.25V4.5m5.834.166-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243-1.59-1.59"/></svg>
-                    <span class="hidden sm:inline">เลือก</span>
+                    <span class="font-medium">เลือก / แก้ไขข้อความ</span>
                 </button>
 
                 {{-- 2. Hand Tool (Pan) --}}
@@ -726,8 +726,8 @@
                          @mousemove="handleOverlayMouseMove($event)"
                          @mouseup="handleOverlayMouseUp($event)">
 
-                        {{-- Layer 0: Detected Original Text Blocks (Visible & interactive when in 'edit-text' mode) --}}
-                        <div x-show="activeTool === 'edit-text'" class="absolute inset-0 pointer-events-none z-10" x-cloak>
+                        {{-- Layer 0: Detected Original Text Blocks (Visible & interactive when in 'pointer', 'edit-text', or 'text' mode) --}}
+                        <div x-show="['pointer', 'edit-text', 'text'].includes(activeTool)" class="absolute inset-0 pointer-events-none z-10" x-cloak>
                             <template x-for="block in currentOriginalTextBlocks" :key="block.id">
                                 <div class="absolute pointer-events-auto cursor-pointer border border-dashed border-transparent hover:border-brand-500 hover:bg-brand-500/15 hover:shadow-xs rounded-xs group transition-all"
                                      :style="`left: ${block.pctX}%; top: ${block.pctY}%; width: ${block.pctW}%; height: ${block.pctH}%;`"
@@ -763,12 +763,13 @@
 
                                 {{-- ── TYPE 1: TEXT BOX (Supports background fill for covering original text) ── --}}
                                 <template x-if="ann.type === 'text'">
-                                    <div class="w-full h-full p-0.5 cursor-move rounded-xs transition-colors overflow-hidden"
-                                         :style="`background-color: ${ann.bgColor || 'transparent'}; color: ${ann.color || '#111827'}; font-size: ${(ann.fontSize || 16) * (zoom / 100)}px; font-family: ${ann.fontFamily || 'Sarabun'}, sans-serif; font-weight: ${ann.bold ? 'bold' : 'normal'}; font-style: ${ann.italic ? 'italic' : 'normal'}; text-decoration: ${ann.underline ? 'underline' : 'none'};`">
+                                    <div class="w-full h-full p-0.5 cursor-move rounded-xs transition-colors overflow-hidden flex flex-col"
+                                         :style="`background-color: ${ann.bgColor || 'transparent'}; color: ${ann.color || '#111827'}; font-size: ${(ann.fontSize || 16) * (zoom / 100)}px; font-family: ${ann.fontFamily || 'Sarabun'}, sans-serif; font-weight: ${ann.bold ? 'bold' : 'normal'}; font-style: ${ann.italic ? 'italic' : 'normal'}; text-decoration: ${ann.underline ? 'underline' : 'none'}; line-height: 1.35;`">
                                         <textarea x-model="ann.text"
+                                                  :data-ann-id="ann.id"
                                                   @mousedown.stop
                                                   @click.stop
-                                                  class="w-full h-full bg-transparent resize-none border-none outline-none leading-tight font-inherit text-inherit p-0 m-0 block"
+                                                  class="w-full h-full flex-1 bg-transparent resize-none border-none outline-none leading-tight font-inherit text-inherit p-0 m-0 block"
                                                   :style="`text-align: ${ann.align || 'left'};`"
                                                   placeholder="พิมพ์ข้อความ..."></textarea>
                                     </div>
@@ -867,8 +868,8 @@
             </div>
 
             {{-- Center: Tool Tip / Status Message --}}
-            <div class="hidden lg:block text-slate-400 text-center">
-                <template x-if="activeTool === 'pointer'"><span>โหมดเลือก: คลิกเพื่อเลือกวัตถุและปรับแต่ง</span></template>
+            <div class="hidden lg:block text-slate-500 text-xs text-center">
+                <template x-if="activeTool === 'pointer'"><span class="text-brand-600 font-medium">💡 คลิกที่ข้อความบนหน้าเพื่อแก้ไขข้อความเดิมได้ทันที หรือคลิกเลือกวัตถุเพื่อปรับย้าย</span></template>
                 <template x-if="activeTool === 'hand'"><span>โหมดเลื่อน: กดค้างแล้วลากเพื่อเลื่อนหน้าเอกสาร</span></template>
                 <template x-if="activeTool === 'edit-text'"><span class="text-brand-600 font-medium">โหมดแก้ไขข้อความ: เลื่อนเมาส์ชี้ข้อความเดิมเพื่อคลิกแก้ไข หรือคลิกที่ว่างเพื่อพิมพ์ข้อความใหม่</span></template>
                 <template x-if="activeTool === 'text'"><span>โหมดพิมพ์เพิ่ม: คลิกตรงตำแหน่งที่ต้องการวางกล่องข้อความใหม่</span></template>

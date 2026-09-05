@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <script src="/vendor/pdfjs/pdf.min.js"></script>
+</head>
+<body>
+    <div id="output">Running...</div>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.js';
+        async function test() {
+            try {
+                const res = await fetch('/storage/test.pdf');
+                const buf = await res.arrayBuffer();
+                const doc = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
+                const page = await doc.getPage(1);
+                const tc = await page.getTextContent();
+                const items = tc.items.map(i => ({ str: i.str, x: i.transform[4], y: i.transform[5], w: i.width, h: i.height }));
+                document.getElementById('output').textContent = JSON.stringify({ count: items.length, sample: items.slice(0, 20) });
+            } catch (err) {
+                document.getElementById('output').textContent = 'Error: ' + err.message;
+            }
+        }
+        test();
+    </script>
+</body>
+</html>

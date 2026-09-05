@@ -4567,11 +4567,15 @@ Alpine.data('pdfEditor', () => ({
         const existing = this.annotations.find(a => 
             a.page === this.currentPage &&
             a.type === 'text' &&
-            Math.abs(a.pctX - block.pctX) < 2.5 &&
-            Math.abs(a.pctY - block.pctY) < 2.5
+            Math.abs(a.pctX - block.pctX) < 3 &&
+            Math.abs(a.pctY - block.pctY) < 3
         );
         if (existing) {
             this.selectedAnnotationId = existing.id;
+            setTimeout(() => {
+                const ta = document.querySelector(`textarea[data-ann-id="${existing.id}"]`);
+                if (ta) ta.focus();
+            }, 60);
             return;
         }
 
@@ -4580,10 +4584,10 @@ Alpine.data('pdfEditor', () => ({
             id: newId,
             type: 'text',
             page: this.currentPage,
-            pctX: Math.max(0, block.pctX - 0.2),
-            pctY: Math.max(0, block.pctY - 0.2),
-            pctW: Math.min(100 - block.pctX, Math.max(block.pctW + 1.2, 15)),
-            pctH: Math.min(100 - block.pctY, Math.max(block.pctH + 0.8, 4)),
+            pctX: Math.max(0, block.pctX - 0.3),
+            pctY: Math.max(0, block.pctY - 0.3),
+            pctW: Math.min(100 - block.pctX, Math.max(block.pctW + 2.5, 20)),
+            pctH: Math.min(100 - block.pctY, Math.max(block.pctH + 1.2, 4.2)),
             text: block.text,
             fontSize: block.fontSize || this.textSize || 16,
             fontFamily: this.textFontFamily || 'Sarabun',
@@ -4603,15 +4607,24 @@ Alpine.data('pdfEditor', () => ({
         // Remove block from currentOriginalTextBlocks so it doesn't overlay the active edit box
         this.currentOriginalTextBlocks = this.currentOriginalTextBlocks.filter(b => b.id !== block.id);
         this.pushHistory('แก้ไขข้อความในเอกสาร');
+
+        // Auto-focus the newly created textarea immediately
+        setTimeout(() => {
+            const ta = document.querySelector(`textarea[data-ann-id="${newId}"]`);
+            if (ta) {
+                ta.focus();
+                ta.select();
+            }
+        }, 60);
     },
 
     // ─── TOOLS & INTERACTIONS ───
     setTool(tool) {
         this.activeTool = tool;
-        if (tool !== 'pointer' && tool !== 'edit-text') {
+        if (tool !== 'pointer' && tool !== 'edit-text' && tool !== 'text') {
             this.selectedAnnotationId = null;
         }
-        if (tool === 'edit-text' && this.currentOriginalTextBlocks.length === 0) {
+        if (['pointer', 'edit-text', 'text'].includes(tool) && this.currentOriginalTextBlocks.length === 0) {
             this.extractPageTextBlocks();
         }
     },
