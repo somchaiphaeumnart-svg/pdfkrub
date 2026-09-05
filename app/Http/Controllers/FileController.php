@@ -150,6 +150,9 @@ class FileController extends Controller
                 $config[$cropParam] = $request->input($cropParam);
             }
         }
+        if ($request->has('organize_pages_data')) {
+            $config['organize_pages_data'] = $request->input('organize_pages_data');
+        }
 
         // Create the processing job record
         $pdfJob = PdfJob::create([

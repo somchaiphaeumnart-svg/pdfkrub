@@ -62,6 +62,7 @@ Route::prefix('tools')->name('tools.')->middleware(['auth'])->group(function () 
     Route::get('/rotate-pdf', [ToolController::class, 'rotatePdf'])->name('rotate-pdf');
     Route::get('/delete-pages', [ToolController::class, 'deletePages'])->name('delete-pages');
     Route::get('/crop-pdf', [ToolController::class, 'cropPdf'])->name('crop-pdf');
+    Route::get('/organize-pdf', [ToolController::class, 'organizePdf'])->name('organize-pdf');
     Route::get('/watermark-pdf', [ToolController::class, 'watermarkPdf'])->name('watermark-pdf');
     Route::get('/page-numbers', [ToolController::class, 'pageNumbers'])->name('page-numbers');
     Route::get('/protect-pdf', [ToolController::class, 'protectPdf'])->name('protect-pdf');
@@ -82,7 +83,7 @@ Route::get('/sitemap.xml', function () {
     $tools = [
         'pdf-to-word', 'pdf-to-excel', 'pdf-to-pptx', 'pdf-to-jpg', 'pdf-to-png', 'pdf-to-txt',
         'word-to-pdf', 'excel-to-pdf', 'pptx-to-pdf', 'image-to-pdf',
-        'merge-pdf', 'split-pdf', 'compress-pdf', 'rotate-pdf', 'delete-pages', 'crop-pdf',
+        'merge-pdf', 'split-pdf', 'compress-pdf', 'rotate-pdf', 'delete-pages', 'crop-pdf', 'organize-pdf',
         'watermark-pdf', 'page-numbers', 'protect-pdf', 'unlock-pdf', 'sign-pdf', 'ocr-pdf', 'ai-summary',
         'pdf-editor',
     ];

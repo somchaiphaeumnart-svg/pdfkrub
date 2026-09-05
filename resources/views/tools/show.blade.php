@@ -2303,6 +2303,147 @@
                         </div>
                     </div>
                     @endif
+
+                    @if($tool['slug'] === 'organize-pdf')
+                    {{-- Interactive Organize & Reorder PDF Pages Visual Editor --}}
+                    <div class="mt-5 pt-5 border-t border-gray-100" @click.stop>
+                        {{-- Header / Quick Info --}}
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-3 border-b border-gray-100">
+                            <div>
+                                <h3 class="text-base font-bold text-gray-800 flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                                    </svg>
+                                    จัดเรียงลำดับหน้าเอกสาร PDF
+                                </h3>
+                                <p class="text-xs text-gray-500 mt-0.5">ลากและวางการ์ดเพื่อสลับตำแหน่งหน้า หมุน ทำซ้ำ หรือลบหน้าเฉพาะใบได้ตามต้องการ</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold border border-indigo-200 shadow-2xs">
+                                    <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9z"/></svg>
+                                    <span x-text="`ทั้งหมด ${orgPagesList.length || orgTotalPages || 1} หน้า (ลำดับใหม่)`"></span>
+                                </span>
+                            </div>
+                        </div>
+
+                        {{-- Quick Actions Toolbar --}}
+                        <div class="bg-slate-50/90 border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 mb-5 shadow-2xs">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    {{-- Reverse Order Button --}}
+                                    <button type="button" @click="reverseOrgPages()"
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-700 hover:border-indigo-400 hover:text-indigo-600 hover:shadow-xs text-xs font-semibold transition-all cursor-pointer">
+                                        <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/></svg>
+                                        เรียงย้อนกลับ (Reverse)
+                                    </button>
+
+                                    {{-- Sort Odd / Even Button --}}
+                                    <button type="button" @click="sortOrgOddEven()"
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-700 hover:border-indigo-400 hover:text-indigo-600 hover:shadow-xs text-xs font-semibold transition-all cursor-pointer">
+                                        <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12"/></svg>
+                                        แยกหน้าคี่/หน้าคู่ (Odd/Even)
+                                    </button>
+
+                                    {{-- Reset Original Sequence --}}
+                                    <button type="button" @click="resetOrgPages()"
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-700 hover:border-red-400 hover:text-red-600 hover:shadow-xs text-xs font-semibold transition-all cursor-pointer">
+                                        <svg class="w-3.5 h-3.5 text-red-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+                                        คืนค่าลำดับเดิม
+                                    </button>
+                                </div>
+
+                                <div class="text-[11px] text-gray-500 flex items-center gap-1.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                    <span>ลากสลับหน้า หรือคลิกปุ่ม ◀ ▶ เพื่อย้ายตำแหน่ง</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Thumbnail Cards Grid --}}
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3.5">
+                            <template x-for="(page, index) in orgPagesList" :key="page.id">
+                                <div class="group relative bg-white border-2 rounded-2xl p-2.5 flex flex-col items-center justify-between transition-all duration-150 select-none shadow-xs hover:shadow-md cursor-grab active:cursor-grabbing"
+                                     :class="draggedOrgPageIndex === index ? 'opacity-40 border-dashed border-indigo-400 scale-95' : 'border-slate-200/90 hover:border-indigo-400'"
+                                     draggable="true"
+                                     @dragstart="onOrgDragStart($event, index)"
+                                     @dragover="onOrgDragOver($event, index)"
+                                     @drop="onOrgDrop($event, index)">
+
+                                    {{-- Card Header: Current Index & Original Page Badge --}}
+                                    <div class="w-full flex items-center justify-between mb-1.5 text-[11px]">
+                                        {{-- New sequence number --}}
+                                        <span class="font-bold px-2 py-0.5 rounded-full bg-indigo-600 text-white shadow-2xs"
+                                              x-text="`#${index + 1}`"></span>
+                                        {{-- Original page label --}}
+                                        <span class="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.2 rounded font-mono"
+                                              x-text="`เดิม: p.${page.origPageNum}`"></span>
+                                    </div>
+
+                                    {{-- Thumbnail Box with Dynamic Rotation --}}
+                                    <div class="w-full aspect-[3/4] bg-slate-50 rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-100 shadow-inner my-1">
+                                        <template x-if="page.dataUrl">
+                                            <img :src="page.dataUrl"
+                                                 class="w-full h-full object-contain pointer-events-none rounded-lg transition-transform duration-200"
+                                                 :style="{ transform: `rotate(${page.rotation || 0}deg)` }" />
+                                        </template>
+                                        <template x-if="!page.dataUrl">
+                                            <div class="flex flex-col items-center justify-center p-1 text-slate-300 text-center">
+                                                <svg class="w-6 h-6 animate-pulse" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                            </div>
+                                        </template>
+
+                                        {{-- Active Rotation Badge --}}
+                                        <template x-if="page.rotation > 0">
+                                            <span class="absolute top-1 right-1 text-[9px] font-bold bg-indigo-600 text-white px-1.5 py-0.5 rounded-full shadow-2xs">
+                                                <span x-text="`${page.rotation}°`"></span>
+                                            </span>
+                                        </template>
+                                    </div>
+
+                                    {{-- Card Action Toolbar --}}
+                                    <div class="w-full pt-1.5 mt-1 border-t border-gray-100 flex items-center justify-between gap-1">
+                                        {{-- Move Left Button --}}
+                                        <button type="button" @click.stop="moveOrgPage(index, -1)"
+                                                :disabled="index === 0"
+                                                title="เลื่อนไปทางซ้าย"
+                                                class="p-1 rounded hover:bg-slate-100 text-gray-500 hover:text-indigo-600 disabled:opacity-20 disabled:cursor-not-allowed">
+                                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+                                        </button>
+
+                                        {{-- Rotate 90° Button --}}
+                                        <button type="button" @click.stop="rotateOrgPage(index)"
+                                                title="หมุน 90 องศา"
+                                                class="p-1 rounded hover:bg-slate-100 text-gray-500 hover:text-indigo-600">
+                                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+                                        </button>
+
+                                        {{-- Duplicate Page Button --}}
+                                        <button type="button" @click.stop="duplicateOrgPage(index)"
+                                                title="ทำซ้ำหน้านี้"
+                                                class="p-1 rounded hover:bg-slate-100 text-gray-500 hover:text-emerald-600">
+                                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75"/></svg>
+                                        </button>
+
+                                        {{-- Delete Page Button --}}
+                                        <button type="button" @click.stop="deleteOrgPage(index)"
+                                                title="ลบหน้านี้"
+                                                class="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-600">
+                                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/></svg>
+                                        </button>
+
+                                        {{-- Move Right Button --}}
+                                        <button type="button" @click.stop="moveOrgPage(index, 1)"
+                                                :disabled="index === orgPagesList.length - 1"
+                                                title="เลื่อนไปทางขวา"
+                                                class="p-1 rounded hover:bg-slate-100 text-gray-500 hover:text-indigo-600 disabled:opacity-20 disabled:cursor-not-allowed">
+                                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    @endif
                 </div>
             </template>
 
@@ -2445,7 +2586,7 @@
 </div>
 @endsection
 
-@if(in_array($tool['slug'], ['rotate-pdf', 'delete-pages', 'watermark-pdf', 'unlock-pdf', 'merge-pdf', 'compress-pdf', 'split-pdf', 'pdf-to-word', 'pdf-to-jpg', 'pdf-to-png', 'page-numbers', 'crop-pdf']))
+@if(in_array($tool['slug'], ['rotate-pdf', 'delete-pages', 'watermark-pdf', 'unlock-pdf', 'merge-pdf', 'compress-pdf', 'split-pdf', 'pdf-to-word', 'pdf-to-jpg', 'pdf-to-png', 'page-numbers', 'crop-pdf', 'organize-pdf']))
 @push('scripts')
 <script src="{{ asset('vendor/pdfjs/pdf.min.js') }}"></script>
 <script>

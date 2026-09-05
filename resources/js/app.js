@@ -237,6 +237,12 @@ Alpine.data('fileUpload', (config = {}) => ({
     cropCurrentPage: 1,
     isRenderingCropPreview: false,
 
+    // Organize PDF State
+    orgPagesList: [],
+    orgTotalPages: 0,
+    isRenderingOrgPages: false,
+    draggedOrgPageIndex: null,
+
     // Processing state
     isUploading: false,
     uploadProgress: 0,
@@ -299,6 +305,9 @@ Alpine.data('fileUpload', (config = {}) => ({
         }
         if (this.tool === 'crop-pdf' && this.files.length > 0) {
             this.loadCropPreview();
+        }
+        if (this.tool === 'organize-pdf' && this.files.length > 0) {
+            this.loadOrganizePreview();
         }
     },
 
@@ -435,6 +444,10 @@ Alpine.data('fileUpload', (config = {}) => ({
         if (this.tool === 'crop-pdf' && this.files.length > 0) {
             setTimeout(() => this.loadCropPreview(), 60);
         }
+        // If organize-pdf, load preview
+        if (this.tool === 'organize-pdf' && this.files.length > 0) {
+            setTimeout(() => this.loadOrganizePreview(), 60);
+        }
     },
 
     removeFile(id) {
@@ -506,6 +519,12 @@ Alpine.data('fileUpload', (config = {}) => ({
                 setTimeout(() => this.loadCropPreview(), 60);
             }
         }
+        if (this.tool === 'organize-pdf') {
+            this.clearOrganizeState();
+            if (this.files.length > 0) {
+                setTimeout(() => this.loadOrganizePreview(), 60);
+            }
+        }
     },
 
     clearAll() {
@@ -537,6 +556,7 @@ Alpine.data('fileUpload', (config = {}) => ({
         this.clearPdfToImagesState();
         this.clearPageNumbersState();
         this.clearCropState();
+        this.clearOrganizeState();
         this.protectPassword = '';
         this.protectPasswordConfirm = '';
         this.showProtectPassword = false;
@@ -754,6 +774,20 @@ Alpine.data('fileUpload', (config = {}) => ({
             formData.append('crop_pages', pagesVal);
             formData.append('config[crop_pages]', pagesVal);
         }
+        if (activeTool === 'organize-pdf') {
+            if (!this.orgPagesList || this.orgPagesList.length === 0) {
+                this.error = 'กรุณาเลือกเอกสารที่มีอย่างน้อย 1 หน้า';
+                this.isUploading = false;
+                return;
+            }
+            const pagesPayload = this.orgPagesList.map(p => ({
+                page: p.origPageNum,
+                rotation: p.rotation || 0
+            }));
+            const jsonStr = JSON.stringify(pagesPayload);
+            formData.append('organize_pages_data', jsonStr);
+            formData.append('config[organize_pages_data]', jsonStr);
+        }
         const tokenMeta = document.querySelector('meta[name="csrf-token"]');
         if (tokenMeta) {
             formData.append('_token', tokenMeta.content);
@@ -855,6 +889,7 @@ Alpine.data('fileUpload', (config = {}) => ({
             'image-to-pdf': 'กำลังแปลงรูปภาพเป็นเอกสาร PDF...',
             'page-numbers': 'กำลังใส่เลขหน้าลงในเอกสาร PDF...',
             'crop-pdf': 'กำลังครอบตัดและปรับขอบเอกสาร PDF...',
+            'organize-pdf': 'กำลังจัดเรียงและประมวลผลหน้าเอกสาร PDF...',
         };
         const detail = toolLabels[toolName] || 'เซิร์ฟเวอร์กำลังประมวลผลไฟล์...';
         this.processingDetail = detail;
@@ -1632,6 +1667,10 @@ Alpine.data('fileUpload', (config = {}) => ({
                 return `ตัดขอบดำสแกน (${pageCount} หน้า)`;
             }
             return `ครอบตัดเอกสาร (${pageCount} หน้า)`;
+        }
+        if (this.tool === 'organize-pdf' && this.hasFiles) {
+            const count = this.orgPagesList ? this.orgPagesList.length : (this.orgTotalPages || 1);
+            return `บันทึกและดาวน์โหลด PDF ที่จัดเรียงใหม่ (${count} หน้า)`;
         }
         return null;
     },
@@ -2669,6 +2708,133 @@ Alpine.data('fileUpload', (config = {}) => ({
 
     get cropRemainingHeightPercent() {
         return Math.max(10, 100 - (this.cropTop + this.cropBottom));
+    },
+
+    // =====================================================
+    // Organize & Reorder PDF Methods & Preview
+    // =====================================================
+    clearOrganizeState() {
+        this.orgPagesList = [];
+        this.orgTotalPages = 0;
+        this.isRenderingOrgPages = false;
+        this.draggedOrgPageIndex = null;
+    },
+
+    async loadOrganizePreview() {
+        if (this.tool !== 'organize-pdf' || !this.files.length) return;
+        const targetFile = this.files[0]?.file;
+        if (!targetFile) return;
+
+        this.isRenderingOrgPages = true;
+        try {
+            await this.ensurePdfJs();
+            const arrayBuffer = await targetFile.arrayBuffer();
+            const doc = await window.pdfjsLib.getDocument({ data: arrayBuffer.slice(0) }).promise;
+            this.orgTotalPages = doc.numPages;
+
+            const list = [];
+            for (let i = 1; i <= this.orgTotalPages; i++) {
+                list.push({
+                    id: 'page_' + i + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                    origPageNum: i,
+                    rotation: 0,
+                    dataUrl: null,
+                });
+            }
+            this.orgPagesList = list;
+
+            for (let i = 1; i <= this.orgTotalPages; i++) {
+                try {
+                    const page = await doc.getPage(i);
+                    const vp = page.getViewport({ scale: 0.32 });
+                    const canvas = document.createElement('canvas');
+                    canvas.width = vp.width;
+                    canvas.height = vp.height;
+                    const ctx = canvas.getContext('2d');
+                    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+                    const item = this.orgPagesList.find(x => x.origPageNum === i);
+                    if (item) {
+                        item.dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                    }
+                } catch (pe) {
+                    console.warn('Organize page render error:', pe);
+                }
+            }
+        } catch (err) {
+            console.warn('Organize PDF preview error:', err);
+        } finally {
+            this.isRenderingOrgPages = false;
+        }
+    },
+
+    onOrgDragStart(e, index) {
+        this.draggedOrgPageIndex = index;
+        e.dataTransfer.effectAllowed = 'move';
+        try {
+            e.dataTransfer.setData('text/plain', index);
+        } catch (err) {}
+    },
+
+    onOrgDragOver(e, index) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    },
+
+    onOrgDrop(e, targetIndex) {
+        e.preventDefault();
+        if (this.draggedOrgPageIndex === null || this.draggedOrgPageIndex === undefined || this.draggedOrgPageIndex === targetIndex) {
+            return;
+        }
+        const item = this.orgPagesList.splice(this.draggedOrgPageIndex, 1)[0];
+        this.orgPagesList.splice(targetIndex, 0, item);
+        this.draggedOrgPageIndex = null;
+    },
+
+    moveOrgPage(index, dir) {
+        const target = index + dir;
+        if (target < 0 || target >= this.orgPagesList.length) return;
+        const item = this.orgPagesList.splice(index, 1)[0];
+        this.orgPagesList.splice(target, 0, item);
+    },
+
+    rotateOrgPage(index) {
+        if (!this.orgPagesList[index]) return;
+        this.orgPagesList[index].rotation = (this.orgPagesList[index].rotation + 90) % 360;
+    },
+
+    duplicateOrgPage(index) {
+        if (!this.orgPagesList[index]) return;
+        const src = this.orgPagesList[index];
+        const clone = {
+            id: 'page_dup_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            origPageNum: src.origPageNum,
+            rotation: src.rotation,
+            dataUrl: src.dataUrl,
+        };
+        this.orgPagesList.splice(index + 1, 0, clone);
+    },
+
+    deleteOrgPage(index) {
+        if (this.orgPagesList.length <= 1) {
+            alert('ต้องเหลือเอกสารอย่างน้อย 1 หน้า');
+            return;
+        }
+        this.orgPagesList.splice(index, 1);
+    },
+
+    reverseOrgPages() {
+        this.orgPagesList = [...this.orgPagesList].reverse();
+    },
+
+    sortOrgOddEven() {
+        const odds = this.orgPagesList.filter((_, idx) => idx % 2 === 0);
+        const evens = this.orgPagesList.filter((_, idx) => idx % 2 === 1);
+        this.orgPagesList = [...odds, ...evens];
+    },
+
+    resetOrgPages() {
+        this.orgPagesList = [...this.orgPagesList].sort((a, b) => a.origPageNum - b.origPageNum);
+        this.orgPagesList.forEach(p => p.rotation = 0);
     },
 
     get hasFiles() { return this.files.length > 0; },

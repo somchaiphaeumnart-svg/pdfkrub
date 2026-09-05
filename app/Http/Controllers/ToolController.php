@@ -234,6 +234,18 @@ class ToolController extends Controller
                 'output_format' => 'pdf',
             ],
             [
+                'slug' => 'organize-pdf',
+                'name' => 'Organize PDF',
+                'name_th' => 'จัดเรียงหน้า PDF',
+                'description_th' => 'จัดเรียงลำดับหน้า PDF ลากและวางสลับตำแหน่ง หมุน หรือลบหน้าเฉพาะใบได้อย่างอิสระ',
+                'icon' => '🔀',
+                'category' => 'organize',
+                'color' => 'from-blue-600 to-indigo-600',
+                'accepts' => '.pdf',
+                'premium' => false,
+                'output_format' => 'pdf',
+            ],
+            [
                 'slug' => 'protect-pdf',
                 'name' => 'Protect PDF',
                 'name_th' => 'ใส่รหัสผ่าน PDF',
@@ -462,5 +474,10 @@ class ToolController extends Controller
     public function pageNumbers(): View
     {
         return $this->showTool('page-numbers');
+    }
+
+    public function organizePdf(): View
+    {
+        return $this->showTool('organize-pdf');
     }
 }

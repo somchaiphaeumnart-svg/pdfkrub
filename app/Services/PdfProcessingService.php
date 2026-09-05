@@ -48,6 +48,7 @@ class PdfProcessingService
             'watermark-pdf' => $this->watermarkPdf($job),
             'page-numbers' => $this->addPageNumbers($job),
             'crop-pdf' => $this->cropPdf($job),
+            'organize-pdf' => $this->organizePdf($job),
             'protect-pdf' => $this->protectPdf($job),
             'unlock-pdf' => $this->unlockPdf($job),
             'ocr-pdf' => $this->ocr->process($job),
@@ -850,6 +851,64 @@ class PdfProcessingService
 
             $basename = pathinfo($inputFile->original_name, PATHINFO_FILENAME);
             return $this->storeOutput($job, $outputPath, "{$basename}_cropped.pdf", 'application/pdf');
+        } finally {
+            $this->cleanTmpDir($tmpDir);
+        }
+    }
+
+    // =========================================================
+    // Organize & Reorder PDF Pages
+    // =========================================================
+
+    private function organizePdf(PdfJob $job): UploadedFile
+    {
+        $inputFile = $this->getInputFile($job);
+        $inputPath = Storage::disk($inputFile->storage_disk)->path($inputFile->storage_key);
+        $tmpDir = $this->makeTmpDir();
+        $outputPath = $tmpDir.DIRECTORY_SEPARATOR.'organized.pdf';
+
+        $config = $job->tool_config ?? [];
+        $pagesData = $config['organize_pages_data'] ?? '[]';
+        if (is_array($pagesData)) {
+            $pagesData = json_encode($pagesData, JSON_UNESCAPED_UNICODE);
+        }
+
+        // Write pages JSON to a temp file to avoid CLI escaping issues with long arguments
+        $pagesJsonFile = $tmpDir.DIRECTORY_SEPARATOR.'pages_data.json';
+        file_put_contents($pagesJsonFile, (string)$pagesData);
+
+        try {
+            $applied = false;
+            $scriptPath = base_path('scripts/organize_pdf.py');
+            $pythonCmd = file_exists('/opt/pdf2docx-env/bin/python3') ? '/opt/pdf2docx-env/bin/python3' : 'python3';
+
+            if (file_exists($scriptPath)) {
+                $cmd = [
+                    $pythonCmd,
+                    $scriptPath,
+                    $inputPath,
+                    $outputPath,
+                    '--pages-data', $pagesJsonFile,
+                ];
+
+                $pyResult = Process::timeout(60)->run($cmd);
+                if ($pyResult->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                    $applied = true;
+                } elseif ($pythonCmd !== 'python3') {
+                    $cmd[0] = 'python3';
+                    $sysResult = Process::timeout(60)->run($cmd);
+                    if ($sysResult->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                        $applied = true;
+                    }
+                }
+            }
+
+            if (!$applied || !file_exists($outputPath) || filesize($outputPath) === 0) {
+                throw new RuntimeException('ไม่สามารถจัดเรียงหน้าเอกสาร PDF ได้ กรุณาลองใหม่อีกครั้ง');
+            }
+
+            $basename = pathinfo($inputFile->original_name, PATHINFO_FILENAME);
+            return $this->storeOutput($job, $outputPath, "{$basename}_organized.pdf", 'application/pdf');
         } finally {
             $this->cleanTmpDir($tmpDir);
         }
