@@ -87,13 +87,21 @@ class FileController extends Controller
             $uploadedIds[] = $uploaded->id;
         }
 
+        $config = $request->input('config', []);
+        if (is_string($config)) {
+            $config = json_decode($config, true) ?: [];
+        }
+        if ($request->has('degrees')) {
+            $config['degrees'] = (int) $request->input('degrees');
+        }
+
         // Create the processing job record
         $pdfJob = PdfJob::create([
             'user_id' => $user?->id,
             'session_id' => $user ? null : $request->session()->getId(),
             'input_file_ids' => $uploadedIds,
             'tool_name' => $request->tool,
-            'tool_config' => $request->input('config', []),
+            'tool_config' => $config,
             'status' => PdfJob::STATUS_QUEUED,
             'queue_name' => 'default',
         ]);

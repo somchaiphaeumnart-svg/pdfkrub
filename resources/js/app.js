@@ -98,6 +98,14 @@ Alpine.data('fileUpload', (config = {}) => ({
     isHome: config.isHome ?? false,
     error: null,
 
+    // Rotate PDF state
+    rotationAngle: 90,
+    isRenderingPdf: false,
+    pdfDoc: null,
+    pdfTotalPages: 0,
+    pdfCurrentPage: 1,
+    pdfRenderError: null,
+
     // Processing state
     isUploading: false,
     uploadProgress: 0,
@@ -124,6 +132,9 @@ Alpine.data('fileUpload', (config = {}) => ({
         // If on a tool page, auto-restore staged files from the homepage
         if (!this.isHome) {
             await this.loadStagedFiles();
+        }
+        if (this.tool === 'rotate-pdf' && this.files.length > 0) {
+            this.loadPdfPreview();
         }
     },
 
@@ -210,6 +221,12 @@ Alpine.data('fileUpload', (config = {}) => ({
         if (this.isHome && this.files.length > 0) {
             saveStagedFiles(this.files.map(f => f.file));
         }
+
+        // If rotate-pdf, load PDF preview
+        if (this.tool === 'rotate-pdf' && this.files.length > 0) {
+            this.rotationAngle = 90;
+            setTimeout(() => this.loadPdfPreview(), 60);
+        }
     },
 
     removeFile(id) {
@@ -222,12 +239,26 @@ Alpine.data('fileUpload', (config = {}) => ({
                 clearStagedFiles();
             }
         }
+        if (this.tool === 'rotate-pdf') {
+            if (this.files.length > 0) {
+                setTimeout(() => this.loadPdfPreview(), 60);
+            } else {
+                this.pdfDoc = null;
+                this.pdfTotalPages = 0;
+                this.pdfCurrentPage = 1;
+            }
+        }
     },
 
     clearAll() {
         this.cancelConversion();
         this.files = [];
         this.error = null;
+        this.pdfDoc = null;
+        this.pdfTotalPages = 0;
+        this.pdfCurrentPage = 1;
+        this.rotationAngle = 90;
+        this.pdfRenderError = null;
         clearStagedFiles();
     },
 
@@ -276,7 +307,13 @@ Alpine.data('fileUpload', (config = {}) => ({
 
         const formData = new FormData();
         this.files.forEach(f => formData.append('files[]', f.file));
-        formData.append('tool', toolName || this.tool || 'unknown');
+        const activeTool = toolName || this.tool || 'unknown';
+        formData.append('tool', activeTool);
+        if (activeTool === 'rotate-pdf') {
+            const deg = this.rotationAngle !== undefined ? this.rotationAngle : 90;
+            formData.append('degrees', deg);
+            formData.append('config[degrees]', deg);
+        }
         const tokenMeta = document.querySelector('meta[name="csrf-token"]');
         if (tokenMeta) {
             formData.append('_token', tokenMeta.content);
@@ -300,7 +337,7 @@ Alpine.data('fileUpload', (config = {}) => ({
             this.uploadBytesLoaded = this.uploadBytesTotal;
             this.isUploading = false;
             this.isProcessingServer = true;
-            this.startServerProgressTicker(toolName);
+            this.startServerProgressTicker(activeTool);
         };
 
         xhr.onload = () => {
@@ -353,6 +390,7 @@ Alpine.data('fileUpload', (config = {}) => ({
         this.stopServerProgressTicker();
         this.serverProgress = 15;
 
+        const rotateDeg = this.rotationAngle !== undefined ? this.rotationAngle : 90;
         const toolLabels = {
             'pdf-to-pptx': 'กำลังแปลงหน้า PDF เป็นสไลด์ PowerPoint (.pptx)...',
             'pdf-to-word': 'กำลังแปลงหน้าเอกสารเป็น Word (.docx)...',
@@ -364,7 +402,7 @@ Alpine.data('fileUpload', (config = {}) => ({
             'compress-pdf': 'กำลังบีบอัดลดขนาดเอกสาร PDF...',
             'pdf-to-jpg': 'กำลังแปลงหน้าเอกสารเป็นภาพ JPG...',
             'pdf-to-png': 'กำลังแปลงหน้าเอกสารเป็นภาพ PNG...',
-            'rotate-pdf': 'กำลังหมุนหน้าเอกสาร PDF...',
+            'rotate-pdf': `กำลังหมุนหน้าเอกสาร PDF (${rotateDeg}°)...`,
             'watermark-pdf': 'กำลังใส่ลายน้ำเอกสาร PDF...',
             'protect-pdf': 'กำลังตั้งรหัสผ่านป้องกัน PDF...',
             'unlock-pdf': 'กำลังปลดล็อครหัสผ่าน PDF...',
@@ -525,6 +563,128 @@ Alpine.data('fileUpload', (config = {}) => ({
             return `${this.processingDetail} (ขนาด ${this.totalSize})`;
         }
         return 'ระบบกำลังประมวลผล กรุณารอสักครู่';
+    },
+
+    // Rotate PDF Methods & Preview Helpers
+    rotateRight() {
+        this.rotationAngle = (this.rotationAngle + 90) % 360;
+    },
+
+    rotateLeft() {
+        this.rotationAngle = (this.rotationAngle - 90 + 360) % 360;
+    },
+
+    rotate180() {
+        this.rotationAngle = (this.rotationAngle + 180) % 360;
+    },
+
+    resetRotation() {
+        this.rotationAngle = 0;
+    },
+
+    get rotationText() {
+        switch (this.rotationAngle) {
+            case 90: return '90° (ตามเข็มนาฬิกา)';
+            case 180: return '180° (กลับหัว)';
+            case 270: return '270° (ทวนเข็มนาฬิกา)';
+            case 0:
+            default: return '0° (ทิศทางเดิม)';
+        }
+    },
+
+    prevPage() {
+        if (this.pdfCurrentPage > 1) {
+            this.pdfCurrentPage--;
+            this.renderCurrentPage();
+        }
+    },
+
+    nextPage() {
+        if (this.pdfCurrentPage < this.pdfTotalPages) {
+            this.pdfCurrentPage++;
+            this.renderCurrentPage();
+        }
+    },
+
+    async ensurePdfJs() {
+        if (window.pdfjsLib) {
+            if (window.pdfjsLib.GlobalWorkerOptions && !window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
+                window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            }
+            return;
+        }
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+            script.onload = () => {
+                if (window.pdfjsLib) {
+                    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                }
+                resolve();
+            };
+            script.onerror = () => reject(new Error('ไม่สามารถโหลดระบบแสดงตัวอย่าง PDF ได้'));
+            document.head.appendChild(script);
+        });
+    },
+
+    async loadPdfPreview() {
+        if (!this.files.length || !this.files[0].file) {
+            this.pdfDoc = null;
+            this.pdfTotalPages = 0;
+            this.pdfCurrentPage = 1;
+            return;
+        }
+        const file = this.files[0].file;
+        if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+            return;
+        }
+
+        this.isRenderingPdf = true;
+        this.pdfRenderError = null;
+
+        try {
+            await this.ensurePdfJs();
+            const arrayBuffer = await file.arrayBuffer();
+            const loadingTask = window.pdfjsLib.getDocument({ data: arrayBuffer });
+            this.pdfDoc = await loadingTask.promise;
+            this.pdfTotalPages = this.pdfDoc.numPages || 1;
+            this.pdfCurrentPage = 1;
+            await this.renderCurrentPage();
+        } catch (e) {
+            console.warn('PDF preview error:', e);
+            this.pdfRenderError = 'ไม่สามารถสร้างตัวอย่างหน้าเอกสารได้ (ท่านยังสามารถกดหมุนและดาวน์โหลดไฟล์ได้)';
+        } finally {
+            this.isRenderingPdf = false;
+        }
+    },
+
+    async renderCurrentPage() {
+        if (!this.pdfDoc) return;
+        this.isRenderingPdf = true;
+        try {
+            const page = await this.pdfDoc.getPage(this.pdfCurrentPage);
+            const canvas = document.getElementById('pdfRotatePreviewCanvas');
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            const unscaledViewport = page.getViewport({ scale: 1.0 });
+            const targetWidth = 260;
+            const scale = Math.max(0.5, targetWidth / unscaledViewport.width);
+            const viewport = page.getViewport({ scale: Math.min(scale, 2.0) });
+
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+
+            const renderContext = {
+                canvasContext: ctx,
+                viewport: viewport
+            };
+            await page.render(renderContext).promise;
+        } catch (e) {
+            console.warn('renderCurrentPage error:', e);
+        } finally {
+            this.isRenderingPdf = false;
+        }
     },
 
     get hasFiles() { return this.files.length > 0; },

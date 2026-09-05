@@ -53,7 +53,7 @@
 
     {{-- Upload Zone --}}
     <div class="bg-white border border-gray-100 shadow-sm rounded-3xl p-8 border border-gray-100"
-         x-data="fileUpload({ maxSizeMb: {{ auth()->check() ? auth()->user()->getActivePlan()->max_file_size_mb : 10 }}, accept: '{{ $tool['accepts'] }}', maxFiles: {{ in_array($tool['slug'], ['merge-pdf', 'image-to-pdf']) ? 20 : 1 }} })"
+         x-data="fileUpload({ maxSizeMb: {{ auth()->check() ? auth()->user()->getActivePlan()->max_file_size_mb : 10 }}, accept: '{{ $tool['accepts'] }}', maxFiles: {{ in_array($tool['slug'], ['merge-pdf', 'image-to-pdf']) ? 20 : 1 }}, tool: '{{ $tool['slug'] }}' })"
          x-init="$watch('files', val => {})">
 
         {{-- Drop zone --}}
@@ -109,10 +109,138 @@
                             </div>
                         </template>
                     </div>
-                    <button @click="$refs.fileInput.click()" class="text-xs text-brand-600 hover:text-brand-600 transition-colors mt-2 flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-                        เพิ่มไฟล์อีก
-                    </button>
+                    <div class="flex items-center justify-between mt-2">
+                        @if($tool['slug'] === 'rotate-pdf')
+                        <button type="button" @click="$refs.fileInput.click()" class="text-xs text-brand-600 hover:text-brand-700 transition-colors flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+                            เลือกไฟล์ PDF อื่น
+                        </button>
+                        @else
+                        <button @click="$refs.fileInput.click()" class="text-xs text-brand-600 hover:text-brand-600 transition-colors flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                            เพิ่มไฟล์อีก
+                        </button>
+                        @endif
+                    </div>
+
+                    @if($tool['slug'] === 'rotate-pdf')
+                    {{-- Rotate Controls & Live Preview Editor --}}
+                    <div class="mt-5 pt-5 border-t border-gray-100" @click.stop>
+                        {{-- Editor Action Bar --}}
+                        <div class="bg-slate-50/90 border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs mb-4">
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3.5">
+                                <span class="text-sm font-bold text-gray-800 flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-brand-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>
+                                    </svg>
+                                    ตัวเลือกการหมุนหน้า PDF
+                                </span>
+
+                                {{-- Angle Badge --}}
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs text-gray-500">มุมหมุนปัจจุบัน:</span>
+                                    <span class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200 shadow-2xs">
+                                        <span class="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
+                                        <span x-text="rotationText"></span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            {{-- Action Buttons: Rotate Left, Rotate Right, Rotate 180, Reset --}}
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                                {{-- Rotate Left (-90°) --}}
+                                <button type="button"
+                                        @click="rotateLeft()"
+                                        class="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white border border-gray-200 text-gray-700 hover:border-brand-500 hover:text-brand-600 hover:shadow-xs active:scale-95 transition-all text-sm font-semibold cursor-pointer">
+                                    <svg class="w-4 h-4 text-brand-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+                                    </svg>
+                                    หมุนซ้าย 90°
+                                </button>
+
+                                {{-- Rotate Right (+90°) --}}
+                                <button type="button"
+                                        @click="rotateRight()"
+                                        class="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white border border-gray-200 text-gray-700 hover:border-brand-500 hover:text-brand-600 hover:shadow-xs active:scale-95 transition-all text-sm font-semibold cursor-pointer">
+                                    <svg class="w-4 h-4 text-brand-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m15 15 6-6m0 0-6-6m6 6H9a6 6 0 0 0 0 12h3" />
+                                    </svg>
+                                    หมุนขวา 90°
+                                </button>
+
+                                {{-- Rotate 180° --}}
+                                <button type="button"
+                                        @click="rotate180()"
+                                        class="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white border border-gray-200 text-gray-700 hover:border-brand-500 hover:text-brand-600 hover:shadow-xs active:scale-95 transition-all text-sm font-medium cursor-pointer">
+                                    <svg class="w-4 h-4 text-brand-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 0 0-3.7-3.7 48.678 48.678 0 0 0-7.324 0 4.006 4.006 0 0 0-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3-3-3m-9 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 0 0 3.7 3.7 48.656 48.656 0 0 0 7.324 0 4.006 4.006 0 0 0 3.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3-3 3" />
+                                    </svg>
+                                    หมุน 180°
+                                </button>
+
+                                {{-- Reset / Original (0°) --}}
+                                <button type="button"
+                                        @click="resetRotation()"
+                                        :class="rotationAngle === 0 ? 'bg-gray-100 text-gray-400 border-gray-200' : 'bg-white text-gray-600 hover:border-gray-300 hover:text-gray-800 hover:shadow-xs'"
+                                        class="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border text-xs font-medium transition-all cursor-pointer">
+                                    คืนค่าเดิม (0°)
+                                </button>
+                            </div>
+                        </div>
+
+                        {{-- Live Preview Canvas Screen --}}
+                        <div class="relative bg-slate-100/90 rounded-2xl border border-slate-200/90 p-4 sm:p-6 overflow-hidden flex flex-col items-center justify-center min-h-[350px]">
+                            {{-- Preview Header Badge --}}
+                            <div class="absolute top-3 left-3 z-10">
+                                <span class="text-[11px] font-medium text-slate-500 bg-white/95 backdrop-blur-xs px-2.5 py-1 rounded-md border border-slate-200 shadow-2xs flex items-center gap-1.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                    ตัวอย่างแบบเรียลไทม์
+                                </span>
+                            </div>
+
+                            {{-- Loading Spinner --}}
+                            <div x-show="isRenderingPdf" class="flex flex-col items-center justify-center py-16 gap-2.5 text-slate-500">
+                                <svg class="w-8 h-8 animate-spin text-brand-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                <span class="text-xs font-medium">กำลังโหลดตัวอย่างเอกสาร PDF...</span>
+                            </div>
+
+                            {{-- Canvas Preview with CSS Rotate Animation --}}
+                            <div x-show="!isRenderingPdf" class="w-full flex items-center justify-center py-3">
+                                <div class="relative max-w-[280px] max-h-[300px] flex items-center justify-center">
+                                    <canvas id="pdfRotatePreviewCanvas"
+                                            class="max-w-[250px] max-h-[290px] w-auto h-auto rounded-lg shadow-xl border border-slate-300 bg-white transition-transform duration-300 ease-out origin-center"
+                                            :style="`transform: rotate(${rotationAngle}deg);`"></canvas>
+                                </div>
+                            </div>
+
+                            {{-- Error notice if any --}}
+                            <p x-show="pdfRenderError" class="text-xs text-amber-600 mt-2 text-center" x-text="pdfRenderError"></p>
+
+                            {{-- Pagination if multi-page PDF --}}
+                            <div x-show="pdfTotalPages > 1" class="flex items-center justify-center gap-3 mt-4 pt-3 border-t border-slate-200/70 w-full text-xs text-slate-600">
+                                <button type="button"
+                                        @click="prevPage()"
+                                        :disabled="pdfCurrentPage <= 1"
+                                        class="px-3 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs font-medium transition-all cursor-pointer">
+                                    ‹ หน้าก่อน
+                                </button>
+                                <span>
+                                    หน้า <strong class="text-slate-800" x-text="pdfCurrentPage"></strong> จาก <span x-text="pdfTotalPages"></span>
+                                </span>
+                                <button type="button"
+                                        @click="nextPage()"
+                                        :disabled="pdfCurrentPage >= pdfTotalPages"
+                                        class="px-3 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs font-medium transition-all cursor-pointer">
+                                    หน้าถัดไป ›
+                                </button>
+                            </div>
+                        </div>
+
+                        <p class="text-center text-xs text-gray-400 mt-2.5">
+                            * ทุกหน้าในไฟล์ PDF จะถูกหมุนตามมุมที่ท่านเลือก
+                        </p>
+                    </div>
+                    @endif
                 </div>
             </template>
 
@@ -131,7 +259,7 @@
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>
                     </svg>
-                    {{ $tool['name_th'] ?? $tool['name'] }}
+                    <span x-text="tool === 'rotate-pdf' && hasFiles ? `หมุน PDF (${rotationAngle}°) และบันทึก` : '{{ $tool['name_th'] ?? $tool['name'] }}'"></span>
                 </button>
             </div>
 
@@ -253,3 +381,14 @@
     </div>
 </div>
 @endsection
+
+@if($tool['slug'] === 'rotate-pdf')
+@push('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+    if (window.pdfjsLib) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+</script>
+@endpush
+@endif

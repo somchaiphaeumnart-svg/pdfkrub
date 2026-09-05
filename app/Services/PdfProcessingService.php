@@ -417,15 +417,58 @@ class PdfProcessingService
         $outputPath = $tmpDir.DIRECTORY_SEPARATOR.'rotated.pdf';
 
         try {
-            $result = Process::timeout(60)->run([
-                'gs', '-dBATCH', '-dNOPAUSE', '-q', '-sDEVICE=pdfwrite',
-                '-c', "<</Orientation {$degrees}>> setpagedevice",
-                '-f', $inputPath,
-                "-sOutputFile={$outputPath}",
-            ]);
+            $rotated = false;
+            $scriptPath = base_path('scripts/rotate_pdf.py');
+            $pythonCmd = file_exists('/opt/pdf2docx-env/bin/python3')
+                ? '/opt/pdf2docx-env/bin/python3'
+                : 'python3';
 
-            if (! $result->successful()) {
-                throw new RuntimeException('Rotate failed: '.$result->errorOutput());
+            // 1. Try Python script (PyMuPDF / pypdf)
+            if (file_exists($scriptPath)) {
+                $pyResult = Process::timeout(60)->run([
+                    $pythonCmd,
+                    $scriptPath,
+                    $inputPath,
+                    $outputPath,
+                    (string) $degrees,
+                ]);
+
+                if ($pyResult->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                    $rotated = true;
+                } elseif ($pythonCmd !== 'python3') {
+                    $sysResult = Process::timeout(60)->run([
+                        'python3',
+                        $scriptPath,
+                        $inputPath,
+                        $outputPath,
+                        (string) $degrees,
+                    ]);
+                    if ($sysResult->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                        $rotated = true;
+                    }
+                }
+            }
+
+            // 2. Try qpdf CLI
+            if (! $rotated) {
+                $sign = $degrees >= 0 ? '+' : '-';
+                $degVal = abs($degrees) % 360;
+                $qpdfCheck = Process::run(['which', 'qpdf']);
+                if ($qpdfCheck->successful()) {
+                    $res = Process::timeout(60)->run([
+                        'qpdf',
+                        "--rotate={$sign}{$degVal}",
+                        $inputPath,
+                        $outputPath,
+                    ]);
+                    if ($res->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                        $rotated = true;
+                    }
+                }
+            }
+
+            if (! $rotated || ! file_exists($outputPath) || filesize($outputPath) === 0) {
+                throw new RuntimeException('ไม่สามารถหมุนหน้าเอกสาร PDF ได้ กรุณาลองใหม่อีกครั้ง');
             }
 
             $basename = pathinfo($inputFile->original_name, PATHINFO_FILENAME);
