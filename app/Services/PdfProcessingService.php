@@ -643,20 +643,49 @@ class PdfProcessingService
         $inputFile = $this->getInputFile($job);
         $inputPath = Storage::disk($inputFile->storage_disk)->path($inputFile->storage_key);
         $config = $job->tool_config ?? [];
-        $userPassword = $config['password'] ?? '';
+        $userPassword = trim((string) ($config['password'] ?? ''));
+
+        if (empty($userPassword)) {
+            throw new RuntimeException('กรุณากรอกรหัสผ่านสำหรับล็อกไฟล์ PDF');
+        }
+
         $tmpDir = $this->makeTmpDir();
         $outputPath = $tmpDir.DIRECTORY_SEPARATOR.'protected.pdf';
 
         try {
-            $result = Process::timeout(60)->run([
-                'gs', '-dBATCH', '-dNOPAUSE', '-q', '-sDEVICE=pdfwrite',
-                '-dEncryptionR=3', '-dKeyLength=128',
-                "-sUserPassword={$userPassword}",
-                "-sOutputFile={$outputPath}", $inputPath,
-            ]);
+            $applied = false;
+            $scriptPath = base_path('scripts/protect_pdf.py');
+            $pythonCmd = file_exists('/opt/pdf2docx-env/bin/python3')
+                ? '/opt/pdf2docx-env/bin/python3'
+                : 'python3';
 
-            if (! $result->successful()) {
-                throw new RuntimeException('Protect failed: '.$result->errorOutput());
+            if (file_exists($scriptPath)) {
+                $pyResult = Process::timeout(60)->run([
+                    $pythonCmd,
+                    $scriptPath,
+                    $inputPath,
+                    $outputPath,
+                    $userPassword,
+                ]);
+
+                if ($pyResult->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                    $applied = true;
+                } elseif ($pythonCmd !== 'python3') {
+                    $sysResult = Process::timeout(60)->run([
+                        'python3',
+                        $scriptPath,
+                        $inputPath,
+                        $outputPath,
+                        $userPassword,
+                    ]);
+                    if ($sysResult->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                        $applied = true;
+                    }
+                }
+            }
+
+            if (! $applied || ! file_exists($outputPath) || filesize($outputPath) === 0) {
+                throw new RuntimeException('ไม่สามารถล็อกรหัสผ่านเอกสาร PDF ได้ กรุณาลองใหม่อีกครั้ง');
             }
 
             $basename = pathinfo($inputFile->original_name, PATHINFO_FILENAME);
@@ -668,7 +697,7 @@ class PdfProcessingService
     }
 
     // =========================================================
-    // Unlock PDF (remove password via Ghostscript)
+    // Unlock PDF (remove password via Python)
     // =========================================================
 
     private function unlockPdf(PdfJob $job): UploadedFile
@@ -676,19 +705,49 @@ class PdfProcessingService
         $inputFile = $this->getInputFile($job);
         $inputPath = Storage::disk($inputFile->storage_disk)->path($inputFile->storage_key);
         $config = $job->tool_config ?? [];
-        $password = $config['password'] ?? '';
+        $password = trim((string) ($config['password'] ?? ''));
+
+        if (empty($password)) {
+            throw new RuntimeException('กรุณากรอกรหัสผ่านเพื่อปลดล็อกไฟล์ PDF');
+        }
+
         $tmpDir = $this->makeTmpDir();
         $outputPath = $tmpDir.DIRECTORY_SEPARATOR.'unlocked.pdf';
 
         try {
-            $result = Process::timeout(60)->run([
-                'gs', '-dBATCH', '-dNOPAUSE', '-q', '-sDEVICE=pdfwrite',
-                "-sPDFPassword={$password}",
-                "-sOutputFile={$outputPath}", $inputPath,
-            ]);
+            $applied = false;
+            $scriptPath = base_path('scripts/unlock_pdf.py');
+            $pythonCmd = file_exists('/opt/pdf2docx-env/bin/python3')
+                ? '/opt/pdf2docx-env/bin/python3'
+                : 'python3';
 
-            if (! $result->successful()) {
-                throw new RuntimeException('Unlock failed — รหัสผ่านไม่ถูกต้อง หรือไฟล์ไม่ได้มีรหัสผ่าน');
+            if (file_exists($scriptPath)) {
+                $pyResult = Process::timeout(60)->run([
+                    $pythonCmd,
+                    $scriptPath,
+                    $inputPath,
+                    $outputPath,
+                    $password,
+                ]);
+
+                if ($pyResult->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                    $applied = true;
+                } elseif ($pythonCmd !== 'python3') {
+                    $sysResult = Process::timeout(60)->run([
+                        'python3',
+                        $scriptPath,
+                        $inputPath,
+                        $outputPath,
+                        $password,
+                    ]);
+                    if ($sysResult->successful() && file_exists($outputPath) && filesize($outputPath) > 0) {
+                        $applied = true;
+                    }
+                }
+            }
+
+            if (! $applied || ! file_exists($outputPath) || filesize($outputPath) === 0) {
+                throw new RuntimeException('ปลดล็อกไม่สำเร็จ — รหัสผ่านไม่ถูกต้อง หรือไฟล์ไม่ได้มีรหัสผ่านป้องกัน');
             }
 
             $basename = pathinfo($inputFile->original_name, PATHINFO_FILENAME);

@@ -110,6 +110,9 @@ class FileController extends Controller
                 $config[$short] = $request->input($wmParam);
             }
         }
+        if ($request->filled('password')) {
+            $config['password'] = (string) $request->input('password');
+        }
 
         // Create the processing job record
         $pdfJob = PdfJob::create([

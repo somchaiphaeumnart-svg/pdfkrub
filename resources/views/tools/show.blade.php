@@ -727,6 +727,141 @@
                         </div>
                     </div>
                     @endif
+
+                    @if($tool['slug'] === 'protect-pdf')
+                    {{-- Protect PDF Password Settings Card --}}
+                    <div class="mt-5 pt-5 border-t border-gray-100 text-left" @click.stop>
+                        <div class="bg-gradient-to-br from-slate-50 to-indigo-50/40 border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-xs">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center border border-brand-100 shadow-2xs shrink-0">
+                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-sm font-bold text-gray-900">กำหนดรหัสผ่านป้องกันเอกสาร PDF</h3>
+                                    <p class="text-xs text-gray-500">เข้ารหัสไฟล์ด้วยมาตรฐาน AES-256 ปลอดภัยระดับสูงสุด ป้องกันการเปิดอ่านและแก้ไขเอกสาร</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {{-- Password Field --}}
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">
+                                        รหัสผ่านที่ต้องการตั้ง <span class="text-red-500">*</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input :type="showProtectPassword ? 'text' : 'password'"
+                                               x-model="protectPassword"
+                                               placeholder="ระบุรหัสผ่านของคุณ"
+                                               class="w-full px-3.5 py-2.5 pr-10 text-sm rounded-xl border border-gray-300 focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white text-gray-800 transition-all shadow-2xs">
+                                        <button type="button"
+                                                @click="showProtectPassword = !showProtectPassword"
+                                                class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer">
+                                            <svg x-show="!showProtectPassword" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                            </svg>
+                                            <svg x-show="showProtectPassword" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {{-- Confirm Password Field --}}
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">
+                                        ยืนยันรหัสผ่านอีกครั้ง <span class="text-red-500">*</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input :type="showProtectPasswordConfirm ? 'text' : 'password'"
+                                               x-model="protectPasswordConfirm"
+                                               placeholder="กรอกรหัสผ่านซ้ำอีกครั้ง"
+                                               class="w-full px-3.5 py-2.5 pr-10 text-sm rounded-xl border border-gray-300 focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white text-gray-800 transition-all shadow-2xs">
+                                        <button type="button"
+                                                @click="showProtectPasswordConfirm = !showProtectPasswordConfirm"
+                                                class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer">
+                                            <svg x-show="!showProtectPasswordConfirm" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                            </svg>
+                                            <svg x-show="showProtectPasswordConfirm" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Validation Notice / Tips --}}
+                            <div class="mt-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+                                <div>
+                                    <span x-show="!protectPassword && !protectPasswordConfirm" class="text-gray-500">
+                                        💡 กรุณากำหนดรหัสผ่านเพื่อใช้เปิดไฟล์เอกสาร PDF
+                                    </span>
+                                    <span x-show="protectPassword && !protectPasswordConfirm" class="text-amber-600 font-medium">
+                                        ⚠️ กรุณากรอกยืนยันรหัสผ่านอีกครั้ง
+                                    </span>
+                                    <span x-show="protectPassword && protectPasswordConfirm && protectPassword !== protectPasswordConfirm" class="text-red-500 font-medium flex items-center gap-1">
+                                        <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                        รหัสผ่านทั้งสองช่องไม่ตรงกัน
+                                    </span>
+                                    <span x-show="protectPassword && protectPasswordConfirm && protectPassword === protectPasswordConfirm" class="text-green-600 font-semibold flex items-center gap-1">
+                                        <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                                        รหัสผ่านถูกต้องตรงกัน พร้อมเข้ารหัสไฟล์
+                                    </span>
+                                </div>
+                                <span class="inline-flex items-center gap-1 text-[11px] text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-2.5 py-1 rounded-md font-medium">
+                                    <svg class="w-3 h-3 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                                    เข้ารหัส AES-256 บิต
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
+                    @if($tool['slug'] === 'unlock-pdf')
+                    {{-- Unlock PDF Password Settings Card --}}
+                    <div class="mt-5 pt-5 border-t border-gray-100 text-left" @click.stop>
+                        <div class="bg-gradient-to-br from-slate-50 to-amber-50/40 border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-xs">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200 shadow-2xs shrink-0">
+                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-sm font-bold text-gray-900">กรอกรหัสผ่านเพื่อปลดล็อก PDF</h3>
+                                    <p class="text-xs text-gray-500">ระบบจะทำการถอดรหัสผ่านออกจากไฟล์ PDF เพื่อให้เปิดอ่าน แก้ไข และพิมพ์ได้โดยไม่ต้องใส่รหัสผ่านอีก</p>
+                                </div>
+                            </div>
+
+                            <div class="max-w-md">
+                                <label class="block text-xs font-semibold text-gray-700 mb-1.5">
+                                    รหัสผ่านปัจจุบันของไฟล์ PDF <span class="text-red-500">*</span>
+                                </label>
+                                <div class="relative">
+                                    <input :type="showUnlockPassword ? 'text' : 'password'"
+                                           x-model="unlockPassword"
+                                           placeholder="ระบุรหัสผ่านของไฟล์ PDF"
+                                           class="w-full px-3.5 py-2.5 pr-10 text-sm rounded-xl border border-gray-300 focus:outline-hidden focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white text-gray-800 transition-all shadow-2xs">
+                                    <button type="button"
+                                            @click="showUnlockPassword = !showUnlockPassword"
+                                            class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer">
+                                        <svg x-show="!showUnlockPassword" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                        </svg>
+                                        <svg x-show="showUnlockPassword" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
                 </div>
             </template>
 
@@ -740,8 +875,8 @@
                 <button
                     @click="hasFiles ? startConversion('{{ $tool['slug'] }}') : $refs.fileInput.click()"
                     class="btn-primary px-10 py-4 rounded-2xl text-base flex items-center gap-2"
-                    :class="{ 'opacity-50 cursor-not-allowed': !hasFiles || (tool === 'delete-pages' && hasFiles && !canSubmitDeletePages) || (tool === 'watermark-pdf' && hasFiles && !canSubmitWatermark) }"
-                    :disabled="(tool === 'delete-pages' && hasFiles && !canSubmitDeletePages) || (tool === 'watermark-pdf' && hasFiles && !canSubmitWatermark)"
+                    :class="{ 'opacity-50 cursor-not-allowed': !hasFiles || (tool === 'delete-pages' && hasFiles && !canSubmitDeletePages) || (tool === 'watermark-pdf' && hasFiles && !canSubmitWatermark) || (tool === 'protect-pdf' && hasFiles && !canSubmitProtectPdf) || (tool === 'unlock-pdf' && hasFiles && !canSubmitUnlockPdf) }"
+                    :disabled="!hasFiles || (tool === 'delete-pages' && hasFiles && !canSubmitDeletePages) || (tool === 'watermark-pdf' && hasFiles && !canSubmitWatermark) || (tool === 'protect-pdf' && hasFiles && !canSubmitProtectPdf) || (tool === 'unlock-pdf' && hasFiles && !canSubmitUnlockPdf)"
                     @if($tool['premium'] && !(auth()->check() && auth()->user()->getActivePlan()->has_ocr)) disabled @endif>
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>

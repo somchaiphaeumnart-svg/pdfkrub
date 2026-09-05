@@ -147,6 +147,14 @@ Alpine.data('fileUpload', (config = {}) => ({
     watermarkPages: 'all', // 'all', 'first', 'custom'
     watermarkCustomPages: '',
 
+    // Protect & Unlock PDF Password State
+    protectPassword: '',
+    protectPasswordConfirm: '',
+    showProtectPassword: false,
+    showProtectPasswordConfirm: false,
+    unlockPassword: '',
+    showUnlockPassword: false,
+
     // Processing state
     isUploading: false,
     uploadProgress: 0,
@@ -344,6 +352,12 @@ Alpine.data('fileUpload', (config = {}) => ({
         this.pdfRenderError = null;
         this.clearDeletePagesState();
         this.clearWatermarkState();
+        this.protectPassword = '';
+        this.protectPasswordConfirm = '';
+        this.showProtectPassword = false;
+        this.showProtectPasswordConfirm = false;
+        this.unlockPassword = '';
+        this.showUnlockPassword = false;
         clearStagedFiles();
     },
 
@@ -454,6 +468,29 @@ Alpine.data('fileUpload', (config = {}) => ({
                 formData.append('watermark_color', this.watermarkTextColor);
                 formData.append('config[color]', this.watermarkTextColor);
             }
+        }
+        if (activeTool === 'protect-pdf') {
+            if (!this.protectPassword) {
+                this.error = 'กรุณากรอกรหัสผ่านที่ต้องการตั้ง';
+                this.isUploading = false;
+                return;
+            }
+            if (this.protectPassword !== this.protectPasswordConfirm) {
+                this.error = 'รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน';
+                this.isUploading = false;
+                return;
+            }
+            formData.append('password', this.protectPassword);
+            formData.append('config[password]', this.protectPassword);
+        }
+        if (activeTool === 'unlock-pdf') {
+            if (!this.unlockPassword) {
+                this.error = 'กรุณากรอกรหัสผ่านของไฟล์ PDF เพื่อปลดล็อก';
+                this.isUploading = false;
+                return;
+            }
+            formData.append('password', this.unlockPassword);
+            formData.append('config[password]', this.unlockPassword);
         }
         const tokenMeta = document.querySelector('meta[name="csrf-token"]');
         if (tokenMeta) {
@@ -1253,6 +1290,21 @@ Alpine.data('fileUpload', (config = {}) => ({
             }
             return 'ใส่ลายน้ำและดาวน์โหลด PDF';
         }
+        if (this.tool === 'protect-pdf' && this.hasFiles) {
+            if (!this.protectPassword) {
+                return 'กรุณาระบุรหัสผ่าน';
+            }
+            if (this.protectPassword !== this.protectPasswordConfirm) {
+                return 'รหัสผ่านทั้งสองช่องไม่ตรงกัน';
+            }
+            return 'ตั้งรหัสผ่านและดาวน์โหลด PDF';
+        }
+        if (this.tool === 'unlock-pdf' && this.hasFiles) {
+            if (!this.unlockPassword) {
+                return 'กรุณากรอกรหัสผ่านเพื่อปลดล็อก';
+            }
+            return 'ปลดล็อกรหัสผ่านและดาวน์โหลด PDF';
+        }
         return null;
     },
 
@@ -1436,6 +1488,14 @@ Alpine.data('fileUpload', (config = {}) => ({
             return !!this.watermarkImageDataUrl;
         }
         return !!(this.watermarkText && this.watermarkText.trim().length > 0);
+    },
+
+    get canSubmitProtectPdf() {
+        return this.protectPassword.length > 0 && this.protectPassword === this.protectPasswordConfirm;
+    },
+
+    get canSubmitUnlockPdf() {
+        return this.unlockPassword.length > 0;
     },
 
     get hasFiles() { return this.files.length > 0; },
